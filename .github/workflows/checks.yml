@@ -1,0 +1,22 @@
+name: Configuration checks
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  static:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Unit tests
+        run: python3 -m unittest discover -s tests/integration -v
+      - name: Shell syntax
+        run: |
+          bash -n scripts/development/run-vm.sh
+          sh -n distribution/image-build/010-mykos.chroot
+      - name: Generate configuration with pinned Ubuntu toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y live-build=3.0~a57-1ubuntu49.1 debootstrap
+          python3 scripts/build/mykos.py configure build/ci-config

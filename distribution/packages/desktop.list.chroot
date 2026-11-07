@@ -1,0 +1,44 @@
+# Boot and live session
+linux-generic
+casper
+initramfs-tools
+systemd-sysv
+ubuntu-keyring
+sudo
+locales
+# Upstream KDE; Noble supplies Plasma 5.27, not Plasma 6
+plasma-desktop
+plasma-workspace-wayland
+sddm
+breeze
+breeze-icon-theme
+fonts-noto-core
+fonts-noto-color-emoji
+# Core desktop tasks
+konsole
+dolphin
+kate
+ark
+okular
+network-manager
+plasma-nm
+bluez
+bluedevil
+pipewire-audio
+wireplumber
+plasma-pa
+powerdevil
+udisks2
+polkit-kde-agent-1
+xdg-desktop-portal-kde
+# Application management (no third-party remotes enabled)
+plasma-discover
+plasma-discover-backend-flatpak
+flatpak
+# Maintenance and baseline developer tools
+fwupd
+ca-certificates
+curl
+git
+less
+nano

@@ -1,0 +1,14 @@
+{
+  "name": "MyKOS",
+  "version": "0.1.0-dev",
+  "ubuntu_release": "24.04",
+  "suite": "noble",
+  "architecture": "amd64",
+  "live_build_version": "3.0~a57-1ubuntu49.1",
+  "archive_areas": ["main", "restricted", "universe", "multiverse"],
+  "mirror": "https://archive.ubuntu.com/ubuntu/",
+  "security_mirror": "https://security.ubuntu.com/ubuntu/",
+  "bootloader": "syslinux",
+  "boot_mode": "legacy-bios",
+  "minimum_free_gib": 25
+}

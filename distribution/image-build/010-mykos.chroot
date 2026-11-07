@@ -1,0 +1,17 @@
+#!/bin/sh
+set -eu
+# Preserve Ubuntu's ID and VERSION_ID for package and driver compatibility.
+# os-release may be a symlink to /usr/lib/os-release.
+sed -i 's/^PRETTY_NAME=.*/PRETTY_NAME="MyKOS 0.1 development (Ubuntu 24.04)"/' /etc/os-release
+cat >> /etc/os-release <<'RELEASE'
+VARIANT="MyKOS Desktop"
+VARIANT_ID=mykos
+RELEASE
+printf 'MyKOS development live image — not a validated release\n' > /etc/issue
+printf '/usr/bin/sddm\n' > /etc/X11/default-display-manager
+systemctl enable sddm.service
+systemctl set-default graphical.target
+# Keep machine identity unique per installation/live session.
+: > /etc/machine-id
+rm -f /var/lib/dbus/machine-id
+ln -s /etc/machine-id /var/lib/dbus/machine-id
