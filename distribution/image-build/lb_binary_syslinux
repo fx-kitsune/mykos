@@ -1,0 +1,38 @@
+#!/bin/sh
+# Menu BIOS tối thiểu cho Noble; không dùng gfxboot hoặc chủ đề Oneiric cũ.
+set -e
+. "${LIVE_BUILD}/scripts/build.sh"
+Read_conffiles config/all config/common config/bootstrap config/chroot config/binary config/source
+Set_defaults
+[ "${LB_BOOTLOADER}" = syslinux ] || exit 0
+[ "${LB_ARCHITECTURES}" = amd64 ] && [ "${LB_INITRAMFS}" = casper ] && [ "${LB_BINARY_IMAGES}" = iso-hybrid ] || {
+    echo 'Menu BIOS MyKOS chỉ hỗ trợ amd64/casper/iso-hybrid.' >&2
+    exit 1
+}
+Require_stagefile .build/config .build/bootstrap .build/binary_linux-image
+Check_stagefile .build/binary_syslinux
+Check_lockfile .lock
+Create_lockfile .lock
+
+# Biến ghi đè chỉ dùng cho kiểm thử; bản dựng dùng gói chính thức trên máy tạo ảnh.
+module_root=${MYKOS_SYSLINUX_ROOT:-/usr/lib}
+target=binary/isolinux
+mkdir -p "$target"
+cp "$module_root/ISOLINUX/isolinux.bin" "$target/isolinux.bin"
+for module in menu.c32 ldlinux.c32 libcom32.c32 libutil.c32; do
+    cp "$module_root/syslinux/modules/bios/$module" "$target/$module"
+done
+
+kernel=$(find binary/casper -maxdepth 1 -type f -name 'vmlinuz-*' -printf '%f\n' | sort -V | tail -n 1)
+[ -n "$kernel" ] || { echo 'Không tìm thấy nhân trong binary/casper.' >&2; exit 1; }
+initrd="initrd.img-${kernel#vmlinuz-}"
+[ -f "binary/casper/$initrd" ] || { echo 'Thiếu initrd tương ứng với nhân đã chọn.' >&2; exit 1; }
+# Menu BIOS dùng ký tự ASCII để không phụ thuộc phông Unicode của firmware.
+{
+    printf 'ui menu.c32\ndefault mykos\nprompt 0\ntimeout 50\nmenu title MyKOS\n'
+    printf 'label mykos\n  menu label Khoi dong MyKOS (phien truc tiep)\n'
+    printf '  kernel /casper/%s\n  append initrd=/casper/%s %s\n' "$kernel" "$initrd" "$LB_BOOTAPPEND_LIVE"
+    printf 'label mykos-safe\n  menu label MyKOS (do hoa an toan)\n'
+    printf '  kernel /casper/%s\n  append initrd=/casper/%s %s nomodeset\n' "$kernel" "$initrd" "$LB_BOOTAPPEND_LIVE"
+} > "$target/isolinux.cfg"
+Create_stagefile .build/binary_syslinux

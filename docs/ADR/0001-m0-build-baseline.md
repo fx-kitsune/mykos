@@ -22,3 +22,9 @@ Dùng các kho Ubuntu có chữ ký `main`, `restricted`, `universe`, `multivers
 Mục tiêu đầu tiên là phiên chạy trực tiếp chưa nghiệm thu, chưa phải bản cài đặt được xác nhận. Calamares cần chuỗi mô-đun, dữ liệu cài ngoại tuyến, phân vùng, bộ nạp khởi động và dọn tài khoản phiên trực tiếp được rà soát riêng. Chỉ đưa trình cài đặt ra sử dụng sau khi kiểm thử.
 
 UEFI, Secure Boot và chuyển sang Plasma mới là điều kiện cần xác nhận riêng. Kho gói thay đổi theo thời gian nên chưa tạo lại ảnh giống từng byte; cần khóa kho theo thời điểm và toàn bộ công cụ máy tạo ảnh. Phải đánh giá thời gian hỗ trợ còn lại của KDE 5 trước khi chọn Noble cho phát hành công khai.
+
+## Điều chỉnh sau lượt tạo ảnh trên Actions
+
+Lượt tạo ảnh đầu tiên dừng ở bước Syslinux vì mặc định của live-build tham chiếu `syslinux-themes-ubuntu-oneiric` và `gfxboot-theme-ubuntu`, không còn trong kho Noble. Bước menu BIOS được thay bằng `distribution/image-build/lb_binary_syslinux`, chỉ áp dụng cho amd64/casper/ISO lai. Bước này lấy ISOLINUX và các mô-đun Syslinux từ gói chính thức trên máy tạo ảnh, tạo menu văn bản trỏ đúng nhân và initrd trong `/casper`, không dùng gfxboot, chủ đề cũ hoặc trình render SVG cũ. Các bước tạo ảnh còn lại giữ nguyên. Menu dùng ký tự ASCII để tương thích phông BIOS.
+
+Kiểm thử xác nhận chọn cặp nhân/initrd cùng phiên bản và dừng khi thiếu initrd hoặc mô-đun bắt buộc. Đây chưa phải bằng chứng khởi động ISO; vẫn cần lượt tạo ảnh và kiểm thử máy ảo thực tế.

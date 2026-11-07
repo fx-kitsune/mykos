@@ -31,7 +31,7 @@ def packages():
 def config_args(cfg):
     return ["--bootstrap", "debootstrap", "--mode", "ubuntu", "--distribution", cfg["suite"],
             "--architectures", cfg["architecture"], "--binary-images", "iso-hybrid",
-            "--bootloader", cfg["bootloader"], "--initramfs", "casper",
+            "--bootloader", cfg["bootloader"], "--syslinux-theme", "live-build", "--initramfs", "casper",
             "--linux-flavours", "generic", "--linux-packages", "linux-image",
             "--archive-areas", " ".join(cfg["archive_areas"]),
             "--mirror-bootstrap", cfg["mirror"], "--mirror-chroot", cfg["mirror"],
@@ -63,6 +63,9 @@ def prepare_toolchain(destination):
             content = script.read_text()
             if old in content:
                 script.write_text(content.replace(old, '. "${LIVE_BUILD}/scripts/build.sh"'))
+    # Giai đoạn menu BIOS riêng tránh phụ thuộc Oneiric/gfxboot đã bị loại bỏ.
+    shutil.copy2(ROOT / "distribution/image-build/lb_binary_syslinux",
+                 destination / "scripts/build/lb_binary_syslinux")
     env = os.environ.copy()
     env["LIVE_BUILD"] = str(destination)
     env["PATH"] = str(destination / "bin") + ":" + env.get("PATH", "")
