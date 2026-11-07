@@ -1,261 +1,145 @@
-# MyKOS — Technical Architecture
+# MyKOS — Kiến trúc kỹ thuật
 
-- Status: Proposed baseline — v1.0
-- Scope: Initial x86_64 desktop distribution
-- Related: Product Vision and Roadmap in this directory
+- Trạng thái: Kiến trúc định hướng phiên bản 1.0, đã có một phần triển khai M0.
+- Phạm vi: Bản phân phối máy tính cá nhân x86_64.
+- Tham chiếu: [Tầm nhìn](PRODUCT_VISION.md), [lộ trình](ROADMAP.md), [trạng thái triển khai](IMPLEMENTATION_STATUS.md).
 
-## 1. Architecture goals
+## 1. Mục tiêu kiến trúc
 
-MyKOS will be a Linux distribution assembled from established upstream components, with a focused integration layer and a distinctive user experience.
+Lắp ghép thành phần nguồn mở đã trưởng thành, bổ sung lớp tích hợp gọn và trải nghiệm MyKOS nhất quán. Giữ khả năng thay nền Linux khi thực tế cho phép; tách giao diện khỏi thao tác đặc quyền; ưu tiên D-Bus và giao diện dòng lệnh được công bố; hạn chế bản phân nhánh dài hạn; tạo ảnh tái lập được; kiểm thử được bản phát hành và áp dụng đặc quyền tối thiểu.
 
-The architecture should:
+## 2. Các lớp logic
 
-- Keep the Linux base replaceable where practical.
-- Separate desktop presentation from privileged system operations.
-- Prefer stable upstream interfaces such as D-Bus and documented command-line APIs.
-- Minimize long-lived forks and private patches.
-- Make builds reproducible and releases testable.
-- Use least privilege for all system-management operations.
+| Lớp | Thành phần và trách nhiệm |
+|---|---|
+| Trải nghiệm MyKOS | Môi trường làm việc, thiết lập, danh mục ứng dụng, quản lý tệp, thông báo và công cụ phát triển |
+| Nền tảng MyKOS | API hệ thống, tích hợp ứng dụng, cập nhật, thiết bị, cấu hình, chẩn đoán và chính sách |
+| Dịch vụ Linux | systemd, D-Bus, Polkit, NetworkManager, PipeWire, UDisks2, fwupd |
+| Nền tảng đồ họa | KDE Plasma, KWin, Wayland, Qt/QML, Mesa |
+| Hệ điều hành nền và phần cứng | Nhân Linux, GNU và công cụ người dùng, thư viện, phần sụn, thiết bị |
 
-## 2. Logical architecture
+Đây là cách nhóm trách nhiệm, không phải ranh giới tiến trình hoặc gói phần mềm. Plasma, KWin, Wayland, Qt và Mesa có vị trí khác nhau trong hệ thống đồ họa thực tế.
 
-    +-------------------------------------------------------------+
-    |                    MyKOS Experience Layer                  |
-    | Desktop shell | Settings | App Catalog | File Manager       |
-    | Notifications | Developer tools integration                 |
-    +-----------------------------+-------------------------------+
-                                  |
-    +-----------------------------v-------------------------------+
-    |                    MyKOS Platform Layer                     |
-    | System API | App integration | Update UX | Device UX        |
-    | Configuration | Diagnostics | MyKOS-specific policy         |
-    +-----------------------------+-------------------------------+
-                                  |
-    +-----------------------------v-------------------------------+
-    |                    Linux System Services                    |
-    | systemd | D-Bus | Polkit | NetworkManager | PipeWire         |
-    | UDisks2 | fwupd (where supported) | system services         |
-    +-----------------------------+-------------------------------+
-                                  |
-    +-----------------------------v-------------------------------+
-    |                    Linux Desktop Platform                   |
-    | KDE Plasma | KWin | Wayland | Qt 6/QML | Mesa                |
-    +-----------------------------+-------------------------------+
-                                  |
-    +-----------------------------v-------------------------------+
-    |                    Linux Base and Hardware                  |
-    | Linux kernel | GNU/userland | libraries | firmware | devices |
-    +-------------------------------------------------------------+
+## 3. Công nghệ nền tảng
 
-This is a logical view, not a strict packaging or process boundary. KDE Plasma, KWin, Wayland, Qt, and Mesa occupy different positions in the real graphics and desktop stack. The diagram groups them to communicate the platform relationship.
-
-## 3. Initial technology baseline
-
-| Area | Proposed choice | Notes |
+| Hạng mục | Lựa chọn | Phạm vi và giới hạn |
 |---|---|---|
-| Distribution base | Ubuntu LTS | Select and pin a specific supported LTS release when implementation starts. |
-| Architecture | x86_64 | Initial target; other architectures are future work. |
-| Desktop | KDE Plasma | Integrate upstream first; avoid a full fork. |
-| Display protocol | Wayland | Retain compatibility paths where hardware or applications require them. |
-| Window manager/compositor | KWin | Upstream KDE component. |
-| UI framework | Qt 6 / QML | For MyKOS desktop components and applications. |
-| New system services | Rust | Preferred for new privileged or background services when appropriate. |
-| System integration | D-Bus | Use documented interfaces and narrow service contracts. |
-| Authorization | Polkit | Enforce authorization for privileged actions. |
-| Init/service manager | systemd | Use upstream service management. |
-| Networking | NetworkManager | Use existing desktop/system integration. |
-| Audio | PipeWire | Use upstream audio stack. |
-| Storage/device integration | UDisks2 and udev | Use upstream interfaces. |
-| Firmware | fwupd | Only for supported devices and update sources. |
-| System packages | APT / DEB | Base OS and system-level components. |
-| Desktop applications | Flatpak | Primary graphical application distribution candidate. |
-| Installer | Calamares | Validate integration, branding, and compatibility with the chosen base. |
-| Image build | Ubuntu-compatible image build pipeline | Choose a maintained tool and pin versions during M0. |
-| Virtual testing | QEMU/KVM | Primary repeatable VM test environment. |
+| Hệ điều hành nền | Ubuntu 24.04 LTS Noble | Đã chốt cho thử nghiệm M0; xem ADR 0001 |
+| Kiến trúc | amd64 / x86_64 | Kiến trúc khác để sau |
+| Môi trường làm việc | KDE Plasma 5.27 của Noble | Tích hợp thành phần gốc, chưa phân nhánh toàn bộ |
+| Giao thức hiển thị | Định hướng Wayland | Phải kiểm thử riêng và giữ đường tương thích khi cần |
+| Quản lý cửa sổ và tổng hợp hình ảnh | KWin | Thành phần gốc KDE |
+| Giao diện riêng MyKOS | Qt 6/QML | Workspace hiện dùng Python/PyQt6; không có nghĩa Plasma nền đã là Qt 6 |
+| Dịch vụ mới | Ưu tiên Rust khi phù hợp | Đặc biệt với dịch vụ nền hoặc đặc quyền; chưa triển khai |
+| Tích hợp hệ thống | D-Bus | Giao diện có tài liệu, phạm vi yêu cầu hẹp |
+| Cấp quyền | Polkit | Cho thao tác đặc quyền cần xác thực |
+| Khởi tạo và dịch vụ | systemd | Dùng cơ chế chuẩn |
+| Mạng | NetworkManager | Dùng tích hợp hệ thống và giao diện có sẵn |
+| Âm thanh | PipeWire | Dùng thành phần gốc |
+| Lưu trữ và thiết bị | UDisks2, udev | Tích hợp qua giao diện được hỗ trợ |
+| Phần sụn | fwupd | Chỉ ở thiết bị và nguồn được hỗ trợ |
+| Gói hệ thống | APT/DEB | Hệ điều hành nền và thành phần tích hợp chặt |
+| Ứng dụng đồ họa | Flatpak | Hướng phân phối ưu tiên cần tiếp tục đánh giá |
+| Trình cài đặt | Calamares | Chưa cấu hình; phải xác nhận tương thích và kiểm thử |
+| Tạo ảnh | Ubuntu live-build `3.0~a57-1ubuntu49.1` | Cấu hình thử nghiệm BIOS, chưa có ISO được nghiệm thu |
+| Máy ảo | QEMU/KVM | Dùng TCG khi không có KVM; khởi động thực tế chưa được xác nhận |
 
-The table is a proposal, not a claim that every component is already integrated. Exact versions and compatibility constraints must be pinned in the build configuration.
+Bảng phân biệt công nghệ đã chọn với khả năng đã kiểm chứng. Phiên bản và ràng buộc phải được ghi trong cấu hình bản dựng, không suy ra khả năng hỗ trợ chỉ từ danh sách gói.
 
-## 4. Distribution layer
+## 4. Lớp bản phân phối
 
-The distribution layer owns:
+Chịu trách nhiệm chọn gói và kho phần mềm, chính sách nhân/phần sụn, mặc định giao diện, nhận diện, cấu hình cài đặt, ứng dụng mặc định, tạo ảnh và xác định phần cứng hỗ trợ.
 
-- Base package selection and package repositories.
-- Kernel and firmware policy.
-- Desktop defaults and branding.
-- Installer configuration.
-- Default applications.
-- Image creation and release artifacts.
-- Supported hardware definition.
+Ưu tiên cấu hình khai báo. Mỗi lần phát hành phải ghi phiên bản gói, nguồn kho, phiên bản công cụ và thông tin ảnh hệ thống. Kho Ubuntu đang thay đổi theo thời gian nên cấu hình hiện tại chưa bảo đảm tái lập từng bit.
 
-Keep distribution configuration declarative wherever possible. Record package versions, repository origins, build tool versions, and image metadata for each release.
+## 5. Lớp trải nghiệm làm việc
 
-## 5. Desktop experience layer
+Bắt đầu từ Plasma gốc, cấu hình chủ đề, biểu tượng, phông chữ, hình nền, thanh tác vụ, trình mở ứng dụng, lần chạy đầu, thông báo, phím tắt, khả năng tiếp cận và quản lý nguồn. Chỉ bổ sung điểm vào thiết lập riêng khi KDE chưa đáp ứng.
 
-Start with upstream KDE Plasma and configure it to provide a coherent MyKOS experience.
+Fold hiện được triển khai thành tài nguyên nhận diện KDE và ứng dụng Workspace không đặc quyền chạy cùng Plasma. Workspace có ba ngữ cảnh ghi chú, không thay thế KDE Activities hoặc trình quản lý cửa sổ. Xem [phạm vi native](../desktop/README.md) và [ADR 0002](ADR/0002-fold-native-integration.md).
 
-Initial responsibilities:
+Chỉ cân nhắc giao diện hệ thống hoặc trình mở ứng dụng riêng khi có nhu cầu đã xác nhận, phạm vi hẹp và chiến lược tương thích dự án gốc rõ ràng.
 
-- Theme, icons, fonts, wallpaper, panel, and launcher defaults.
-- First-run experience and sensible defaults.
-- MyKOS settings entry points where upstream settings are insufficient.
-- Integration of notifications, shortcuts, accessibility, and power behavior.
+## 6. Lớp nền tảng MyKOS
 
-Do not fork all of Plasma. If a MyKOS-specific shell or launcher is justified later, build it as a focused component with a clear upstream compatibility strategy.
+Cung cấp giao diện ổn định, hẹp cho lớp hiển thị; chuyển công việc hệ thống thực sự cho dịch vụ gốc.
 
-## 6. MyKOS Platform Layer
-
-This layer is the primary place for MyKOS-specific integration. It should provide stable, narrow contracts to the UI while delegating actual system work to upstream services.
-
-Candidate modules:
-
-| Module | Responsibility | Likely integration |
+| Mô-đun dự kiến | Trách nhiệm | Tích hợp |
 |---|---|---|
-| system-info | OS, kernel, hardware and diagnostic information | procfs, sysfs, D-Bus, standard tools |
-| display-integration | Display configuration UX | KWin/desktop interfaces |
-| network-integration | Network status and user actions | NetworkManager D-Bus |
-| user-integration | User/account workflows | system services and Polkit |
-| application-manager | Installed apps and software sources | APT, Flatpak |
-| update-manager | Update discovery and user-facing workflow | APT and Flatpak update mechanisms |
-| device-integration | Device discovery and status | udev, UDisks2, fwupd |
-| power-integration | Battery and power status | UPower and desktop services |
-| diagnostics | Collect user-approved logs and health information | journalctl and system interfaces |
+| `system-info` | Thông tin hệ điều hành, nhân, phần cứng và chẩn đoán | procfs, sysfs, D-Bus, công cụ chuẩn |
+| `display-integration` | Trải nghiệm cấu hình màn hình | KWin và giao diện môi trường làm việc |
+| `network-integration` | Trạng thái và thao tác mạng | NetworkManager D-Bus |
+| `user-integration` | Người dùng và tài khoản | Dịch vụ hệ thống, Polkit |
+| `application-manager` | Ứng dụng đã cài và nguồn phần mềm | APT, Flatpak |
+| `update-manager` | Phát hiện và hướng dẫn cập nhật | APT, Flatpak |
+| `device-integration` | Phát hiện thiết bị và trạng thái | udev, UDisks2, fwupd |
+| `power-integration` | Pin và nguồn điện | UPower, dịch vụ môi trường làm việc |
+| `diagnostics` | Thu thập nhật ký và sức khỏe hệ thống khi người dùng đồng ý | journalctl, giao diện hệ thống |
 
-These are candidate modules, not a requirement to create one daemon per feature. Prefer a small number of cohesive services over excessive microservices.
+Đây là các trách nhiệm dự kiến, không yêu cầu một dịch vụ riêng cho từng tính năng. Ưu tiên ít dịch vụ có trách nhiệm mạch lạc.
 
-### API contract
+### Hợp đồng giao tiếp
 
-- Define versioned interfaces and explicit error types.
-- Prefer D-Bus for communication with system services.
-- Validate all inputs at service boundaries.
-- Keep UI processes unprivileged.
-- Require Polkit authorization for privileged actions.
-- Do not expose arbitrary root command execution to the UI.
-- Log security-relevant operations without collecting unnecessary personal data.
-- Provide timeouts, cancellation behavior, and clear status reporting.
+- Giao diện có phiên bản, kiểu yêu cầu và kiểu lỗi rõ ràng.
+- Ưu tiên D-Bus; kiểm tra mọi đầu vào tại ranh giới dịch vụ.
+- Tiến trình giao diện không có đặc quyền; dùng Polkit khi cần cấp quyền.
+- Không cung cấp API chạy tùy ý lệnh root cho giao diện.
+- Ghi nhật ký thao tác liên quan bảo mật, tránh thu thập thông tin cá nhân không cần thiết.
+- Có thời gian chờ, cơ chế hủy và báo cáo trạng thái rõ ràng.
 
-Illustrative flow for changing a system setting:
+Quy trình minh họa: giao diện gửi yêu cầu có kiểu; dịch vụ kiểm tra đầu vào và quyền; gọi API gốc; trả kết quả có cấu trúc; giao diện giải thích kết quả và bước tiếp theo. Khi triển khai phải dùng giao diện thực sự được thành phần nền hỗ trợ.
 
-1. The unprivileged settings UI submits a typed request.
-2. The platform service validates the request.
-3. The service checks authorization where required.
-4. The service calls the appropriate upstream API.
-5. The service returns a structured success or error result.
-6. The UI explains the outcome and offers a safe next step.
+## 7. Chiến lược ứng dụng và gói
 
-The example is conceptual; implementation must use the actual supported interfaces of the selected upstream components.
+- **APT/DEB:** Hệ điều hành nền, trình điều khiển, thư viện và thành phần tích hợp chặt.
+- **Flatpak:** Nhiều ứng dụng máy tính cá nhân; hiển thị rõ nguồn và quyền.
+- **Công cụ phát triển:** Gói chuẩn, bộ cài gốc, trình quản lý phiên bản ngôn ngữ và container theo hướng dẫn bảo mật đã công bố.
 
-## 7. Application and package strategy
+Danh mục MyKOS cần thống nhất trải nghiệm và phân biệt chính xác nhà phát hành, nguồn, quyền và cơ chế cập nhật. Không tạo định dạng gói độc quyền trong các mốc đầu.
 
-Use different delivery mechanisms for different responsibilities:
+## 8. Cập nhật, phục hồi và độ tin cậy
 
-- **APT/DEB:** Base OS, drivers, system libraries, and tightly integrated system components.
-- **Flatpak:** Preferred route for many desktop applications, with clear source and permission information.
-- **Developer tools:** Support standard distribution packages, upstream installers, language version managers, and containers according to documented security guidance.
+Dùng cơ chế cập nhật được bản phân phối nền hỗ trợ. Tách cập nhật hệ điều hành với cập nhật Flatpak cả về xử lý lẫn cách trình bày. Kiểm thử cập nhật gián đoạn, công bố ghi chú phiên bản và giới hạn.
 
-The MyKOS application catalog should present a consistent user experience while clearly identifying the underlying source, publisher, permissions, and update mechanism.
+Chỉ đánh giá hoàn tác bằng Btrfs/Snapper sau khi hệ thống tệp, trình cài đặt, bộ nạp khởi động và cập nhật đã được thử cùng nhau. Phương án dựa trên ảnh như bootc là quyết định về sau, không phải điều kiện mặc định của bản tối thiểu.
 
-Do not create a proprietary package format in the initial milestones.
+Ảnh chụp trạng thái không thay thế sao lưu. Bảo vệ dữ liệu người dùng phải có hướng dẫn độc lập với hoàn tác hệ thống.
 
-## 8. Updates, recovery, and reliability
+## 9. Mô hình bảo mật
 
-Initial release strategy:
+Phiên người dùng mặc định không đặc quyền; API quản trị hẹp và có cấp quyền; không nhúng thông tin xác thực vào ảnh hoặc repo; ưu tiên gói có chữ ký và nguồn đáng tin; giải thích quyền ứng dụng; duy trì kênh cập nhật được hỗ trợ; giảm dịch vụ nền và giao diện mở ra ngoài. Công bố quy trình báo cáo lỗ hổng trước phát hành công khai.
 
-- Use the base distribution's supported package update mechanisms.
-- Separate OS updates from Flatpak application updates in both implementation and user messaging.
-- Test interrupted updates and recovery procedures.
-- Provide clear release notes and known-issue information.
-- Evaluate Btrfs snapshots and Snapper for rollback only after filesystem, installer, bootloader, and update integration are validated together.
-- Evaluate image-based approaches such as bootc only as a later architecture decision, not as an assumed MVP dependency.
+## 10. Tạo ảnh, kiểm thử và phát hành
 
-A snapshot is not a backup. User data protection and backup guidance must remain separate from system rollback.
+Quy trình mục tiêu:
 
-## 9. Security model
+1. Bắt đầu từ bản nền và danh sách gói đã chốt.
+2. Giải quyết phụ thuộc từ kho đã khai báo.
+3. Áp dụng cấu hình và nhận diện có quản lý phiên bản.
+4. Tạo ISO khởi động được.
+5. Xuất mã kiểm tra và thông tin bản dựng.
+6. Chạy kiểm thử ảnh, khởi động và cài đặt.
+7. Lưu nhật ký và sản phẩm của từng lần tạo ảnh.
 
-- Default to unprivileged user sessions.
-- Use Polkit and narrow privileged service interfaces.
-- Do not embed credentials or secrets in images or repositories.
-- Prefer signed packages and trusted repositories.
-- Make application permissions understandable.
-- Keep the kernel, base packages, and desktop stack on supported update channels.
-- Minimize background services and exposed interfaces.
-- Publish a vulnerability reporting process before public release.
+Các lớp kiểm thử gồm kiểm tra tĩnh, gói/phụ thuộc, khởi động QEMU/KVM, cài đĩa sạch, chức năng môi trường làm việc, cập nhật/phục hồi và phần cứng đại diện. Tạo ISO thành công chưa đủ để nghiệm thu bản phát hành.
 
-## 10. Build, test, and release engineering
+## 11. Tổ chức mã nguồn
 
-The build pipeline should:
+| Đường dẫn | Vai trò |
+|---|---|
+| `docs/` | Tầm nhìn, kiến trúc, lộ trình, tạo ảnh và quyết định kiến trúc |
+| `design-system/` | Bản mẫu trình duyệt và tài nguyên Fold gốc |
+| `distribution/` | Nền tảng, danh sách gói, kho, cài đặt, nhận diện và cấu hình ảnh |
+| `desktop/workspace/` | Giao diện Qt/QML và lưu trữ ghi chú |
+| `desktop/integration/` | Lệnh mở ứng dụng và mục menu KDE |
+| `tests/integration/` | Kiểm thử cấu hình và danh sách nghiệm thu máy ảo |
+| `tests/desktop/` | Kiểm thử dữ liệu và giao diện native |
+| `tests/hardware/` | Ma trận hỗ trợ thiết bị |
+| `scripts/build/` | Tạo cấu hình, ảnh, thông tin bản dựng và xuất tài nguyên thiết kế |
+| `scripts/development/` | Công cụ phục vụ phát triển như chạy QEMU |
 
-1. Start from a pinned base release and package manifest.
-2. Resolve packages from declared repositories.
-3. Apply version-controlled MyKOS configuration and branding.
-4. Build a bootable ISO.
-5. Generate checksums and build metadata.
-6. Run automated image and boot smoke tests.
-7. Store logs and artifacts for each build.
+Khi bắt đầu triển khai mới, có thể bổ sung `platform/`, `applications/`, `services/`, các thành phần giao diện và `scripts/release/` theo trách nhiệm. Không tạo thư mục rỗng để ngụ ý tính năng đã tồn tại.
 
-Testing layers:
+## 12. Quyết định kiến trúc
 
-- Static checks for configuration and scripts.
-- Package and dependency validation.
-- ISO boot tests in QEMU/KVM.
-- Installation tests to a clean virtual disk.
-- Desktop smoke tests after first boot.
-- Update and recovery tests.
-- Hardware testing on a documented representative device matrix.
-
-A release must not be considered validated solely because the ISO builds successfully.
-
-## 11. Repository structure
-
-Proposed monorepo structure; create directories as implementation begins:
-
-    mykos/
-    ├── docs/
-    │   ├── PRODUCT_VISION.md
-    │   ├── ARCHITECTURE.md
-    │   ├── ROADMAP.md
-    │   └── ADR/
-    ├── distribution/
-    │   ├── base/
-    │   ├── packages/
-    │   ├── repositories/
-    │   ├── installer/
-    │   ├── branding/
-    │   └── image-build/
-    ├── desktop/
-    │   ├── shell/
-    │   ├── launcher/
-    │   ├── settings/
-    │   ├── notification-center/
-    │   └── components/
-    ├── platform/
-    │   ├── system-info/
-    │   ├── application-manager/
-    │   ├── update-manager/
-    │   ├── device-manager/
-    │   └── system-api/
-    ├── applications/
-    │   ├── app-store/
-    │   └── developer-center/
-    ├── services/
-    ├── tests/
-    │   ├── integration/
-    │   ├── hardware/
-    │   └── desktop/
-    └── scripts/
-        ├── build/
-        ├── development/
-        └── release/
-
-## 12. Architecture decision process
-
-Record decisions that materially affect compatibility, security, packaging, or long-term maintenance in docs/ADR/.
-
-Each ADR should include:
-
-- Context and problem.
-- Options considered.
-- Decision and rationale.
-- Consequences and migration path.
-- Date and status.
-
-Revisit a decision when new evidence materially changes its assumptions.
+Ghi quyết định ảnh hưởng đáng kể đến tương thích, bảo mật, đóng gói hoặc bảo trì trong `docs/ADR/`. Mỗi hồ sơ phải có bối cảnh, vấn đề, các lựa chọn, quyết định, lý do, hệ quả, hướng chuyển đổi, ngày và trạng thái. Xem xét lại khi bằng chứng mới làm thay đổi giả định.

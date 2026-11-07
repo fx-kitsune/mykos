@@ -1,32 +1,37 @@
 # MyKOS
 
-**Simple by default. Powerful by design.**
+**Mặc định đơn giản. Thiết kế mạnh mẽ.**
 
-An Ubuntu-based desktop distribution integrating upstream KDE Plasma. Product
-requirements live in [docs/PRODUCT_VISION.md](docs/PRODUCT_VISION.md).
+MyKOS là bản phân phối Linux dành cho máy tính cá nhân, phát triển trên Ubuntu và KDE Plasma. Mục tiêu là giúp người dùng phổ thông sử dụng máy thuận tiện, đồng thời giữ quyền tùy biến và công cụ Linux cho người dùng nâng cao.
 
-## Current implementation
+## Trạng thái dự án
 
-Native Fold design integration includes an optional Qt 6/QML Workspace, local
-notes, focus timer, fixed KDE app launch actions, color schemes, icon theme and
-wallpaper. See [desktop implementation](desktop/README.md).
+Dự án đang thực hiện **M0 — Nền tảng và lần khởi động đầu tiên**. Chưa có ISO hoặc trình cài đặt được nghiệm thu. Mục tiêu hiện tại là ảnh hệ thống chạy trực tiếp ở chế độ BIOS truyền thống; UEFI, Secure Boot, Calamares và phần cứng thật còn cần kiểm thử.
 
-M0 foundation: declarative Ubuntu 24.04 (Noble) amd64 package selection, live-build
-configuration, upstream Breeze defaults, image build tooling, package inventory,
-SHA-256 metadata, QEMU launcher and automated configuration tests.
+Đã có cấu hình Ubuntu 24.04 LTS Noble amd64, danh sách gói KDE, công cụ tạo ISO, thông tin bản dựng, mã kiểm tra SHA-256, lệnh chạy QEMU và kiểm thử cấu hình. Nền tảng Noble cung cấp Plasma 5.27.
 
-**No validated ISO or installer is available yet.** M0 acceptance is incomplete.
-The first image target is a development live session using legacy BIOS. UEFI,
-Secure Boot, Calamares installation and hardware support remain release gates.
-Noble supplies Plasma 5.27; Qt 6/QML is a future MyKOS application choice.
+Bộ thiết kế Fold đã được đưa vào ứng dụng Workspace bằng Qt 6/QML cùng bộ màu, biểu tượng và hình nền KDE. Workspace có ghi chú theo ba không gian, chế độ sáng/tối, đồng hồ tập trung và thao tác mở ứng dụng KDE. Ứng dụng chạy cùng Plasma; ba không gian ghi chú chưa được tích hợp với KDE Activities.
 
-## Development
+## Bắt đầu
+
+Chạy từ thư mục gốc dự án:
 
 ```sh
 python3 -m unittest discover -s tests/integration -v
 python3 scripts/build/mykos.py check
 ```
 
-The second command intentionally exits nonzero when build prerequisites are
-missing. See [build instructions](docs/BUILD.md), [VM test matrix](tests/integration/VM_CHECKLIST.md)
-and [implementation status](docs/IMPLEMENTATION_STATUS.md).
+Lệnh `check` trả về mã thoát khác 0 nếu máy chưa đủ điều kiện tạo ISO. Để chạy giao diện, xem [hướng dẫn Workspace](desktop/README.md). Để tạo ảnh hệ thống, xem [hướng dẫn tạo ISO](docs/BUILD.md).
+
+## Tra cứu tài liệu
+
+Toàn bộ hướng dẫn dự án được viết bằng tiếng Việt. Tên công nghệ, định danh trong mã, đường dẫn và lệnh giữ nguyên để có thể tra cứu và thực thi chính xác.
+
+- [Mục lục tài liệu](docs/README.md).
+- [Tầm nhìn sản phẩm](docs/PRODUCT_VISION.md).
+- [Kiến trúc kỹ thuật](docs/ARCHITECTURE.md).
+- [Lộ trình phát triển](docs/ROADMAP.md).
+- [Trạng thái triển khai và giới hạn](docs/IMPLEMENTATION_STATUS.md).
+- [Bộ thiết kế giao diện](design-system/README.md).
+- [Danh sách kiểm thử máy ảo](tests/integration/VM_CHECKLIST.md).
+- [Giải thích giấy phép bằng tiếng Việt](LICENSE.vi.md).

@@ -1,46 +1,24 @@
-# ADR 0001: M0 Ubuntu/KDE live-image baseline
+# ADR 0001 — Nền tảng ảnh Ubuntu/KDE cho M0
 
-- Date: 2026-11-07
-- Status: Accepted for development; full image validation pending
+- Ngày: 07/11/2026.
+- Trạng thái: Chấp nhận cho phát triển; chờ kiểm chứng ảnh đầy đủ.
 
-## Context
+## Bối cảnh
 
-The repository contains product/architecture/roadmap documents, with no existing
-image implementation. M0 must precede custom shell and privileged-service work.
+Tại thời điểm bắt đầu triển khai, repo chỉ có tầm nhìn, kiến trúc và lộ trình, chưa có công cụ tạo ảnh. Cần hoàn thành M0 trước khi mở rộng giao diện hệ thống hoặc dịch vụ đặc quyền riêng.
 
-## Decision
+## Quyết định và lựa chọn đã cân nhắc
 
-Use Ubuntu 24.04 LTS Noble amd64 and its upstream Plasma 5.27 packages for the
-first live-image experiment. Ubuntu 26.04 and Plasma 6 are alternatives for a
-later rebase, after testing installer and hardware integration. Qt 6/QML remains
-appropriate for future first-party components, not a claim about Noble Plasma.
+Dùng Ubuntu 24.04 LTS Noble amd64 và Plasma 5.27 từ kho gốc cho thử nghiệm đầu tiên. Ubuntu 26.04 và Plasma 6 là phương án chuyển nền về sau, sau khi đánh giá tích hợp cài đặt và phần cứng. Qt 6/QML cho thành phần MyKOS không đồng nghĩa Plasma trong Noble dùng Qt 6.
 
-Use Ubuntu live-build `3.0~a57-1ubuntu49.1`, casper and Syslinux ISO hybrid output
-for legacy BIOS first. Alternatives considered: Debian live-build (different
-Ubuntu integration), remastering a Kubuntu ISO (large opaque starting artifact),
-and direct livecd-rootfs integration (additional release infrastructure).
+Dùng Ubuntu live-build `3.0~a57-1ubuntu49.1`, casper và ISO lai Syslinux, trước hết cho BIOS truyền thống. Đã cân nhắc Debian live-build có cách tích hợp Ubuntu khác; chỉnh sửa ISO Kubuntu với đầu vào lớn, khó truy nguyên đầy đủ; và tích hợp trực tiếp livecd-rootfs cần thêm hạ tầng phát hành.
 
-Relocate the installed toolchain into each build directory. The inspected Ubuntu
-package probes its common function library in a subshell; a relocated invocation
-otherwise loses functions such as Echo. The small repository adapter replaces
-that probe with direct sourcing of the relocated library. No other behavior or
-system package is patched. Record this adapter with the source inputs and revisit
-it when replacing the old Ubuntu toolchain.
+Sao chép bộ công cụ đã cài vào từng thư mục tạo ảnh. Gói Ubuntu được kiểm tra có bước dò thư viện hàm trong shell con, khiến cách gọi sau di chuyển mất các hàm như `Echo`. Lớp thích nghi nhỏ thay bước dò bằng nạp trực tiếp thư viện đã sao chép vào shell hiện tại. Không vá hành vi khác hoặc sửa gói hệ thống. Ghi nhận lớp này trong đầu vào và xem lại khi thay bộ công cụ cũ.
 
-Use Ubuntu signed main/restricted/universe/multiverse, security and updates.
-Multiverse/restricted software has licensing/support constraints inherited from
-Ubuntu; package selection must be reviewed before public redistribution.
-Keep source identity compatible with Ubuntu and add MyKOS variant branding.
+Dùng các kho Ubuntu có chữ ký `main`, `restricted`, `universe`, `multiverse` cùng bản vá bảo mật và cập nhật. Phần mềm `restricted`/`multiverse` chịu ràng buộc giấy phép và hỗ trợ của nguồn; phải rà soát trước khi phân phối công khai. Giữ định danh nền tương thích Ubuntu và bổ sung nhận diện biến thể MyKOS.
 
-## Consequences
+## Hệ quả và hướng chuyển đổi
 
-The first target is an unvalidated live session, not an installable release.
-Calamares requires a separately reviewed module sequence and offline payload,
-partition, bootloader and live-user cleanup configuration. Do not expose an
-installer launcher until those paths are tested. UEFI/Secure Boot and modern
-Plasma migration remain explicit gates, not implied support.
+Mục tiêu đầu tiên là phiên chạy trực tiếp chưa nghiệm thu, chưa phải bản cài đặt được xác nhận. Calamares cần chuỗi mô-đun, dữ liệu cài ngoại tuyến, phân vùng, bộ nạp khởi động và dọn tài khoản phiên trực tiếp được rà soát riêng. Chỉ đưa trình cài đặt ra sử dụng sau khi kiểm thử.
 
-Rolling archives prevent bit-identical rebuilding. A package snapshot and full
-host toolchain lock must replace this development recipe before satisfying the
-strict reproducibility goal. The limited remaining KDE 5 support window must be
-reviewed before planning a public release on Noble.
+UEFI, Secure Boot và chuyển sang Plasma mới là điều kiện cần xác nhận riêng. Kho gói thay đổi theo thời gian nên chưa tạo lại ảnh giống từng byte; cần khóa kho theo thời điểm và toàn bộ công cụ máy tạo ảnh. Phải đánh giá thời gian hỗ trợ còn lại của KDE 5 trước khi chọn Noble cho phát hành công khai.

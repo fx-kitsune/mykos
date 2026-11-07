@@ -1,71 +1,57 @@
-# MyKOS design system
+# Bộ thiết kế MyKOS
 
-MyKOS Fold 1.0 icon system and the MyKOS 0.2 interactive desktop concept.
-These are design exploration assets and a browser prototype, not an implemented
-Plasma shell, an installable OS, or an installed KDE icon theme.
+Thư mục chứa bộ biểu tượng MyKOS Fold 1.0 và bản mẫu tương tác MyKOS 0.2. Đây là tài nguyên nghiên cứu thiết kế và bản mẫu trình duyệt. Phần triển khai native sử dụng chúng được mô tả riêng trong [hướng dẫn giao diện](../desktop/README.md).
 
-## Preview
+## Xem bản mẫu
 
-From the repository root:
+Chạy từ thư mục gốc dự án:
 
 ```sh
 python3 -m http.server 5174 --bind 127.0.0.1 --directory design-system
 ```
 
-Open http://127.0.0.1:5174/ for the desktop concept, or
-http://127.0.0.1:5174/icons.html for the icon catalog. No npm installation is needed.
-When running from this directory directly, omit `--directory design-system`.
-Typography uses Google Fonts with a local sans-serif fallback.
+Mở [bản mẫu môi trường làm việc](http://127.0.0.1:5174/) hoặc [danh mục biểu tượng](http://127.0.0.1:5174/icons.html). Không cần cài npm. Nếu chạy ngay trong thư mục này, bỏ `--directory design-system`. Phông chữ lấy từ Google Fonts, có phông không chân cục bộ dự phòng.
 
-## Contents
+## Nội dung
 
-- `index.html`, `app.js`, `style.css`: workspace-based desktop prototype.
-- `icons.html`, `icons.css`, `icons.js`: icon catalog, application emblems and inline SVG renderer.
-- `assets/icons/`: 40 original 24-unit SVGs, a named sprite and construction guidance.
-- `assets/app-icons/`: six standalone colored application SVGs, using a 96-unit viewBox.
-- `tools/build-icons.cjs`: original geometry and reproducible export generator.
-- `mykos-fold-icons.zip`: portable icon kit and catalog.
+| Đường dẫn | Vai trò |
+|---|---|
+| `index.html`, `app.js`, `style.css` | Bản mẫu môi trường làm việc theo hoạt động |
+| `icons.html`, `icons.css`, `icons.js` | Danh mục, biểu trưng ứng dụng và công cụ hiển thị SVG nội tuyến |
+| `assets/icons/` | 40 biểu tượng SVG gốc trên lưới 24 đơn vị, tập biểu tượng có tên và quy chuẩn |
+| `assets/app-icons/` | Sáu biểu trưng ứng dụng màu trên lưới 96 đơn vị |
+| `tools/build-icons.cjs` | Hình học gốc và trình sinh tài nguyên có thể chạy lại |
+| `mykos-fold-icons.zip` | Gói xuất biểu tượng và danh mục để chia sẻ |
 
-From this directory, regenerate assets with Node.js:
+Sinh lại tài nguyên bằng Node.js từ thư mục `design-system`:
 
 ```sh
 node tools/build-icons.cjs
 ```
 
-The ZIP is a convenience export; regenerating assets does not refresh it.
+Lệnh này không tự cập nhật ZIP. Khi thay tài liệu hoặc trình sinh, cần cập nhật các mục tương ứng trong ZIP để nội dung chia sẻ nhất quán.
 
-## Design language
+## Ngôn ngữ thiết kế
 
-Matte ink-green surfaces, lime accents, topographic lines, and a small folded
-corner connect the shell concept and icon family. System icons use a 24 × 24
-viewBox, a 1.6-unit stroke, round caps and joins, and `currentColor` for theming.
-Application emblems share the same glyph geometry with distinct material colors.
-See [icon construction guidance](assets/icons/README.md).
+Nền xanh mực lì, điểm nhấn chanh, đường đồng mức và góc gấp nhỏ kết nối bản mẫu với biểu tượng Fold. Biểu tượng hệ thống dùng `viewBox` 24×24, nét 1,6 đơn vị, đầu nét và chỗ nối bo tròn, màu `currentColor`. Biểu trưng ứng dụng dùng chung hình học nhưng có màu chất liệu riêng. Xem [quy chuẩn biểu tượng](assets/icons/README.md).
 
-The concept includes three activity workspaces, per-workspace notes stored in
-browser localStorage, app search (Ctrl/Meta + Space), light/dark appearance and a
-25-minute focus timer. Connectivity controls, files, terminal and gallery are
-illustrative; they do not change the host OS or access its files. Web search
-opens an external browser tab. The focus timer resets on page reload.
+Bản mẫu có ba không gian theo hoạt động, ghi chú riêng lưu bằng `localStorage`, tìm ứng dụng bằng Ctrl/Meta+Space, chế độ sáng/tối và đồng hồ tập trung 25 phút. Điều khiển kết nối, tệp, trình dòng lệnh và thư viện ảnh chỉ minh họa; không truy cập tệp hoặc thay thiết lập máy. Tìm web mở tab trình duyệt ngoài. Đồng hồ đặt lại khi tải lại trang.
 
-## Validation
+## Kết quả kiểm tra đã ghi nhận
 
-- JavaScript syntax checked for application, renderer and generator.
-- All 47 exported SVG files parsed as XML (40 glyphs, six app emblems, one sprite).
-- Browser checks covered icon rendering, dynamic application windows, app search,
-  workspace notes, focus timer and light/dark appearance.
-- Desktop and narrow viewport layouts were inspected; OS integration is not tested.
+- Cú pháp JavaScript của ứng dụng, trình hiển thị và trình sinh.
+- 47 SVG hợp lệ về XML: 40 biểu tượng, sáu biểu trưng và một tập biểu tượng.
+- Hiển thị biểu tượng, cửa sổ động, tìm ứng dụng, ghi chú, tập trung và sáng/tối trong trình duyệt.
+- Bố cục rộng và hẹp; những kiểm tra này không xác nhận tích hợp hệ điều hành.
 
-## Previews
+## Ảnh tham khảo
 
-![MyKOS Fold icon system](mykos-fold-preview.jpg)
+![Bộ biểu tượng MyKOS Fold](mykos-fold-preview.jpg)
 
-![Desktop concept before icon integration](mykos-preview.jpg)
+![Bản mẫu môi trường làm việc trước khi tích hợp Fold](mykos-preview.jpg)
 
-## Native implementation
+## Triển khai native
 
-The concept is now consumed by [the native desktop integration](../desktop/README.md):
-a Qt 6/QML Workspace companion, KDE color schemes, a Fold icon theme with Breeze
-fallback, and wallpaper resources. The browser files remain design references.
-Regenerate native exports with `python3 scripts/build/export-design.py` from the
-repository root. This does not replace Plasma or imply a validated OS image.
+[Phần tích hợp KDE](../desktop/README.md) đã sử dụng thiết kế này để tạo Workspace Qt 6/QML, bộ màu, chủ đề biểu tượng Fold có Breeze dự phòng và hình nền. Tệp trình duyệt vẫn là nguồn tham khảo thiết kế.
+
+Từ thư mục gốc repo, chạy `python3 scripts/build/export-design.py` để xuất lại tài nguyên native. Tích hợp này không thay Plasma và không chứng minh ảnh hệ điều hành đã đạt nghiệm thu.

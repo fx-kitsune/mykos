@@ -1,39 +1,37 @@
-# Implementation status
+# Trạng thái triển khai
 
-Updated 2026-11-07. M0 is **in progress**, not accepted.
+Cập nhật ngày 07/11/2026. **M0 đang thực hiện, chưa nghiệm thu.**
 
-Implemented:
-- Ubuntu Noble amd64 release configuration and declared signed archive sources.
-- KDE baseline package manifest and upstream Breeze defaults.
-- Isolated Ubuntu live-build adapter, configuration and root-build preflight.
-- Build log, resolved package inventory, source/config hashes and checksums.
-- QEMU launcher, static CI, tests and VM/hardware acceptance checklists.
-- Fold-native Qt 6/QML Workspace with local notes, theme, focus and KDE launch actions.
-- MyKOSDark/MyKOSLight KDE schemes, Fold icon exports, wallpaper and image staging.
+## Đã triển khai
 
-Verified in this cloud environment:
-- Seven build/configuration tests and seven native desktop/storage tests.
-- Native offscreen launch, dark/light rendering, note editing/context switching,
-  focus start/stop, app-search popup and a 900×700 viewport; no QML warnings.
-- Shell syntax checks and deterministic native design export checks.
-- The original 39 baseline package names exist in the Ubuntu Noble amd64 archive indexes
-  (availability check only; dependency installation is not yet exercised).
-- All eight Qt/PyQt module package names exist in the Noble universe index.
-- Configuration generation with an extracted pinned Ubuntu live-build package
-  and debootstrap (no root/chroot/image build performed).
+- Cấu hình Ubuntu Noble amd64 và nguồn kho có chữ ký.
+- Danh sách gói KDE, cấu hình mặc định dựa trên Breeze.
+- Lớp thích nghi live-build Ubuntu riêng cho từng bản dựng và kiểm tra điều kiện tạo ISO bằng root.
+- Nhật ký, danh sách phiên bản gói, mã băm đầu vào/cấu hình và mã kiểm tra sản phẩm.
+- Lệnh chạy QEMU, kiểm tra tự động trong CI, danh sách nghiệm thu máy ảo và phần cứng.
+- Workspace Qt 6/QML theo Fold: ghi chú cục bộ, sáng/tối, tập trung và mở ứng dụng KDE.
+- Bộ màu MyKOSDark/MyKOSLight, biểu tượng Fold, hình nền và bước đưa ứng dụng vào ảnh.
 
-Blocked here: host is Debian 13, has no root/sudo or KVM device, and only about
-7.5 GiB free against a 25 GiB build requirement. Build preflight reports these
-limitations before attempting changes.
+## Đã kiểm chứng trong môi trường cloud
 
-Remaining M0 acceptance work:
-- Produce the full ISO on the documented Ubuntu build VM.
-- Boot and validate the live desktop.
-- Integrate Calamares and test installation plus installed first login.
-- Exercise network/audio/display/package/update and recovery workflows.
-- Lock package snapshots/toolchain and compare independent builds.
-- Define and validate hardware support; add UEFI/Secure Boot as separate targets.
+- Bảy kiểm thử tạo ảnh/cấu hình và bảy kiểm thử giao diện/lưu trữ đều đạt.
+- Khởi chạy native không màn hình; render sáng/tối; sửa ghi chú; chuyển ngữ cảnh; bật/tắt tập trung; mở tìm ứng dụng; kích thước 900×700; không có cảnh báo QML.
+- Cú pháp shell và tính nhất quán của tài nguyên thiết kế sinh tự động.
+- 39 tên gói nền ban đầu tồn tại trong chỉ mục Ubuntu Noble amd64; đây mới là kiểm tra khả dụng, chưa cài và giải quyết phụ thuộc toàn bộ ảnh.
+- Tám tên gói mô-đun Qt/PyQt có trong chỉ mục `universe` của Noble.
+- Tạo cấu hình với gói Ubuntu live-build đã chốt và debootstrap đã giải nén; chưa thực hiện `chroot` hoặc tạo ISO đầy đủ.
 
-See `desktop/README.md` for the exact scope of the optional native companion.
-No custom shell, root daemon, automatic rollback, Windows compatibility layer or
-public release is claimed. Continue M0 before expanding M1–M6.
+## Giới hạn môi trường ghi nhận khi kiểm thử
+
+Máy chạy Debian 13, không có root/sudo hoặc thiết bị KVM; dung lượng trống ghi nhận khoảng 7,5 GiB, thấp hơn yêu cầu 25 GiB. Công cụ kiểm tra điều kiện sẽ báo các giới hạn trước khi tạo ảnh. Đây là trạng thái ghi nhận của môi trường kiểm thử, không phải cấu hình bắt buộc cho mọi lần chạy sau.
+
+## Còn thiếu để nghiệm thu M0
+
+- Tạo ISO đầy đủ trên máy ảo Ubuntu đúng điều kiện.
+- Khởi động và kiểm tra môi trường làm việc trực tiếp.
+- Tích hợp Calamares, kiểm thử cài đặt và lần đăng nhập đầu trên bản cài.
+- Kiểm tra mạng, âm thanh, màn hình, quản lý gói, cập nhật và phục hồi.
+- Khóa kho theo thời điểm, khóa bộ công cụ và so sánh bản dựng độc lập.
+- Xác định, kiểm thử ma trận phần cứng; xem UEFI/Secure Boot là mục tiêu riêng.
+
+Xem [phạm vi Workspace](../desktop/README.md). Chưa có giao diện hệ thống tự viết, dịch vụ root riêng, hoàn tác tự động, lớp tương thích Windows hoặc bản phát hành công khai. Phần tích hợp Fold chưa hoàn thành M1; ưu tiên nghiệm thu M0 trước khi mở rộng.

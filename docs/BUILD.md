@@ -1,13 +1,10 @@
-# M0 development image builds
+# Tạo ảnh ISO phát triển M0
 
-## Supported build machine
+## Máy tạo ảnh được hỗ trợ
 
-Use a disposable **Ubuntu 24.04 amd64 VM**, root access, at least 4 CPU cores,
-8 GiB RAM and 25 GiB free disk. A full build uses chroot and filesystem mounts;
-an ordinary unprivileged container is insufficient. Do not build on a personal
-workstation containing valuable mounted filesystems.
+Dùng **máy ảo Ubuntu 24.04 amd64 riêng cho việc tạo ảnh**, có quyền root, tối thiểu 4 lõi CPU, 8 GiB RAM và 25 GiB đĩa trống. Quá trình tạo ảnh dùng `chroot` và gắn hệ thống tệp; container thông thường không đặc quyền chưa đủ điều kiện. Tránh thực hiện trên máy cá nhân có dữ liệu quan trọng đang được gắn.
 
-Install dependencies from authenticated Ubuntu repositories:
+Cài phụ thuộc từ kho Ubuntu đã xác thực:
 
 ```sh
 sudo apt-get update
@@ -16,59 +13,43 @@ sudo apt-get install live-build=3.0~a57-1ubuntu49.1 debootstrap ubuntu-keyring \
   syslinux-utils dosfstools mtools cpio rsync python3 git
 ```
 
-If the pinned tool version is unavailable, stop and review the toolchain ADR.
-Do not silently substitute Debian live-build: its Ubuntu/casper support differs.
-APT authenticates packages using Ubuntu archive keys. No private repository,
-third-party signing key, Flatpak remote, credential or PPA is configured.
+Nếu không có đúng phiên bản đã chốt, dừng và xem lại [quyết định bộ công cụ](ADR/0001-m0-build-baseline.md). Không tự thay bằng Debian live-build vì cách tích hợp Ubuntu/casper khác nhau. APT xác thực gói bằng khóa kho Ubuntu. Cấu hình hiện không thêm kho riêng, khóa bên thứ ba, nguồn Flatpak, thông tin xác thực hoặc PPA.
 
-## Configure and build
+## Tạo cấu hình và bản dựng
 
-From the repository root:
+Chạy từ thư mục gốc dự án:
 
 ```sh
-# Configure without root; always choose a fresh directory.
+# Tạo cấu hình không cần root; luôn dùng thư mục chưa tồn tại.
 python3 scripts/build/mykos.py configure build/config-review
-# Examine build/config-review/config before a full build.
+# Kiểm tra build/config-review/config trước khi tạo ISO đầy đủ.
 sudo python3 scripts/build/mykos.py check
 sudo python3 scripts/build/mykos.py build build/m0-001 --artifacts artifacts/m0-001
 ```
 
-The build command creates its own new configuration; do not pass the directory
-from the separate configure example. Existing build/artifact directories are
-never removed or reused automatically. Failed build logs stay in the build tree.
-After a failed mount/chroot stage, inspect `findmnt` in the disposable VM before
-removing files; destroying the disposable VM is the simplest cleanup procedure.
+Lệnh `build` tự tạo cấu hình mới; không truyền lại thư mục của ví dụ `configure`. Thư mục bản dựng và sản phẩm đã tồn tại không bị tự xóa hoặc tái sử dụng. Khi thất bại, nhật ký vẫn nằm trong thư mục bản dựng.
 
-The local toolchain adapter copies the installed pinned toolchain into each build
-tree and sources its function library in the current shell. It does not modify
-system packages. `MYKOS_LIVE_BUILD_PREFIX` supports an extracted Ubuntu package
-prefix for configuration inspection only; full builds use the installed toolchain.
+Nếu lỗi ở bước gắn hệ thống tệp hoặc `chroot`, kiểm tra bằng `findmnt` trước khi xóa tệp. Có thể hủy máy ảo dùng riêng để dọn sạch môi trường.
 
-## Outputs
+Lớp thích nghi sao chép bộ công cụ đã cài vào từng thư mục bản dựng và nạp thư viện hàm trong shell hiện tại; không sửa gói hệ thống. `MYKOS_LIVE_BUILD_PREFIX` chỉ hỗ trợ kiểm tra cấu hình với gói Ubuntu đã giải nén. Bản dựng đầy đủ dùng bộ công cụ được cài trên máy.
 
-On successful completion, artifacts contain the ISO, resolved package manifest,
-source revision and dirty-tree status, configuration/input hashes, build log,
-live-build generated configuration and SHA256SUMS. Verify the artifact directory:
+Workspace Qt 6, biểu tượng, bộ màu, hình nền và mục menu ứng dụng được đưa vào ảnh trong bước tạo cấu hình. Xem [hướng dẫn giao diện](../desktop/README.md) về các gói Qt và giới hạn tích hợp.
+
+## Sản phẩm đầu ra
+
+Khi thành công, thư mục sản phẩm có ISO, danh sách gói đã giải quyết phiên bản, mã commit, trạng thái thay đổi chưa commit, mã băm đầu vào/cấu hình, nhật ký, cấu hình live-build và `SHA256SUMS`.
 
 ```sh
 cd artifacts/m0-001
 sha256sum -c SHA256SUMS
 ```
 
-Image building does not mean release validation. Follow the VM checklist and
-record evidence before claiming first boot, installation or hardware support.
-The fixture used in metadata unit tests is not a real ISO.
+Tạo được ảnh chưa chứng minh bản phát hành đạt yêu cầu. Hoàn thành [danh sách kiểm thử máy ảo](../tests/integration/VM_CHECKLIST.md) và ghi bằng chứng trước khi xác nhận khởi động, cài đặt hoặc hỗ trợ thiết bị. Tệp mẫu trong kiểm thử thông tin bản dựng không phải ISO thật.
 
-## Reproducibility boundary
+## Giới hạn tái lập
 
-The Ubuntu release, architecture, sources and live-build version are pinned.
-Ubuntu noble, noble-updates and noble-security remain rolling authenticated
-archives. Package versions and the rest of the host toolchain are recorded or
-controlled by the build host, not fully locked. This is a repeatable recipe,
-**not a bit-for-bit reproducible build**. Snapshot repositories, complete tool
-locks, normalized timestamps and a two-build comparison remain necessary before
-meeting the product's strict reproducibility criterion.
+Đã chốt bản Ubuntu, kiến trúc, nguồn gói và phiên bản live-build. Tuy nhiên `noble`, `noble-updates`, `noble-security` thay đổi theo thời gian; phiên bản gói và toàn bộ công cụ máy tạo ảnh chưa được khóa đầy đủ. Đây là quy trình lặp lại được, **chưa tái lập từng bit**.
 
-The builder retains Ubuntu ID and VERSION_ID for compatibility and adds MyKOS
-variant metadata. The initial session uses English; Vietnamese localization and
-input methods have not been integrated or tested.
+Cần kho tại thời điểm cố định, khóa toàn bộ bộ công cụ, chuẩn hóa dấu thời gian và so sánh hai bản dựng độc lập trước khi đạt tiêu chí tái lập nghiêm ngặt.
+
+Giữ `ID` và `VERSION_ID` của Ubuntu để tương thích, đồng thời thêm thông tin biến thể MyKOS. Phiên hệ điều hành nền hiện dùng tiếng Anh; bản địa hóa toàn hệ điều hành và bộ gõ tiếng Việt chưa được tích hợp, kiểm thử. Việc tài liệu và Workspace dùng tiếng Việt không đồng nghĩa toàn bộ bản phân phối đã được Việt hóa.

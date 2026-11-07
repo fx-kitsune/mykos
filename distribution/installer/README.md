@@ -1,16 +1,15 @@
-# Installer integration gate
+# Điều kiện tích hợp trình cài đặt
 
-Calamares is the architecture candidate, not yet configured or included.
-The current live image must not be advertised as installable.
+Calamares là lựa chọn kiến trúc, chưa được cấu hình hoặc đưa vào ảnh. Chưa được mô tả ảnh chạy trực tiếp hiện tại là bản đã cài đặt được.
 
-Before enabling it:
+Trước khi bật trình cài đặt:
 
-1. Pin the Calamares version compatible with the chosen Ubuntu release.
-2. Review partition/mount/unpackfs/user/locale/network/bootloader/unmount sequence.
-3. Point unpackfs at the actual casper payload, not an assumed path.
-4. Remove live-session packages, credentials and autologin from the target.
-5. Test empty disk and preserve-existing-data cases using disposable VM disks.
-6. Verify installed user login, sudo authorization, networking and updates.
-7. Validate BIOS and UEFI independently; do not claim Secure Boot without testing.
+1. Chốt phiên bản Calamares tương thích với bản Ubuntu đã chọn.
+2. Rà soát chuỗi phân vùng, gắn hệ thống tệp, `unpackfs`, tạo người dùng, ngôn ngữ, mạng, bộ nạp khởi động và tháo hệ thống tệp.
+3. Trỏ `unpackfs` tới dữ liệu casper thực tế, không giả định đường dẫn.
+4. Gỡ gói dành riêng cho phiên trực tiếp, thông tin xác thực và đăng nhập tự động khỏi hệ thống đích.
+5. Thử đĩa trống và bảo toàn dữ liệu có sẵn bằng đĩa ảo dùng riêng.
+6. Xác nhận đăng nhập, cấp quyền sudo, mạng và cập nhật trên bản cài.
+7. Kiểm thử BIOS và UEFI độc lập; chỉ công bố Secure Boot sau khi có kết quả.
 
-Record logs, exact ISO checksum, virtual firmware and disk layouts in the test matrix.
+Ghi nhật ký, mã kiểm tra ISO chính xác, phần sụn ảo và bố cục đĩa vào [danh sách nghiệm thu máy ảo](../../tests/integration/VM_CHECKLIST.md).

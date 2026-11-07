@@ -1,18 +1,27 @@
 # MyKOS Fold 1.0
 
-40 original SVG icons for the MyKOS concept. Source geometry: tools/build-icons.cjs. Run node tools/build-icons.cjs to regenerate the exports and catalog.
+Bộ 40 biểu tượng SVG gốc cho thiết kế MyKOS. Hình học nguồn nằm trong `design-system/tools/build-icons.cjs`. Từ thư mục `design-system`, chạy `node tools/build-icons.cjs` để sinh lại tài nguyên và danh mục.
 
-## Construction
-- ViewBox: 0 0 24 24; normal drawing bounds 2–22.
-- Stroke: 1.6 units; round caps and joins.
-- A 2-unit clipped corner on enclosing shapes echoes the MyKOS mark. Do not add a cut to every symbol: preserve familiar meanings.
-- Single-color currentColor; secondary construction lines use 40% opacity.
-- UI sizes: 16 / 20 / 24 / 32; application emblems: 56 / 72 / 96. Scale stroke with the SVG. Never distort the viewBox or mix stroke widths.
-- Default, selected, disabled colors come from the interface, not the SVG. Disabled opacity: 35%.
-- App emblems use a clipped container, matte material colors, and the same underlying glyph. No baked shadows or gradients.
+## Quy chuẩn hình học
 
-## Files
-Individual name.svg assets, sprite.svg with named symbols, and ../../icons.js for inline rendering. ../../icons.html is the visual catalog. Icons communicate meaning alongside visible labels or aria-label on their controls; decorative SVGs are aria-hidden.
+- `viewBox`: `0 0 24 24`; vùng vẽ thông thường từ 2 đến 22.
+- Độ dày nét: 1,6 đơn vị; đầu nét và chỗ nối bo tròn.
+- Góc vát 2 đơn vị trên hình bao gợi lại dấu MyKOS. Không ép mọi biểu tượng có góc cắt nếu làm giảm khả năng nhận diện.
+- Màu đơn dùng `currentColor`; nét cấu trúc phụ có độ đục 40%.
+- Kích thước giao diện: 16/20/24/32; biểu trưng ứng dụng: 56/72/96. Co giãn nét cùng SVG; không kéo méo `viewBox` hoặc trộn độ dày nét.
+- Màu mặc định, đang chọn và vô hiệu hóa lấy từ giao diện. Trạng thái vô hiệu hóa có độ đục 35%.
+- Biểu trưng ứng dụng dùng khung vát góc, màu lì và hình học biểu tượng chung; không nhúng bóng đổ hoặc chuyển sắc.
 
-## Web usage
-Inline: icon('files') after loading icons.js. Sprite: <svg><use href="assets/icons/sprite.svg#files" /></svg>. External img assets use their own currentColor context, so use inline SVG or a sprite for theme-aware color.
+## Tệp và khả năng tiếp cận
+
+Mỗi biểu tượng nằm trong tệp `name.svg`; `sprite.svg` chứa các biểu tượng có tên. `../../icons.js` hiển thị SVG nội tuyến và `../../icons.html` là danh mục trực quan. Nút phải có nhãn hiển thị hoặc `aria-label`; SVG trang trí dùng `aria-hidden`.
+
+## Dùng trong giao diện web
+
+Sau khi nạp `icons.js`, gọi `icon('files')` để lấy SVG nội tuyến. Với tập biểu tượng:
+
+```html
+<svg><use href="assets/icons/sprite.svg#files" /></svg>
+```
+
+Ảnh SVG ngoài dùng qua `img` có ngữ cảnh `currentColor` riêng. Dùng SVG nội tuyến hoặc tập biểu tượng để màu thay đổi theo chủ đề giao diện.

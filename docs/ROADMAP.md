@@ -1,154 +1,112 @@
-# MyKOS — Development Roadmap
+# MyKOS — Lộ trình phát triển
 
-- Status: Proposed
-- Initial target: Installable x86_64 desktop distribution
-- Related: Product Vision and Architecture in this directory
+- Trạng thái: Kế hoạch nghiệm thu; M0 đang thực hiện.
+- Mục tiêu ban đầu: Bản phân phối x86_64 cài đặt được.
+- Tham chiếu: [Tầm nhìn](PRODUCT_VISION.md), [kiến trúc](ARCHITECTURE.md), [trạng thái thực tế](IMPLEMENTATION_STATUS.md).
 
-## Delivery strategy
+## Chiến lược bàn giao
 
-Develop in small, demonstrable milestones. Each milestone must produce a buildable or testable result with explicit acceptance criteria. Do not start broad custom desktop development before the base distribution can be reproduced, installed, and tested.
+Chia công việc thành mốc nhỏ có kết quả chạy hoặc kiểm thử được và tiêu chí nghiệm thu cụ thể. Hoàn thành nền tảng tạo ảnh, cài đặt và kiểm thử trước khi mở rộng việc tự viết giao diện hệ thống. Workspace và bộ nhận diện Fold hiện tại là phần tích hợp giới hạn, chưa hoàn thành M0 hoặc M1.
 
-## M0 — Foundation and first boot
+## M0 — Nền tảng và lần khởi động đầu tiên
 
-**Goal:** Produce the first reproducible MyKOS ISO using an established Ubuntu LTS base and KDE Plasma.
+**Mục tiêu:** ISO MyKOS đầu tiên có thể tái lập, dùng Ubuntu LTS và KDE Plasma.
 
-Work:
-- Select and pin the Ubuntu LTS release.
-- Choose and document the image build toolchain.
-- Define the initial package manifest and repository sources.
-- Configure KDE Plasma and basic MyKOS branding.
-- Build an x86_64 ISO.
-- Boot it in QEMU/KVM.
-- Install to a clean virtual disk and verify first login.
-- Record known issues and build instructions.
+Công việc:
 
-Acceptance:
-- Build can be repeated from documented inputs.
-- ISO boots in QEMU/KVM.
-- Installation to a clean virtual disk succeeds.
-- KDE Plasma starts and a user can log in.
-- Network, audio, display, file manager, terminal, and package management pass basic smoke tests.
-- Build metadata and checksums are produced.
+- Chốt bản Ubuntu LTS, bộ công cụ tạo ảnh, phiên bản và nguồn gói.
+- Tạo danh sách gói tối thiểu, cấu hình KDE và nhận diện MyKOS.
+- Tạo ISO x86_64, xuất thông tin bản dựng và mã kiểm tra.
+- Khởi động trong QEMU/KVM, cài xuống ổ đĩa ảo sạch và xác nhận lần đăng nhập đầu.
+- Ghi hướng dẫn và lỗi đã biết; xác định điều kiện tái lập ảnh.
 
-## M1 — Desktop experience
+**Nghiệm thu:** Tạo ảnh lặp lại được từ đầu vào có tài liệu; ISO khởi động; cài đặt thành công; Plasma đăng nhập được; mạng, âm thanh, màn hình, tệp, trình dòng lệnh và quản lý gói đạt kiểm thử cơ bản; có thông tin bản dựng và mã kiểm tra.
 
-**Goal:** Establish consistent visual and interaction defaults.
+## M1 — Trải nghiệm môi trường làm việc
 
-Work:
-- Define visual identity, theme, iconography, typography, and wallpaper.
-- Configure panel, launcher, notifications, shortcuts, and virtual desktops.
-- Review accessibility and keyboard navigation.
-- Document desktop configuration and reset behavior.
+**Mục tiêu:** Thống nhất cấu hình mặc định về hình thức và tương tác.
 
-Acceptance:
-- Consistent branding across login, desktop, and system settings.
-- Common desktop tasks work without custom instructions.
-- Configuration can be reproduced from source.
+Công việc:
 
-## M2 — System management
+- Hoàn thiện bộ nhận diện, chủ đề, biểu tượng, phông chữ và hình nền.
+- Cấu hình thanh tác vụ, trình mở ứng dụng, thông báo, phím tắt và màn hình ảo.
+- Rà soát khả năng tiếp cận và điều hướng bàn phím.
+- Tài liệu hóa cấu hình và cách đặt lại mặc định.
 
-**Goal:** Make common system settings understandable and reliable.
+**Nghiệm thu:** Nhận diện nhất quán giữa đăng nhập, màn hình làm việc và thiết lập; tác vụ thông thường dễ sử dụng; cấu hình có thể dựng lại từ mã nguồn.
 
-Work:
-- Evaluate existing KDE settings modules before writing replacements.
-- Integrate display, network, Bluetooth, audio, power, storage, and user management.
-- Add MyKOS-specific help, status, and diagnostics only where upstream UX is insufficient.
-- Define permission boundaries for privileged operations.
+## M2 — Quản lý hệ thống
 
-Acceptance:
-- Common settings workflows work on the supported hardware matrix.
-- Privileged actions use supported authorization mechanisms.
-- Errors are surfaced clearly and do not leave the system in an unknown state.
+**Mục tiêu:** Thiết lập thông thường dễ hiểu và đáng tin cậy.
 
-## M3 — Application experience
+Công việc:
 
-**Goal:** Provide a coherent application discovery and management workflow.
+- Đánh giá mô-đun KDE có sẵn trước khi viết thay thế.
+- Tích hợp màn hình, mạng, Bluetooth, âm thanh, nguồn điện, lưu trữ và người dùng.
+- Bổ sung trợ giúp, trạng thái và chẩn đoán riêng khi trải nghiệm gốc chưa đáp ứng.
+- Xác định ranh giới quyền cho thao tác quản trị.
 
-Work:
-- Define trusted software sources and catalog metadata.
-- Integrate Flatpak and the base package manager.
-- Design install, update, uninstall, and permission UX.
-- Show publisher/source and update ownership clearly.
+**Nghiệm thu:** Quy trình hoạt động trên ma trận phần cứng hỗ trợ; thao tác đặc quyền dùng cơ chế cấp quyền được hỗ trợ; lỗi rõ ràng và không để hệ thống ở trạng thái không xác định.
 
-Acceptance:
-- Users can discover, install, launch, update, and remove supported applications.
-- The UI accurately represents application source and permissions.
-- Failed operations produce actionable errors.
+## M3 — Trải nghiệm ứng dụng
 
-## M4 — Developer experience
+**Mục tiêu:** Thống nhất tìm kiếm và quản lý ứng dụng.
 
-**Goal:** Make MyKOS a productive development workstation without prescribing one stack.
+Công việc:
 
-Work:
-- Document supported developer setup patterns.
-- Integrate access to terminal, Git, editors/IDEs, SDKs, runtimes, and container tooling.
-- Consider a Developer Center only after requirements are validated.
-- Test common workflows on a clean installation.
+- Xác định nguồn phần mềm đáng tin và thông tin danh mục.
+- Tích hợp Flatpak với trình quản lý gói nền tảng.
+- Thiết kế cài đặt, cập nhật, gỡ bỏ và hiển thị quyền truy cập.
+- Hiển thị rõ nhà phát hành, nguồn gói và thành phần chịu trách nhiệm cập nhật.
 
-Acceptance:
-- A developer can set up and run at least one documented representative workflow.
-- Tool installation and environment setup are repeatable.
-- Developer tooling does not compromise base OS integrity.
+**Nghiệm thu:** Người dùng tìm, cài, mở, cập nhật và gỡ ứng dụng được hỗ trợ; nguồn và quyền hiển thị chính xác; thao tác lỗi đưa ra hướng xử lý.
 
-## M5 — Reliability and recovery
+## M4 — Trải nghiệm nhà phát triển
 
-**Goal:** Make updates and recovery understandable and testable.
+**Mục tiêu:** Máy trạm phát triển hiệu quả, không áp đặt một bộ công nghệ.
 
-Work:
-- Define update channels and release cadence.
-- Implement clear update status and release notes.
-- Test interrupted and failed updates.
-- Evaluate filesystem snapshots and rollback integration.
-- Document backup, recovery, and diagnostic procedures.
-- Establish security update and vulnerability response practices.
+Công việc:
 
-Acceptance:
-- Update behavior is tested on supported installation layouts.
-- Recovery procedures are documented and exercised.
-- Snapshot rollback, if enabled, is tested end-to-end and not represented as a backup.
+- Tài liệu hóa các cách thiết lập được hỗ trợ.
+- Tích hợp trình dòng lệnh, Git, trình soạn thảo, IDE, SDK, môi trường thực thi và container.
+- Chỉ cân nhắc trung tâm công cụ phát triển sau khi yêu cầu được xác nhận.
+- Thử quy trình phổ biến trên bản cài mới.
 
-## M6 — Public release 1.0
+**Nghiệm thu:** Chạy được ít nhất một quy trình đại diện có tài liệu; thiết lập lặp lại được; công cụ không làm tổn hại tính toàn vẹn hệ điều hành nền.
 
-**Goal:** Publish a stable, supportable MyKOS release.
+## M5 — Độ tin cậy và phục hồi
 
-Work:
-- Freeze the supported hardware matrix.
-- Complete installation, desktop, update, recovery, and security testing.
-- Publish release notes, known issues, checksums, and installation instructions.
-- Document support channels and contribution guidelines.
-- Tag the release and archive build metadata.
+**Mục tiêu:** Cập nhật và phục hồi dễ hiểu, kiểm thử được.
 
-Acceptance:
-- No unresolved release-blocking defects.
-- Installation and update tests pass on the release matrix.
-- Release artifacts are reproducible and verifiable.
-- Documentation accurately describes supported hardware and limitations.
+Công việc:
 
-## Cross-cutting requirements
+- Xác định kênh cập nhật, chu kỳ phát hành và ghi chú phiên bản.
+- Hiển thị trạng thái cập nhật rõ ràng; thử cập nhật bị gián đoạn hoặc thất bại.
+- Đánh giá ảnh chụp trạng thái hệ thống tệp và tích hợp hoàn tác.
+- Hướng dẫn sao lưu, phục hồi, chẩn đoán; thiết lập xử lý bản vá bảo mật và lỗ hổng.
 
-Every milestone should include:
-- Documentation updates.
-- Automated tests where practical.
-- Accessibility and usability review.
-- Security and permission review.
-- Upstream compatibility review.
-- Clear ownership and acceptance criteria.
+**Nghiệm thu:** Cập nhật được thử trên bố cục cài đặt hỗ trợ; quy trình phục hồi đã được thực hành; nếu có hoàn tác bằng ảnh chụp trạng thái thì phải thử toàn bộ quy trình và không mô tả đó là sao lưu dữ liệu.
 
-## Explicitly deferred
+## M6 — Phát hành công khai 1.0
 
-Until there is evidence and capacity to maintain them, defer:
-- A custom Linux kernel.
-- A complete fork of KDE Plasma.
-- A proprietary package format.
-- A custom init system or replacement for core Linux services.
-- Universal Windows application compatibility promises.
-- Cloud account and cross-device synchronization.
-- An immutable/image-based OS migration.
+**Mục tiêu:** Phát hành ổn định, có phạm vi hỗ trợ rõ ràng.
 
-## Immediate next actions
+Công việc:
 
-1. Inspect and pin the selected Ubuntu LTS release.
-2. Choose the ISO build toolchain and document why.
-3. Create the smallest package manifest that produces a bootable KDE image.
-4. Add a repeatable build script and QEMU smoke-test instructions.
-5. Produce and test the first ISO before expanding the feature set.
+- Chốt ma trận phần cứng và hoàn tất kiểm thử cài đặt, giao diện, cập nhật, phục hồi, bảo mật.
+- Công bố ghi chú phiên bản, lỗi đã biết, mã kiểm tra và hướng dẫn cài đặt.
+- Công bố kênh hỗ trợ, hướng dẫn đóng góp; gắn thẻ phiên bản và lưu thông tin bản dựng.
+
+**Nghiệm thu:** Không còn lỗi chặn phát hành; cài đặt và cập nhật đạt trên ma trận hỗ trợ; sản phẩm phát hành tái lập và kiểm tra được; tài liệu phản ánh đúng giới hạn.
+
+## Yêu cầu xuyên suốt
+
+Mỗi mốc phải cập nhật tài liệu tiếng Việt, bổ sung kiểm thử tự động khi phù hợp, rà soát khả năng tiếp cận, bảo mật, quyền truy cập, tương thích dự án gốc và có người phụ trách cùng tiêu chí nghiệm thu rõ ràng.
+
+## Hạng mục để sau
+
+Nhân Linux riêng, bản phân nhánh toàn bộ Plasma, định dạng gói riêng, hệ thống khởi tạo riêng, cam kết tương thích mọi ứng dụng Windows, tài khoản đám mây, đồng bộ nhiều thiết bị và chuyển sang hệ điều hành bất biến chỉ được xem xét khi có bằng chứng và nguồn lực bảo trì.
+
+## Việc tiếp theo
+
+Cấu hình nền tảng và công cụ đã được triển khai. Trọng tâm tiếp theo là tạo ISO thật trên máy Ubuntu đủ điều kiện, kiểm thử khởi động, tích hợp Calamares, cài xuống đĩa ảo và xác nhận lần đăng nhập đầu. Chưa mở rộng phạm vi trước khi hoàn thành các tiêu chí M0.
