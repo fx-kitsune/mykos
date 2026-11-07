@@ -20,3 +20,18 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y live-build=3.0~a57-1ubuntu49.1 debootstrap
           python3 scripts/build/mykos.py configure build/ci-config
+      - name: Check generated design exports
+        run: python3 scripts/build/export-design.py --check
+      - name: Install native Workspace test runtime
+        run: python3 -m pip install -r desktop/workspace/requirements-dev.txt
+      - name: Test native Workspace
+        env:
+          QT_QPA_PLATFORM: offscreen
+          QT_QUICK_BACKEND: software
+        run: python3 -m unittest discover -s tests/desktop -v
+      - name: Launch native Workspace smoke test
+        env:
+          QT_QPA_PLATFORM: offscreen
+          QT_QUICK_BACKEND: software
+          MYKOS_WORKSPACE_DATA: /tmp/mykos-ci-workspace
+        run: python3 desktop/workspace/main.py --smoke-test

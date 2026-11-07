@@ -61,3 +61,11 @@ opens an external browser tab. The focus timer resets on page reload.
 ![MyKOS Fold icon system](mykos-fold-preview.jpg)
 
 ![Desktop concept before icon integration](mykos-preview.jpg)
+
+## Native implementation
+
+The concept is now consumed by [the native desktop integration](../desktop/README.md):
+a Qt 6/QML Workspace companion, KDE color schemes, a Fold icon theme with Breeze
+fallback, and wallpaper resources. The browser files remain design references.
+Regenerate native exports with `python3 scripts/build/export-design.py` from the
+repository root. This does not replace Plasma or imply a validated OS image.

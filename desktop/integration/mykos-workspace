@@ -1,0 +1,2 @@
+#!/bin/sh
+exec /usr/bin/python3 /usr/share/mykos/workspace/main.py "$@"

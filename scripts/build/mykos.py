@@ -82,6 +82,20 @@ def configure(destination):
         (config / "package-lists").mkdir(exist_ok=True)
         shutil.copy2(ROOT / "distribution/packages/desktop.list.chroot", config / "package-lists")
         shutil.copytree(ROOT / "distribution/branding/overlay", config / "includes.chroot", dirs_exist_ok=True)
+        installed = config / "includes.chroot"
+        shutil.copytree(ROOT / "desktop/workspace", installed / "usr/share/mykos/workspace",
+                        ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "requirements-dev.txt"))
+        for relative, source in [("usr/bin/mykos-workspace", "mykos-workspace"),
+                                 ("usr/share/applications/mykos-workspace.desktop", "mykos-workspace.desktop")]:
+            target = installed / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(ROOT / "desktop/integration" / source, target)
+        # Build hosts may use umask 077; installed assets must remain readable
+        # and directories traversable by unprivileged desktop users.
+        installed.chmod(0o755)
+        for path in installed.rglob("*"):
+            if not path.is_symlink():
+                path.chmod(0o755 if path.is_dir() or path == installed / "usr/bin/mykos-workspace" else 0o644)
         hooks = config / "hooks"
         hooks.mkdir(exist_ok=True)
         shutil.copy2(ROOT / "distribution/image-build/010-mykos.chroot", hooks)
@@ -142,7 +156,7 @@ def metadata(image, destination, package_manifest):
     revision = run(["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True).stdout.strip()
     dirty = bool(run(["git", "status", "--porcelain"], cwd=ROOT, capture_output=True).stdout)
     inputs = {str(p.relative_to(ROOT)): sha256(p)
-              for folder in ["distribution", "scripts/build"]
+              for folder in ["distribution", "scripts/build", "desktop", "design-system/assets"]
               for p in sorted((ROOT / folder).rglob("*"))
               if p.is_file() and "__pycache__" not in p.parts}
     record = {"configuration": cfg, "git_revision": revision, "dirty": dirty,

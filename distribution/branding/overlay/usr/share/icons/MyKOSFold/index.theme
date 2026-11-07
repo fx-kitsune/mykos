@@ -1,0 +1,19 @@
+[Icon Theme]
+Name=MyKOS Fold
+Comment=Original MyKOS Fold icons with Breeze fallback
+Inherits=breeze,hicolor
+Directories=scalable/apps,scalable/actions
+
+[scalable/apps]
+Size=96
+Type=Scalable
+MinSize=16
+MaxSize=256
+Context=Applications
+
+[scalable/actions]
+Size=24
+Type=Scalable
+MinSize=16
+MaxSize=64
+Context=Actions

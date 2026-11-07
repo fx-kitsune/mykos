@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=MyKOS Workspace
+Name[vi]=Không gian MyKOS
+Comment=Your notes, focus timer and KDE applications
+Comment[vi]=Ghi chú, nhịp tập trung và ứng dụng KDE
+Exec=/usr/bin/mykos-workspace
+Icon=mykos-notes
+Terminal=false
+Categories=Utility;
+StartupNotify=true

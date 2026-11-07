@@ -42,3 +42,15 @@ curl
 git
 less
 nano
+
+# Native Qt 6 Workspace (alongside the upstream Plasma 5 desktop)
+python3
+qml6-module-qtquick
+qml6-module-qtquick-controls
+qml6-module-qtquick-layouts
+qml6-module-qtquick-window
+qml6-module-qtqml-workerscript
+gwenview
+python3-pyqt6
+python3-pyqt6.qtquick
+python3-pyqt6.qtsvg

@@ -37,6 +37,21 @@ class ImageToolTests(unittest.TestCase):
                 with self.assertRaises(OSError):
                     mykos.configure(Path(folder) / "new")
 
+    def test_staged_desktop_is_readable_and_executable_by_session_user(self):
+        with tempfile.TemporaryDirectory() as folder:
+            destination = Path(folder) / "build"
+            def fake_config(args, **kwargs):
+                (kwargs["cwd"] / "config").mkdir()
+            with patch.object(mykos, "prepare_toolchain", return_value={}), \
+                    patch.object(mykos, "run", side_effect=fake_config):
+                mykos.configure(destination)
+            installed = destination / "config/includes.chroot"
+            self.assertEqual((installed / "usr/bin/mykos-workspace").stat().st_mode & 0o777, 0o755)
+            self.assertEqual((installed / "usr/share/mykos/workspace/main.py").stat().st_mode & 0o777, 0o644)
+            self.assertEqual((installed / "usr/share/mykos/workspace/qml").stat().st_mode & 0o777, 0o755)
+            self.assertTrue((installed / "usr/share/applications/mykos-workspace.desktop").exists())
+            self.assertTrue((installed / "usr/share/icons/MyKOSFold/index.theme").exists())
+
     def test_toolchain_adapter_sources_library_without_modifying_original(self):
         with tempfile.TemporaryDirectory() as folder:
             base = Path(folder)
