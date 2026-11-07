@@ -12,6 +12,10 @@ Dự án đang thực hiện **M0 — Nền tảng và lần khởi động đ�
 
 Bộ thiết kế Fold đã được đưa vào ứng dụng Workspace bằng Qt 6/QML cùng bộ màu, biểu tượng và hình nền KDE. Workspace có ghi chú theo ba không gian, chế độ sáng/tối, đồng hồ tập trung và thao tác mở ứng dụng KDE. Ứng dụng chạy cùng Plasma; ba không gian ghi chú chưa được tích hợp với KDE Activities.
 
+## Tạo ISO khi máy cá nhân không đủ cấu hình
+
+Dùng [workflow Tạo ISO MyKOS](https://github.com/fx-kitsune/mykos/actions/workflows/build-iso.yml): vào **Actions → Tạo ISO MyKOS → Run workflow**. GitHub chạy Ubuntu và lưu ISO/nhật ký để tải xuống trong 7 ngày. Xem [hướng dẫn Actions](docs/BUILD.md#tạo-iso-bằng-github-actions) về tài nguyên, hạn mức và xử lý lỗi.
+
 ## Bắt đầu
 
 Chạy từ thư mục gốc dự án:

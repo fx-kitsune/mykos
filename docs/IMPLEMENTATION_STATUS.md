@@ -12,6 +12,8 @@ Cập nhật ngày 07/11/2026. **M0 đang thực hiện, chưa nghiệm thu.**
 - Workspace Qt 6/QML theo Fold: ghi chú cục bộ, sáng/tối, tập trung và mở ứng dụng KDE.
 - Bộ màu MyKOSDark/MyKOSLight, biểu tượng Fold, hình nền và bước đưa ứng dụng vào ảnh.
 
+- Workflow tạo ISO trên GitHub Actions: chạy thủ công hoặc khi sửa chính workflow; lưu sản phẩm và nhật ký riêng trong 7 ngày. Chưa có kết quả build đầy đủ được xác nhận tại thời điểm cấu hình.
+
 ## Đã kiểm chứng trong môi trường cloud
 
 - Bảy kiểm thử tạo ảnh/cấu hình và bảy kiểm thử giao diện/lưu trữ đều đạt.

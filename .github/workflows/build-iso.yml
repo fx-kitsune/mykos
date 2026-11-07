@@ -1,0 +1,109 @@
+name: Tạo ISO MyKOS
+
+on:
+  workflow_dispatch:
+  # Tạo lần đầu khi thêm workflow; sửa tài liệu hoặc mã ứng dụng không tự tạo ISO.
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/build-iso.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mykos-iso-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Tạo ảnh Ubuntu Noble amd64
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    defaults:
+      run:
+        shell: bash
+    env:
+      BUILD_DIRECTORY: build/actions
+      ARTIFACT_DIRECTORY: artifacts/iso
+      DIAGNOSTIC_DIRECTORY: artifacts/diagnostics
+    steps:
+      - name: Lấy mã nguồn
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Chuẩn bị tài nguyên máy tạo ảnh
+        run: |
+          set -euo pipefail
+          mkdir -p "$DIAGNOSTIC_DIRECTORY"
+          df -h . | tee "$DIAGNOSTIC_DIRECTORY/disk-before.txt"
+          free -h | tee "$DIAGNOSTIC_DIRECTORY/memory.txt"
+          # Chỉ dọn SDK cài sẵn trên máy tạm do GitHub cấp; không đụng mã nguồn.
+          if [[ "$RUNNER_ENVIRONMENT" == github-hosted && "$RUNNER_OS" == Linux ]]; then
+            sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc
+          fi
+          df -h . | tee "$DIAGNOSTIC_DIRECTORY/disk-after.txt"
+
+      - name: Cài bộ công cụ Ubuntu đã chốt
+        run: |
+          set -euo pipefail
+          version=$(python3 -c 'import json; print(json.load(open("distribution/base/build.json"))["live_build_version"])')
+          sudo apt-get update
+          sudo apt-get install -y "live-build=$version" debootstrap ubuntu-keyring \
+            squashfs-tools xorriso genisoimage isolinux syslinux syslinux-common \
+            syslinux-utils dosfstools mtools cpio rsync python3 git
+          dpkg-query -W live-build debootstrap squashfs-tools xorriso genisoimage \
+            isolinux syslinux syslinux-common syslinux-utils ubuntu-keyring \
+            > "$DIAGNOSTIC_DIRECTORY/toolchain.txt"
+
+      - name: Kiểm tra cấu hình và tài nguyên
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s tests/integration -v
+          python3 scripts/build/export-design.py --check
+          sudo python3 scripts/build/mykos.py check 2>&1 | tee "$DIAGNOSTIC_DIRECTORY/preflight.log"
+
+      - name: Tạo ISO
+        id: build
+        timeout-minutes: 155
+        run: |
+          set -euo pipefail
+          # Giữ thời gian cho bước lấy nhật ký trước khi job hết hạn.
+          timeout --signal=TERM --kill-after=120s 150m \
+            sudo python3 scripts/build/mykos.py build "$BUILD_DIRECTORY" --artifacts "$ARTIFACT_DIRECTORY"
+
+      - name: Kiểm tra sản phẩm
+        run: |
+          set -euo pipefail
+          sudo chmod -R a+rX "$ARTIFACT_DIRECTORY"
+          (cd "$ARTIFACT_DIRECTORY" && sha256sum -c SHA256SUMS)
+          mapfile -t images < <(find "$ARTIFACT_DIRECTORY" -maxdepth 1 -name '*.iso' -type f)
+          [[ ${#images[@]} -eq 1 ]]
+          xorriso -indev "${images[0]}" -report_el_torito plain \
+            > "$DIAGNOSTIC_DIRECTORY/iso-boot-layout.txt" 2>&1
+
+      - name: Thu thập nhật ký kể cả khi thất bại
+        if: always()
+        env:
+          BUILD_RESULT: ${{ steps.build.outcome }}
+        run: bash scripts/ci/collect-build-logs.sh
+
+      - name: Lưu ISO và mã kiểm tra
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mykos-iso-amd64-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/iso/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
+
+      - name: Lưu nhật ký chẩn đoán
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mykos-build-logs-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/diagnostics/
+          if-no-files-found: warn
+          retention-days: 7

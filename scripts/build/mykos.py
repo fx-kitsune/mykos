@@ -198,6 +198,7 @@ def main():
             raise ValueError("Artifact directory already exists")
         directory = configure(args.directory)
         # Keep the complete log even when live-build fails.
+        print(f"Nhật ký tạo ảnh: {directory / 'build.log'}", flush=True)
         with (directory / "build.log").open("w") as log:
             env = os.environ.copy()
             env["LIVE_BUILD"] = str(directory / "toolchain")

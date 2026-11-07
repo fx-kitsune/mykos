@@ -53,3 +53,33 @@ Tạo được ảnh chưa chứng minh bản phát hành đạt yêu cầu. Ho�
 Cần kho tại thời điểm cố định, khóa toàn bộ bộ công cụ, chuẩn hóa dấu thời gian và so sánh hai bản dựng độc lập trước khi đạt tiêu chí tái lập nghiêm ngặt.
 
 Giữ `ID` và `VERSION_ID` của Ubuntu để tương thích, đồng thời thêm thông tin biến thể MyKOS. Phiên hệ điều hành nền hiện dùng tiếng Anh; bản địa hóa toàn hệ điều hành và bộ gõ tiếng Việt chưa được tích hợp, kiểm thử. Việc tài liệu và Workspace dùng tiếng Việt không đồng nghĩa toàn bộ bản phân phối đã được Việt hóa.
+
+## Tạo ISO bằng GitHub Actions
+
+Không cần máy cá nhân chạy Linux hoặc đủ tài nguyên. Workflow [Tạo ISO MyKOS](https://github.com/fx-kitsune/mykos/actions/workflows/build-iso.yml) dùng máy tạm `ubuntu-24.04` của GitHub để chạy cùng công cụ trong repo.
+
+### Cách chạy
+
+1. Mở repo → **Actions** → **Tạo ISO MyKOS**.
+2. Chọn **Run workflow**, chọn nhánh `main` và xác nhận chạy.
+3. Theo dõi các bước cài công cụ, kiểm tra tài nguyên, tạo ảnh và kiểm tra sản phẩm.
+4. Khi thành công, mở phần **Artifacts** của lần chạy, tải `mykos-iso-amd64-…` và giải nén trên máy cá nhân.
+5. Kiểm tra `SHA256SUMS` trong thư mục giải nén bằng `sha256sum -c SHA256SUMS` trên Linux. Trên Windows có thể dùng `Get-FileHash -Algorithm SHA256` trong PowerShell để đối chiếu mã của ISO với dòng tương ứng trong tệp.
+
+Các nhãn **Actions**, **Run workflow**, **Artifacts** là tên nút trên GitHub. Cần đăng nhập tài khoản có quyền chạy workflow. Nếu Actions đang tắt hoặc hạn mức không còn, bật lại/kiểm tra trong thiết lập repo và tài khoản; workflow không tự mua thêm tài nguyên.
+
+### Thời gian chạy và lưu trữ
+
+- Chạy thủ công; chỉ tự kích hoạt trên `main` khi chính tệp `build-iso.yml` thay đổi để thử cấu hình tạo ảnh mới. Sửa tài liệu hoặc giao diện không tự tạo ISO.
+- Mỗi nhánh chỉ có một lượt tạo ảnh đang chạy; lượt sau chờ, không tự hủy lượt trước.
+- Job tối đa 180 phút, bước tạo ISO tối đa khoảng 150 phút để còn thời gian thu thập nhật ký.
+- ISO, mã SHA-256, danh sách gói và thông tin bản dựng lưu trong một gói tải xuống. Nhật ký chẩn đoán lưu riêng trong `mykos-build-logs-…`, kể cả khi tạo ảnh thất bại.
+- Hai gói có thời hạn lưu 7 ngày và dùng dung lượng Actions của tài khoản. ISO đã nén được tải lên không nén thêm. Không tự đăng lên GitHub Releases.
+
+### Tài nguyên và xử lý lỗi
+
+Workflow dọn các SDK Android, .NET và GHC cài sẵn trên máy tạm do GitHub cấp. Không dọn máy cá nhân hoặc mã nguồn. Sau khi cài công cụ, kiểm tra lại yêu cầu tối thiểu 25 GiB đĩa trống; không hạ yêu cầu để bỏ qua thiếu dung lượng. Runner có thể ít lõi hoặc RAM hơn cấu hình khuyến nghị cho máy tự quản, vì vậy thời gian tạo ảnh cần được đo từ lần chạy thực tế.
+
+Nếu lỗi, tải nhật ký riêng; xem `preflight.log`, `build.log`, `toolchain.txt` và thông tin đĩa. Thiếu dung lượng, hết thời gian, thiếu đúng phiên bản gói hoặc lỗi tích hợp live-build đều phải được xử lý theo thông báo thực tế. Nếu bị hủy cưỡng bức, runner dừng hoặc hết hạn job, GitHub có thể không thực hiện được bước lưu nhật ký cuối.
+
+Tạo ảnh và xác minh SHA-256 chưa phải kiểm thử khởi động. Workflow hiện ghi cấu trúc khởi động bằng `xorriso` nhưng chưa chạy QEMU, chưa xác nhận màn hình Plasma và chưa thử cài đặt. Tiếp tục theo [danh sách nghiệm thu máy ảo](../tests/integration/VM_CHECKLIST.md).
