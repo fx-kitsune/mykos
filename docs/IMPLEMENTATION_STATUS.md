@@ -12,7 +12,7 @@ Cập nhật ngày 07/11/2026. **M0 đang thực hiện, chưa nghiệm thu.**
 - Workspace Qt 6/QML theo Fold: ghi chú cục bộ, sáng/tối, tập trung và mở ứng dụng KDE.
 - Bộ màu MyKOSDark/MyKOSLight, biểu tượng Fold, hình nền và bước đưa ứng dụng vào ảnh.
 
-- Workflow tạo ISO trên GitHub Actions: chạy thủ công hoặc khi sửa chính workflow; lưu sản phẩm và nhật ký riêng trong 7 ngày. Chưa có kết quả build đầy đủ được xác nhận tại thời điểm cấu hình.
+- Workflow tạo ISO trên GitHub Actions: chạy thủ công hoặc khi sửa chính workflow; lưu sản phẩm và nhật ký riêng trong 7 ngày. Lượt tạo ảnh trên commit `6bfe299` đã hoàn tất và lưu sản phẩm.
 
 ## Đã kiểm chứng trong môi trường cloud
 
@@ -29,7 +29,6 @@ Máy chạy Debian 13, không có root/sudo hoặc thiết bị KVM; dung lượ
 
 ## Còn thiếu để nghiệm thu M0
 
-- Tạo ISO đầy đủ trên máy ảo Ubuntu đúng điều kiện.
 - Khởi động và kiểm tra môi trường làm việc trực tiếp.
 - Tích hợp Calamares, kiểm thử cài đặt và lần đăng nhập đầu trên bản cài.
 - Kiểm tra mạng, âm thanh, màn hình, quản lý gói, cập nhật và phục hồi.
@@ -43,4 +42,14 @@ Xem [phạm vi Workspace](../desktop/README.md). Chưa có giao diện hệ th�
 - Kiểm thử Qt thiếu `libEGL.so.1` trên runner: đã bổ sung thư viện đồ họa; lượt kiểm tra commit `ff1f4b3` đã đạt trên GitHub.
 - Tạo ISO thiếu chủ đề Oneiric/gfxboot: đã thay bước menu BIOS bằng cấu hình văn bản cho Noble, có kiểm thử thiếu thành phần bắt buộc. Chờ xác nhận lượt tạo ISO mới; chưa công bố có ISO hoàn chỉnh.
 
-- Lượt sau sửa menu đã tạo khoảng 2,2 GiB ISO, nhưng thiếu `isohybrid` trong `chroot` ở bước tạo ảnh lai. Đã sửa ánh xạ gói từ `syslinux` sang `syslinux-utils` trong bản sao bộ công cụ; chờ xác nhận lại toàn bộ workflow.
+- Lượt sau sửa menu đã tạo khoảng 2,2 GiB ISO, nhưng thiếu `isohybrid` trong `chroot` ở bước tạo ảnh lai. Đã sửa ánh xạ gói từ `syslinux` sang `syslinux-utils` trong bản sao bộ công cụ; toàn bộ workflow đã thành công ở lượt kế tiếp.
+
+## ISO đầu tiên tạo thành công trên Actions
+
+- [Lượt tạo ảnh 42392072303](https://github.com/fx-kitsune/mykos/actions/runs/42392072303) trên commit `6bfe299` đã thành công ngày 07/11/2026.
+- Bước tạo ISO, kiểm tra SHA-256 và ghi cấu trúc khởi động bằng `xorriso` đều hoàn tất.
+- [Gói ISO và thông tin bản dựng](https://github.com/fx-kitsune/mykos/actions/runs/42392072303/artifacts/13582690633) có dung lượng khoảng 2,36 GB; lưu đến khoảng ngày 14/11/2026 theo chính sách 7 ngày.
+- [Nhật ký chẩn đoán](https://github.com/fx-kitsune/mykos/actions/runs/42392072303/artifacts/13581884776) được lưu riêng.
+- CI kiểm tra cấu hình/giao diện của cùng commit cũng đã đạt.
+
+Đây là bản dựng phát triển chưa kiểm thử khởi động. Chưa xác nhận đăng nhập Plasma, cài đặt Calamares, phần cứng hoặc phục hồi; M0 vẫn chưa nghiệm thu. Các bước tạo ảnh không còn bị chặn bởi cấu hình máy cá nhân vì đã chuyển sang máy chạy của GitHub.
