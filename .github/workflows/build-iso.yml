@@ -62,6 +62,8 @@ jobs:
           set -euo pipefail
           python3 -m unittest discover -s tests/integration -v
           python3 scripts/build/export-design.py --check
+          # Kiểm tra gói cung cấp isohybrid trên host; adapter cài cùng gói trong chroot.
+          dpkg-query -L syslinux-utils | grep -Fx /usr/bin/isohybrid
           # Menu BIOS lấy đúng tệp của Syslinux 6 trên Noble.
           test -r /usr/lib/ISOLINUX/isolinux.bin
           for module in menu.c32 ldlinux.c32 libcom32.c32 libutil.c32; do

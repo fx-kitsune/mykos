@@ -70,6 +70,8 @@ class ImageToolTests(unittest.TestCase):
             original = '( . "${LIVE_BUILD}/scripts/build.sh" > /dev/null 2>&1 || true ) || . /usr/lib/live/build.sh'
             (binary / "lb").write_text("#!/bin/sh\n" + original + "\n")
             (lib / "lb_config").write_text("#!/bin/sh\n" + original + "\n")
+            (lib / "lb_binary_iso").write_text("#!/bin/sh\n" + original +
+                "\nCheck_package chroot/usr/bin/isohybrid syslinux\n")
             with patch.dict(mykos.os.environ, {"MYKOS_LIVE_BUILD_PREFIX": str(prefix)}):
                 env = mykos.prepare_toolchain(base / "relocated")
             adapted = (base / "relocated/bin/lb").read_text()
@@ -78,6 +80,11 @@ class ImageToolTests(unittest.TestCase):
             self.assertIn(original, (binary / "lb").read_text())
             self.assertEqual(env["LIVE_BUILD"], str(base / "relocated"))
             self.assertTrue((base / "relocated/boot-link").is_symlink())
+            iso_stage = (base / "relocated/scripts/build/lb_binary_iso").read_text()
+            self.assertIn("Check_package chroot/usr/bin/isohybrid syslinux-utils\n", iso_stage)
+            self.assertNotIn("Check_package chroot/usr/bin/isohybrid syslinux\n", iso_stage)
+            self.assertIn("Check_package chroot/usr/bin/isohybrid syslinux\n",
+                          (lib / "lb_binary_iso").read_text())
 
     def test_artifact_checksums_match_and_do_not_claim_validation(self):
         with tempfile.TemporaryDirectory() as folder:

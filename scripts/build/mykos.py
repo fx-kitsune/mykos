@@ -63,6 +63,14 @@ def prepare_toolchain(destination):
             content = script.read_text()
             if old in content:
                 script.write_text(content.replace(old, '. "${LIVE_BUILD}/scripts/build.sh"'))
+    # Trên Noble, isohybrid nằm trong syslinux-utils, không phải syslinux.
+    # Bước ISO chạy trong chroot nên cài công cụ trên host vẫn chưa đủ.
+    iso_stage = destination / "scripts/build/lb_binary_iso"
+    if iso_stage.is_file():
+        content = iso_stage.read_text()
+        iso_stage.write_text(content.replace(
+            "Check_package chroot/usr/bin/isohybrid syslinux\n",
+            "Check_package chroot/usr/bin/isohybrid syslinux-utils\n"))
     # Giai đoạn menu BIOS riêng tránh phụ thuộc Oneiric/gfxboot đã bị loại bỏ.
     shutil.copy2(ROOT / "distribution/image-build/lb_binary_syslinux",
                  destination / "scripts/build/lb_binary_syslinux")

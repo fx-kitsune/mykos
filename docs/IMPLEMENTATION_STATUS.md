@@ -42,3 +42,5 @@ Xem [phạm vi Workspace](../desktop/README.md). Chưa có giao diện hệ th�
 
 - Kiểm thử Qt thiếu `libEGL.so.1` trên runner: đã bổ sung thư viện đồ họa; lượt kiểm tra commit `ff1f4b3` đã đạt trên GitHub.
 - Tạo ISO thiếu chủ đề Oneiric/gfxboot: đã thay bước menu BIOS bằng cấu hình văn bản cho Noble, có kiểm thử thiếu thành phần bắt buộc. Chờ xác nhận lượt tạo ISO mới; chưa công bố có ISO hoàn chỉnh.
+
+- Lượt sau sửa menu đã tạo khoảng 2,2 GiB ISO, nhưng thiếu `isohybrid` trong `chroot` ở bước tạo ảnh lai. Đã sửa ánh xạ gói từ `syslinux` sang `syslinux-utils` trong bản sao bộ công cụ; chờ xác nhận lại toàn bộ workflow.
