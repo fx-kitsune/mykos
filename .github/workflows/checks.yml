@@ -1,4 +1,4 @@
-name: Configuration checks
+name: Kiểm tra cấu hình và giao diện
 on:
   push:
   pull_request:
@@ -9,27 +9,29 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - name: Unit tests
+      - name: Kiểm thử công cụ tạo ảnh
         run: python3 -m unittest discover -s tests/integration -v
-      - name: Shell syntax
+      - name: Kiểm tra cú pháp shell
         run: |
           bash -n scripts/development/run-vm.sh
           sh -n distribution/image-build/010-mykos.chroot
-      - name: Generate configuration with pinned Ubuntu toolchain
+      - name: Tạo cấu hình bằng bộ công cụ Ubuntu đã chốt
         run: |
           sudo apt-get update
           sudo apt-get install -y live-build=3.0~a57-1ubuntu49.1 debootstrap
           python3 scripts/build/mykos.py configure build/ci-config
-      - name: Check generated design exports
+      - name: Kiểm tra tài nguyên thiết kế đã xuất
         run: python3 scripts/build/export-design.py --check
-      - name: Install native Workspace test runtime
-        run: python3 -m pip install -r desktop/workspace/requirements-dev.txt
-      - name: Test native Workspace
+      - name: Cài môi trường kiểm thử Workspace
+        run: |
+          sudo apt-get install -y libegl1 libopengl0 libgl1 libxkbcommon0 fonts-noto-core
+          python3 -m pip install -r desktop/workspace/requirements-dev.txt
+      - name: Kiểm thử Workspace native
         env:
           QT_QPA_PLATFORM: offscreen
           QT_QUICK_BACKEND: software
         run: python3 -m unittest discover -s tests/desktop -v
-      - name: Launch native Workspace smoke test
+      - name: Khởi chạy Workspace không màn hình
         env:
           QT_QPA_PLATFORM: offscreen
           QT_QUICK_BACKEND: software
