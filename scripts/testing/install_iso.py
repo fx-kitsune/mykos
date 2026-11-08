@@ -10,11 +10,13 @@ import secrets
 from pathlib import Path
 import subprocess
 import time
+import wave
 
 from boot_iso import digest, prepare_menu
 from probe_desktop import GUEST, SOFTWARE_PARAMETERS, desktop_ready
 from vm_session import VM, empty_test_disk
 from installed_smoke import NETWORK, APT, DISPLAY, GRAPHICAL_SESSION, network_ready, apt_ready
+from multimedia_probe import GUEST as MULTIMEDIA, guest_ready as multimedia_ready, analyze_wave
 
 
 def installation_state(log):
@@ -127,6 +129,8 @@ def main():
                         help='Sau boot, kiểm tra DHCP/DNS/HTTPS, sudo có mật khẩu và cài/gỡ gói bằng APT.')
     parser.add_argument('--desktop-installed', action='store_true',
                         help='Sau kiểm tra CLI, đăng nhập SDDM bằng bàn phím và kiểm tra phiên Plasma X11.')
+    parser.add_argument('--multimedia-installed', action='store_true',
+                        help='Sau Plasma, đổi độ phân giải, kiểm tra tệp/Discover/Flatpak và thu tín hiệu PipeWire qua HDA ảo.')
     args = parser.parse_args()
     if args.install and not args.prepare_install:
         parser.error('--install cần --prepare-install để rà soát toàn bộ luồng trước xác nhận.')
@@ -136,6 +140,8 @@ def main():
         parser.error('--smoke-installed cần --boot-installed.')
     if args.desktop_installed and not args.smoke_installed:
         parser.error('--desktop-installed cần --smoke-installed để chờ và thu bằng chứng SDDM trước thao tác.')
+    if args.multimedia_installed and not args.desktop_installed:
+        parser.error('--multimedia-installed cần --desktop-installed.')
     iso, output = args.iso.resolve(), args.output.resolve()
     if not iso.is_file() or output.exists() or ',' in str(output):
         parser.error('Cần ISO có sẵn và thư mục kết quả mới, không chứa dấu phẩy.')
@@ -148,6 +154,7 @@ def main():
               'scope': 'Xem installer với đĩa ảo mới; chưa cài đặt hoặc ghi phân vùng.',
               'disk': 'install-disk.qcow2', 'disk_size_bytes': 40 * 1024**3}
     vm = None
+    audio_capture = None
     started = time.monotonic()
     try:
         disk = output / 'install-disk.qcow2'
@@ -299,6 +306,10 @@ def main():
                 '-serial', 'unix:' + str(boot_output / 'serial.sock') + ',server=on,wait=on',
                 '-qmp', 'unix:' + str(boot_output / 'qmp.sock') + ',server=on,wait=off', '-no-reboot']
             report['installed_boot_command'] = installed_command
+            if args.multimedia_installed:
+                audio_capture = boot_output / 'audio.wav'
+                installed_command.extend(['-audiodev', 'wav,id=audio0,path=' + str(audio_capture),
+                                          '-device', 'intel-hda', '-device', 'hda-output,audiodev=audio0'])
             vm = VM(installed_command, boot_output)
             report['installed_boot_acceleration'] = 'kvm' if vm.qmp.command('query-kvm').get('enabled') else 'tcg'
             print('Installed boot: ISO detached; waiting for GRUB and installed console', flush=True)
@@ -364,6 +375,16 @@ def main():
             vm.click(1266, 777)
             report['scope'] = 'Cài và boot BIOS không ISO, xác thực SDDM/Plasma X11 tài khoản thường, ứng dụng KDE, mạng/HTTPS, sudo và APT. Chưa nghiệm thu âm thanh, cập nhật/recovery hoặc phần cứng.'
             report['status'] = 'installed-diagnostic-desktop-ready' if args.diagnostic_direct or args.diagnostic_overlay else 'installed-desktop-ready'
+        if args.multimedia_installed:
+            report['status'] = 'failed'
+            report['audio_capture_start_bytes'] = audio_capture.stat().st_size
+            print('Installed checks: file I/O, X11 resize/restore, PipeWire 440 Hz and application manager', flush=True)
+            report['installed_multimedia'] = vm.guest(MULTIMEDIA, timeout=360)
+            if not multimedia_ready(report['installed_multimedia']):
+                raise RuntimeError('Kiểm tra tệp/màn hình/PipeWire/Discover/Flatpak chưa đạt; xem installed_multimedia.')
+            vm.capture('installed-multimedia')
+            report['scope'] = 'BIOS/QCOW2, đăng nhập Plasma X11, mạng/APT/sudo, tệp, đổi độ phân giải, Discover/Flatpak và PipeWire/HDA ảo. Chưa nghiệm thu cập nhật/recovery, Wayland hoặc phần cứng thật.'
+            report['status'] = 'installed-diagnostic-multimedia-ready' if args.diagnostic_direct or args.diagnostic_overlay else 'installed-multimedia-ready'
     except (OSError, ValueError, RuntimeError, subprocess.CalledProcessError) as error:
         report['error'] = str(error)
     finally:
@@ -373,6 +394,21 @@ def main():
             except OSError as error:
                 report['screenshot_error'] = str(error)
             vm.close()
+        if report.get('installed_multimedia') and multimedia_ready(report['installed_multimedia']):
+            try:
+                clip = audio_capture.with_name('audio-tone-evidence.wav')
+                evidence = analyze_wave(audio_capture, report['audio_capture_start_bytes'], clip)
+                evidence['sha256'] = digest(audio_capture)
+                if clip.exists():
+                    evidence['tone_file'] = str(clip.relative_to(output))
+                    evidence['tone_file_sha256'] = digest(clip)
+                report['audio_evidence'] = evidence
+                if not evidence['tone_detected']:
+                    report['status'] = 'failed'
+                    report['error'] = 'pw-play kết thúc nhưng bản ghi QEMU chưa chứa tín hiệu 440 Hz yêu cầu.'
+            except (OSError, ValueError, EOFError, wave.Error) as error:
+                report['status'] = 'failed'
+                report['error'] = 'Không kiểm chứng được PCM từ QEMU: ' + str(error)
         report['elapsed_seconds'] = round(time.monotonic() - started, 1)
         (output / 'result.json').write_text(json.dumps(report, ensure_ascii=False, indent=2) + '\n')
         print(json.dumps(report, ensure_ascii=False, indent=2))
@@ -380,7 +416,8 @@ def main():
                                     'installer-complete', 'installer-diagnostic-complete',
                                     'installed-userspace-ready', 'installed-diagnostic-userspace-ready',
                                     'installed-cli-smoke-ready', 'installed-diagnostic-cli-smoke-ready',
-                                    'installed-desktop-ready', 'installed-diagnostic-desktop-ready'} else 1
+                                    'installed-desktop-ready', 'installed-diagnostic-desktop-ready',
+                                    'installed-multimedia-ready', 'installed-diagnostic-multimedia-ready'} else 1
 
 
 if __name__ == '__main__':
