@@ -71,3 +71,13 @@ Chỉ nghiệm thu mức BIOS → nhân → môi trường người dùng ở b�
 ## Bộ thiết kế M1
 
 [Bản thiết kế M1 phiên bản 2.0](../design-system/m1/README.md) thay thế bố cục trang tổng quan cũ. Desktop mặc định chỉ có hình nền và panel; menu, cửa sổ tệp và thiết lập xuất hiện theo thao tác. Đã bỏ câu chào, thẻ nội dung và Workspace tự mở khỏi bản mẫu. Fold chỉ giữ ở màu, biểu tượng và chất liệu. Đồng thời đã thêm gói giao diện Plasma `org.mykos.desktop`, bố cục panel chỉ tạo khi hồ sơ chưa có panel, hình nền tối mới và biểu tượng menu. Đã kiểm thử quy tắc bố cục với API giả lập; chưa tạo ISO mới để kiểm chứng việc áp cấu hình trong Plasma. Không thay giao diện Workspace native.
+
+## ISO cập nhật desktop ngày 08/11/2026
+
+- [Lượt tạo ảnh 42443779141](https://github.com/fx-kitsune/mykos/actions/runs/42443779141) trên commit `6ea43d6` đã thành công. ISO chứa hình nền logo MyKOS và cấu hình desktop hiện tại ở commit này.
+- [ISO và thông tin bản dựng](https://github.com/fx-kitsune/mykos/actions/runs/42443779141/artifacts/13603405483) khoảng 2,36 GB; kiểm tra `SHA256SUMS` trong workflow đã đạt. Artifact lưu đến ngày 15/11/2026. Mã băm ZIP của artifact không phải SHA-256 của tệp ISO bên trong.
+- Workflow build đã tự kích hoạt [kiểm thử BIOS và phiên Plasma 42444741905](https://github.com/fx-kitsune/mykos/actions/runs/42444741905). Tại thời điểm ghi mục này, kiểm thử còn đang chạy; chưa đánh dấu desktop hoặc M0 đạt.
+- Đầu vào ISO thay đổi trên `main` sẽ tự tạo ảnh mới. Sau build thành công, kiểm thử dùng đúng artifact của lượt đó, không dùng mặc định ISO cũ.
+- Đã bổ sung kiểm tra console live, tiến trình Plasma/KWin, mở Dolphin/Konsole/Thiết lập và lưu ảnh trước/sau mở ứng dụng. 21 kiểm thử tích hợp cục bộ đã đạt; CI cấu hình/giao diện cũng đã đạt. Đây chưa phải kết quả chạy guest.
+
+Bước tiếp theo: đọc kết quả guest, rà soát ảnh giao diện và giải quyết lỗi nếu có trước khi tích hợp trình cài đặt.
