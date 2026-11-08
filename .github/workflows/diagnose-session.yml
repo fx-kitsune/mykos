@@ -28,9 +28,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y qemu-system-x86 xorriso python3-pil acl
           if [[ -c /dev/kvm ]]; then sudo setfacl -m "u:$(id -u):rw" /dev/kvm; fi
-      - name: Thu unit và địa chỉ bus trong phiên live
+      - name: So sánh deadline 5 giây và 60 giây trên TCG
         run: |
-          python3 scripts/testing/session_probe.py artifacts/source-iso/mykos-0.1.0-dev-amd64.iso --expected-sha caadce0d0a2ba2734057045f2b81f5dbc709cabc25d054f32e1874509cb5492c --output artifacts/session-test
+          python3 scripts/testing/session_probe.py artifacts/source-iso/mykos-0.1.0-dev-amd64.iso --expected-sha caadce0d0a2ba2734057045f2b81f5dbc709cabc25d054f32e1874509cb5492c --output artifacts/session-test --tcg --extend-startup-timeout
       - name: Lưu bằng chứng chẩn đoán
         if: always()
         uses: actions/upload-artifact@v4
