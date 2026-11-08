@@ -133,7 +133,7 @@ jobs:
           if [[ -c /dev/kvm ]]; then
             sudo setfacl -m "u:$(id -u):rw" /dev/kvm
           fi
-      - name: Cài Calamares trên đúng một đĩa ảo mới
+      - name: Cài Calamares và thử ứng dụng trong phiên đồ họa
         timeout-minutes: 50
         env:
           EXPECTED_ISO_SHA: ${{ needs.source.outputs.iso_sha }}

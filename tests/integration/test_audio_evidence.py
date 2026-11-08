@@ -14,6 +14,13 @@ spec.loader.exec_module(audio)
 
 
 class AudioEvidenceTests(unittest.TestCase):
+    def test_running_discover_does_not_hide_packagekit_authentication_failure(self):
+        result = {'discover_launch': {'returncode': 0}, 'discover': {'returncode': 0},
+                  'discover_unit': {'stdout': 'ActiveState=active\n'}, 'discover_log': ''}
+        self.assertTrue(audio.discover_ready(result))
+        result['discover_log'] = 'Transaction error: "Failed to obtain authentication."'
+        self.assertFalse(audio.discover_ready(result))
+
     def recorded(self, frequency, rate=48000):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / 'capture.wav'

@@ -69,12 +69,32 @@ result['pipewire']=command(['systemctl','--user','is-active','pipewire','wireplu
 result['file']['content_matches']=note.read_text()==text
 result['flatpak_version']=command(['flatpak','--version'])
 result['flatpak_remotes']=command(['flatpak','remotes','--columns=name,url'])
-with open('/tmp/mykos-discover-smoke.log','w') as log:
-    subprocess.Popen(['plasma-discover'],env=env,stdout=log,stderr=subprocess.STDOUT)
+# A serial-login child remains in the console session even after copying DISPLAY.
+# Launch through the graphical user's service manager, as Plasma does, so polkit
+# resolves the user's active graphical session instead of the serial test shell.
+Path('/tmp/mykos-discover-smoke.log').write_text('')
+result['discover_launch']=command(['systemd-run','--user','--collect',
+    '--unit=mykos-discover-smoke',
+    '--property=StandardOutput=append:/tmp/mykos-discover-smoke.log',
+    '--property=StandardError=inherit',
+    '--setenv=DISPLAY='+env['DISPLAY'],
+    '--setenv=XAUTHORITY='+env['XAUTHORITY'],
+    'plasma-discover'])
 time.sleep(30)
 result['discover']=command(['pgrep','-u',str(os.getuid()),'-x','plasma-discover'])
+result['discover_unit']=command(['systemctl','--user','show','mykos-discover-smoke',
+    '-p','ActiveState','-p','MainPID','-p','ControlGroup'])
 result['discover_log']=Path('/tmp/mykos-discover-smoke.log').read_text(errors='replace')[-5000:]
 '''
+
+
+def discover_ready(result):
+    """A running process with a failed PackageKit transaction is not acceptance."""
+    return (result.get('discover_launch', {}).get('returncode') == 0
+            and result.get('discover', {}).get('returncode') == 0
+            and 'ActiveState=active' in result.get('discover_unit', {}).get('stdout', '')
+            and 'Transaction error:' not in result.get('discover_log', '')
+            and 'Failed to obtain authentication' not in result.get('discover_log', ''))
 
 
 def guest_ready(result):
@@ -88,7 +108,8 @@ def guest_ready(result):
         return (result['uid'] > 0 and result['file']['content_matches'] is True
                 and result['file']['owner_uid'] == result['uid']
                 and result['pipewire']['returncode'] == 0
-                and all(result[key]['returncode'] == 0 for key in ['flatpak_version', 'flatpak_remotes', 'discover'])
+                and all(result[key]['returncode'] == 0 for key in ['flatpak_version', 'flatpak_remotes'])
+                and discover_ready(result)
                 and all(result['audio'][key]['returncode'] == 0 for key in
                         ['original', 'set_volume', 'unmute', 'play', 'restore_volume', 'restore_mute']))
     except (KeyError, TypeError):
