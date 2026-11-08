@@ -17,6 +17,7 @@ from probe_desktop import GUEST, SOFTWARE_PARAMETERS, desktop_ready
 from vm_session import VM, empty_test_disk
 from installed_smoke import NETWORK, APT, DISPLAY, GRAPHICAL_SESSION, SESSION_SERVICES, network_ready, apt_ready, session_services_ready
 from multimedia_probe import GUEST as MULTIMEDIA, guest_ready as multimedia_ready, analyze_wave
+from x11_focus import guest_script as focus_script
 
 
 def installation_state(log):
@@ -264,12 +265,14 @@ def main():
             report['scope'] = 'Cài vào QCOW2 mới và kiểm tra đích; chưa boot bản cài hoặc nghiệm thu thiết bị.'
             if not planned_ext4_root(report.get('preparation_log', {}).get('log', '')):
                 raise RuntimeError('Kế hoạch không có phân vùng gốc ext4; dừng trước Install.')
+            report['installer_focus'] = vm.guest(focus_script('MyKOS Development Installer'), timeout=45)
             # Both Install accelerators are defined in Calamares 3.3.5 ViewManager.
             vm.key('alt', 'i')
-            time.sleep(2)
+            report['confirmation_focus'] = vm.guest(focus_script('Continue with Installation?'), timeout=45)
             vm.capture('installer-confirmation')
             vm.key('alt', 'i')
-            print('Installer test: confirmed installation on disposable vda only', flush=True)
+            print('Installer test: submitted Install Now on disposable vda only', flush=True)
+            submitted = time.monotonic()
             deadline = time.monotonic() + 1800
             while time.monotonic() < deadline:
                 probe_result = vm.guest("from pathlib import Path\nresult={'log':Path('/tmp/mykos-installer-probe.log').read_text(errors='replace')[-40000:]}", timeout=60)
@@ -280,6 +283,8 @@ def main():
                     raise RuntimeError('Calamares báo cài đặt thất bại; xem installer-execution.log.')
                 if state == 'complete':
                     break
+                if 'Starting job ' not in log and time.monotonic() - submitted > 60:
+                    raise RuntimeError('Calamares chưa bắt đầu job trong 60 giây sau xác nhận; xem ảnh focus/confirmation.')
                 print('Installer test: waiting; ' + log.splitlines()[-1][:200] if log.splitlines() else 'Installer test: waiting for log', flush=True)
                 vm.capture('installer-progress')
                 time.sleep(10)
