@@ -138,7 +138,7 @@ jobs:
         env:
           EXPECTED_ISO_SHA: ${{ needs.source.outputs.iso_sha }}
         run: |
-          python3 scripts/testing/install_iso.py artifacts/source-iso/mykos-0.1.0-dev-amd64.iso --expected-sha "$EXPECTED_ISO_SHA" --output artifacts/install-test --prepare-install --install --boot-installed --smoke-installed --desktop-installed
+          python3 scripts/testing/install_iso.py artifacts/source-iso/mykos-0.1.0-dev-amd64.iso --expected-sha "$EXPECTED_ISO_SHA" --output artifacts/install-test --prepare-install --install --boot-installed --smoke-installed --desktop-installed --multimedia-installed
       - name: Lưu bằng chứng, không tải lên đĩa ảo
         if: always()
         uses: actions/upload-artifact@v4
@@ -148,5 +148,6 @@ jobs:
             artifacts/install-test/**/*.json
             artifacts/install-test/**/*.log
             artifacts/install-test/**/*.png
+            artifacts/install-test/installed-boot/audio-tone-evidence.wav
           if-no-files-found: warn
           retention-days: 7
