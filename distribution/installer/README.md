@@ -28,12 +28,16 @@ Nếu người dùng chọn đồ họa phần mềm trong phiên live, module g
 
 Ghi SHA-256 ISO, cấu hình máy ảo, bố cục đĩa và bằng chứng vào [danh sách nghiệm thu](../../tests/integration/VM_CHECKLIST.md). Không thử trên đĩa có dữ liệu quan trọng khi phạm vi này chưa được nghiệm thu.
 
-## Kiểm thử preview tự động
+## Kiểm thử tự động trên đĩa dùng riêng
 
-Workflow `install-iso.yml` chỉ tiếp tục từ kết quả desktop `desktop-ready` có Calamares đang mở. ISO tải xuống phải khớp SHA-256 của kết quả đó trước khi tạo đĩa. Công cụ `scripts/testing/install_iso.py` tạo đúng một QCOW2 mới 40 GiB và kiểm tra guest chỉ thấy đĩa `vda` trống này.
+Workflow `install-iso.yml` chạy sau một lượt kiểm thử desktop thành công hoặc được chọn thủ công; chỉ tiếp tục từ kết quả `desktop-ready` có Calamares đang mở. ISO tải xuống phải khớp SHA-256 của kết quả đó trước khi tạo đĩa. Công cụ `scripts/testing/install_iso.py` tạo đúng một QCOW2 mới 40 GiB và kiểm tra guest chỉ thấy đĩa `vda` trống này.
 
 Giai đoạn preview chụp trang chào và các trang kế tiếp bằng phím điều hướng; **không chọn xóa đĩa, không bấm Install**. Kết quả `installer-preview` chỉ cung cấp ảnh để rà soát; không phải bằng chứng cài đặt. Artifact chỉ lưu log/JSON/ảnh, không lưu đĩa ảo. Sau khi rà soát preview mới tiếp tục kiểm thử cài đặt và boot từ đĩa.
 
 Tùy chọn `--prepare-install` đi tiếp từ ảnh phân vùng đã rà soát: chọn xóa trên đúng đĩa ảo mới, nhập tài khoản `vmtester` với mật khẩu ngẫu nhiên dùng một lần, chụp trang tổng kết rồi dừng trước Install. Công cụ kiểm tra lại đĩa vẫn chưa có phân vùng. Mật khẩu không được giữ lại trong báo cáo. Chế độ này vẫn chỉ là chuẩn bị, chưa cài đặt.
+
+Workflow chính thêm `--install --boot-installed`. Trước xác nhận Install, log kế hoạch phải có công việc tạo phân vùng và root ext4; nếu thiếu thì dừng. Sau khi Calamares báo thành công, công cụ gắn đích chỉ đọc để kiểm tra kernel/initrd/GRUB, tài khoản thường, nhóm sudo, mật khẩu đã đặt, root khóa và chính sách live đã gỡ. Đây mới là định nghĩa kiểm tra; trạng thái nghiệm thu phải dựa trên kết quả chạy thực tế.
+
+Để kiểm tra boot, phép thử chỉ bật `serial-getty@ttyS0.service` trong bản cài trên QCOW2, giữ nguyên GRUB và tham số nhân. Sau đó tắt máy live và tạo QEMU mới **không gắn ISO**, boot từ đĩa, đăng nhập console bằng đúng mật khẩu đã nhập trong GUI. `installed-userspace-ready` yêu cầu tài khoản không phải root, hostname đã đặt và `/` là ext4 trên `/dev/vda1`; trạng thái này chưa nghiệm thu đăng nhập đồ họa, mạng/âm thanh hoặc phần cứng. Mật khẩu chỉ tồn tại trong bộ nhớ tiến trình kiểm thử. Artifact chỉ lưu JSON/log/PNG, kể cả thư mục con của lần boot; không tải QCOW2 hoặc ISO lên.
 
 Workflow chẩn đoán có thể dùng `--diagnostic-overlay` để chép cấu hình hiện tại vào phiên live; mỗi tệp được ghi mã SHA-256. Kết quả `installer-diagnostic-preview` không thay thế việc thử lại ISO chứa sẵn cấu hình và launcher chính thức.

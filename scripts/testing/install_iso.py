@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Mở và rà soát installer trên đĩa QCOW2 mới; dừng trước chọn phân vùng."""
+"""Kiểm thử Calamares và boot bản cài trên một QCOW2 mới, dùng riêng."""
 import argparse
 import base64
 import hashlib
@@ -82,6 +82,22 @@ def installed_target_ready(result):
             and 'UUID=' in result.get('fstab', ''))
 
 
+ENABLE_TEST_CONSOLE = r'''
+import subprocess
+target='/mnt/mykos-installed-check'
+def checked(args):
+    p=subprocess.run(['sudo','-n',*args],capture_output=True,text=True,timeout=30)
+    if p.returncode: raise RuntimeError(p.stderr)
+checked(['mount','/dev/vda1',target])
+try:
+    checked(['systemctl','--root='+target,'enable','serial-getty@ttyS0.service'])
+finally:
+    checked(['umount',target])
+checked(['sync'])
+result={'instrumentation':'Enabled serial-getty@ttyS0.service only in the disposable installed system; GRUB and kernel options unchanged.'}
+'''
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('iso', type=Path)
@@ -94,9 +110,13 @@ def main():
                         help='Chọn đĩa ảo trống và nhập tài khoản thử; dừng ở Summary, chưa ghi phân vùng.')
     parser.add_argument('--install', action='store_true',
                         help='Cài thật vào QCOW2 mới đã xác minh; chưa nghiệm thu boot bản cài.')
+    parser.add_argument('--boot-installed', action='store_true',
+                        help='Sau cài đặt, tháo ISO và đăng nhập console bản cài bằng mật khẩu đã nhập trong GUI.')
     args = parser.parse_args()
     if args.install and not args.prepare_install:
         parser.error('--install cần --prepare-install để rà soát toàn bộ luồng trước xác nhận.')
+    if args.boot_installed and not args.install:
+        parser.error('--boot-installed cần --install trong cùng phiên để giữ mật khẩu dùng một lần trong bộ nhớ.')
     iso, output = args.iso.resolve(), args.output.resolve()
     if not iso.is_file() or output.exists() or ',' in str(output):
         parser.error('Cần ISO có sẵn và thư mục kết quả mới, không chứa dấu phẩy.')
@@ -207,6 +227,11 @@ def main():
                 raise RuntimeError('Đĩa thay đổi trong bước chuẩn bị; chưa được phép coi preview là cài đặt.')
             report['preparation_log'] = vm.guest("from pathlib import Path\nresult={'log':Path('/tmp/mykos-installer-probe.log').read_text(errors='replace')[-24000:]}")
         report['status'] = 'installer-diagnostic-preview' if args.diagnostic_direct or args.diagnostic_overlay else 'installer-preview'
+        # Reviewed panel layout: show desktop exposes the actual wallpaper.
+        vm.click(1266, 777)
+        time.sleep(3)
+        vm.capture('live-wallpaper')
+        vm.click(1266, 777)
         if args.install:
             report['status'] = 'failed'
             report['scope'] = 'Cài vào QCOW2 mới và kiểm tra đích; chưa boot bản cài hoặc nghiệm thu thiết bị.'
@@ -238,12 +263,34 @@ def main():
             if not installed_target_ready(report['installed_target']):
                 raise RuntimeError('Calamares kết thúc nhưng đích chưa đạt kiểm tra kernel/GRUB/tài khoản/chính sách live.')
             report['status'] = 'installer-diagnostic-complete' if args.diagnostic_direct or args.diagnostic_overlay else 'installer-complete'
-        # Reviewed panel layout: show desktop exposes the actual wallpaper,
-        # instead of treating a config path or an obscured background as proof.
-        vm.click(1266, 777)
-        time.sleep(3)
-        vm.capture('live-wallpaper')
-        vm.click(1266, 777)
+        if args.boot_installed:
+            report['status'] = 'failed'
+            report['installed_console'] = vm.guest(ENABLE_TEST_CONSOLE, timeout=120)
+            vm.close()
+            vm = None
+            boot_output = output / 'installed-boot'
+            boot_output.mkdir()
+            # Deliberately construct a new command with no CD-ROM or probe ISO.
+            installed_command = ['qemu-system-x86_64', '-accel', accel, '-m', '4096', '-smp', '2',
+                '-boot', 'order=c', '-display', 'none', '-vga', 'std',
+                '-nic', 'user,model=virtio-net-pci', '-usb', '-device', 'usb-tablet',
+                '-drive', 'file=' + str(disk) + ',format=qcow2,if=virtio',
+                '-serial', 'unix:' + str(boot_output / 'serial.sock') + ',server=on,wait=on',
+                '-qmp', 'unix:' + str(boot_output / 'qmp.sock') + ',server=on,wait=off', '-no-reboot']
+            report['installed_boot_command'] = installed_command
+            vm = VM(installed_command, boot_output)
+            print('Installed boot: ISO detached; waiting for GRUB and installed console', flush=True)
+            vm.login(username='vmtester', hostname='mykos-installed', password=password)
+            vm.capture('installed-login-screen')
+            report['installed_boot'] = vm.guest("import os,subprocess,json\nresult={'uid':os.getuid(),'root':subprocess.check_output(['findmnt','--json','/'],text=True),'cmdline':open('/proc/cmdline').read(),'hostname':open('/etc/hostname').read().strip()}")
+            installed = report['installed_boot']
+            filesystem = json.loads(installed['root'])['filesystems'][0]
+            if (installed['uid'] == 0 or installed['hostname'] != 'mykos-installed'
+                    or filesystem['source'] != '/dev/vda1' or filesystem['fstype'] != 'ext4'
+                    or 'boot=casper' in installed['cmdline']):
+                raise RuntimeError('Bản cài chưa đạt kiểm tra tài khoản thường và root trên đĩa sau tháo ISO.')
+            report['scope'] = 'Cài QCOW2, boot GRUB không ISO, đăng nhập console tài khoản thường. Chưa nghiệm thu đăng nhập GUI hoặc thiết bị.'
+            report['status'] = 'installed-diagnostic-userspace-ready' if args.diagnostic_direct or args.diagnostic_overlay else 'installed-userspace-ready'
     except (OSError, ValueError, RuntimeError, subprocess.CalledProcessError) as error:
         report['error'] = str(error)
     finally:
@@ -257,7 +304,8 @@ def main():
         (output / 'result.json').write_text(json.dumps(report, ensure_ascii=False, indent=2) + '\n')
         print(json.dumps(report, ensure_ascii=False, indent=2))
     return 0 if report['status'] in {'installer-preview', 'installer-diagnostic-preview',
-                                    'installer-complete', 'installer-diagnostic-complete'} else 1
+                                    'installer-complete', 'installer-diagnostic-complete',
+                                    'installed-userspace-ready', 'installed-diagnostic-userspace-ready'} else 1
 
 
 if __name__ == '__main__':

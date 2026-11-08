@@ -5,12 +5,6 @@ on:
       desktop_run_id:
         description: Lượt kiểm thử desktop đã đạt và đã mở Calamares
         required: false
-  push:
-    branches: [main]
-    paths:
-      - .github/workflows/install-iso.yml
-      - scripts/testing/install_iso.py
-      - scripts/testing/vm_session.py
   workflow_run:
     workflows: [Kiểm thử khởi động ISO]
     types: [completed]
@@ -139,15 +133,15 @@ jobs:
         env:
           EXPECTED_ISO_SHA: ${{ needs.source.outputs.iso_sha }}
         run: |
-          python3 scripts/testing/install_iso.py artifacts/source-iso/mykos-0.1.0-dev-amd64.iso --expected-sha "$EXPECTED_ISO_SHA" --output artifacts/install-test --prepare-install --install
+          python3 scripts/testing/install_iso.py artifacts/source-iso/mykos-0.1.0-dev-amd64.iso --expected-sha "$EXPECTED_ISO_SHA" --output artifacts/install-test --prepare-install --install --boot-installed
       - name: Lưu bằng chứng, không tải lên đĩa ảo
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: mykos-install-evidence-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
-            artifacts/install-test/*.json
-            artifacts/install-test/*.log
-            artifacts/install-test/*.png
+            artifacts/install-test/**/*.json
+            artifacts/install-test/**/*.log
+            artifacts/install-test/**/*.png
           if-no-files-found: warn
           retention-days: 7
