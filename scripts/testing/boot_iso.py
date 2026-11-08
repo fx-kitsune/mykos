@@ -38,6 +38,12 @@ def instrument_menu(text):
                      if line.lstrip().startswith('append ') else line for line in lines) + '\n'
 
 
+def prepare_menu(path):
+    # Rock Ridge giữ quyền chỉ đọc từ ISO; chỉ đổi bản sao vừa trích xuất.
+    path.chmod(0o600)
+    path.write_text(instrument_menu(path.read_text()))
+
+
 class QMP:
     def __init__(self, path):
         self.sock = socket.socket(socket.AF_UNIX)
@@ -88,7 +94,7 @@ def main():
         menu = output / 'isolinux.cfg'
         subprocess.run(['xorriso', '-osirrox', 'on', '-indev', str(iso),
                         '-extract', '/isolinux/isolinux.cfg', str(menu)], check=True)
-        menu.write_text(instrument_menu(menu.read_text()))
+        prepare_menu(menu)
         probe_iso = output / 'boot-probe.iso'
         subprocess.run(['xorriso', '-indev', str(iso), '-outdev', str(probe_iso),
                         '-boot_image', 'any', 'replay', '-map', str(menu), '/isolinux/isolinux.cfg',
@@ -115,14 +121,18 @@ def main():
                 if qmp is None and qmp_path.exists():
                     qmp = QMP(qmp_path)
                 if state == 'userspace-ready':
-                    report['status'] = state
                     # Cho màn hình đồ họa thêm thời gian trước khi lưu bằng chứng.
                     time.sleep(15)
+                    final_text = serial.read_text(errors='replace') if serial.exists() else ''
+                    if machine.poll() is not None or serial_state(final_text) == 'failed':
+                        raise RuntimeError('Máy ảo lỗi trong thời gian chờ ổn định sau khởi động.')
+                    report['status'] = state
                     break
                 time.sleep(2)
             else:
                 raise TimeoutError('Hết thời gian chờ khởi động; xem serial.log và ảnh màn hình.')
     except (OSError, ValueError, RuntimeError, subprocess.CalledProcessError) as error:
+        report['status'] = 'failed'
         report['error'] = str(error)
     finally:
         if qmp is not None:

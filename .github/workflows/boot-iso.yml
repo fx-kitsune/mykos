@@ -12,7 +12,7 @@ on:
         default: mykos-iso-amd64-42392072303-1
   push:
     branches: [main]
-    paths: [.github/workflows/boot-iso.yml]
+    paths: [.github/workflows/boot-iso.yml, scripts/testing/boot_iso.py]
 permissions:
   contents: read
   actions: read
