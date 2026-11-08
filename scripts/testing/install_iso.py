@@ -36,6 +36,15 @@ from pathlib import Path
 def command(args):
     return subprocess.run(['sudo','-n',*args],capture_output=True,text=True,timeout=30)
 target=Path('/mnt/mykos-installed-check')
+mounts=command(['findmnt','--json','--source','/dev/vda1','-o','SOURCE,TARGET,FSTYPE'])
+previous=json.loads(mounts.stdout).get('filesystems',[]) if mounts.returncode == 0 else []
+for mount in previous:
+    path=Path(mount['target'])
+    if (mount['source'] != '/dev/vda1' or mount['fstype'] != 'ext4'
+            or path.parent != Path('/tmp') or not path.name.startswith('calamares-root-')):
+        raise RuntimeError('Unexpected existing mount of the disposable partition: '+str(path))
+    p=command(['umount',str(path)])
+    if p.returncode: raise RuntimeError(p.stderr)
 p=command(['install','-d','-m','0755',str(target)])
 if p.returncode: raise RuntimeError(p.stderr)
 p=command(['mount','-o','ro,noload','/dev/vda1',str(target)])
@@ -50,7 +59,8 @@ try:
     for package in ['casper','calamares']:
         p=command(['dpkg-query','--admindir='+str(target/'var/lib/dpkg'),'-W','-f=${db:Status-Status}',package])
         package_status[package]=p.stdout.strip()
-    result={'root_filesystem':command(['blkid','-s','TYPE','-o','value','/dev/vda1']).stdout.strip(),
+    result={'previous_calamares_mounts':previous,
+            'root_filesystem':command(['blkid','-s','TYPE','-o','value','/dev/vda1']).stdout.strip(),
             'account_present':any(line.startswith('vmtester:') for line in passwd.splitlines()),
             'sudo_membership':any(line.startswith('sudo:') and 'vmtester' in line.split(':')[3].split(',') for line in groups.splitlines()),
             'root_locked':hashes.get('root','').startswith(('!','*')),
@@ -61,7 +71,7 @@ try:
             'kernel_present':bool(list((target/'boot').glob('vmlinuz-*'))),
             'initrd_present':bool(list((target/'boot').glob('initrd.img-*'))),
             'grub_core_present':(target/'boot/grub/i386-pc/core.img').is_file(),
-            'grub_config':(target/'boot/grub/grub.cfg').read_text()[-16000:],
+            'grub_config':command(['cat',str(target/'boot/grub/grub.cfg')]).stdout[-16000:],
             'fstab':(target/'etc/fstab').read_text(),
             'hostname':(target/'etc/hostname').read_text().strip()}
 finally:

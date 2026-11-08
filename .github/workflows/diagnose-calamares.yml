@@ -28,16 +28,16 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y qemu-system-x86 qemu-utils xorriso python3-pil acl
           if [[ -c /dev/kvm ]]; then sudo setfacl -m "u:$(id -u):rw" /dev/kvm; fi
-      - name: Chẩn đoán cài đặt trên QCOW2 dùng riêng
+      - name: Chẩn đoán cài đặt và boot QCOW2 dùng riêng
         run: |
-          python3 scripts/testing/install_iso.py artifacts/source-iso/mykos-0.1.0-dev-amd64.iso --expected-sha 336e46b66e9596e67461c519c8ed565fc64c66213f617d6901ea2fe6a443f06f --output artifacts/install-test --diagnostic-direct --diagnostic-overlay distribution/installer/overlay --prepare-install --install
+          python3 scripts/testing/install_iso.py artifacts/source-iso/mykos-0.1.0-dev-amd64.iso --expected-sha 336e46b66e9596e67461c519c8ed565fc64c66213f617d6901ea2fe6a443f06f --output artifacts/install-test --diagnostic-direct --diagnostic-overlay distribution/installer/overlay --prepare-install --install --boot-installed
       - name: Lưu bằng chứng chẩn đoán
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: mykos-install-evidence-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
-            artifacts/install-test/*.json
-            artifacts/install-test/*.log
-            artifacts/install-test/*.png
+            artifacts/install-test/**/*.json
+            artifacts/install-test/**/*.log
+            artifacts/install-test/**/*.png
           retention-days: 7
