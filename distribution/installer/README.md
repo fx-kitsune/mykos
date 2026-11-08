@@ -27,3 +27,9 @@ Nếu người dùng chọn đồ họa phần mềm trong phiên live, module g
 5. Thử phục hồi; mở rộng UEFI/Secure Boot và ma trận phần cứng ở mốc riêng.
 
 Ghi SHA-256 ISO, cấu hình máy ảo, bố cục đĩa và bằng chứng vào [danh sách nghiệm thu](../../tests/integration/VM_CHECKLIST.md). Không thử trên đĩa có dữ liệu quan trọng khi phạm vi này chưa được nghiệm thu.
+
+## Kiểm thử preview tự động
+
+Workflow `install-iso.yml` chỉ tiếp tục từ kết quả desktop `desktop-ready` có Calamares đang mở. ISO tải xuống phải khớp SHA-256 của kết quả đó trước khi tạo đĩa. Công cụ `scripts/testing/install_iso.py` tạo đúng một QCOW2 mới 40 GiB và kiểm tra guest chỉ thấy đĩa `vda` trống này.
+
+Giai đoạn preview chụp trang chào và các trang kế tiếp bằng phím điều hướng; **không chọn xóa đĩa, không bấm Install**. Kết quả `installer-preview` chỉ cung cấp ảnh để rà soát; không phải bằng chứng cài đặt. Artifact chỉ lưu log/JSON/ảnh, không lưu đĩa ảo. Sau khi rà soát preview mới tiếp tục kiểm thử cài đặt và boot từ đĩa.

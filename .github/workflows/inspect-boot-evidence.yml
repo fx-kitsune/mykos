@@ -1,7 +1,7 @@
 name: Đọc bằng chứng kiểm thử máy ảo
 on:
   workflow_run:
-    workflows: [Kiểm thử khởi động ISO]
+    workflows: [Kiểm thử khởi động ISO, Kiểm thử cài đặt MyKOS]
     types: [completed]
     branches: [main]
 permissions:
@@ -13,14 +13,32 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
+      - name: Kiểm tra có artifact bằng chứng
+        id: available
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          SOURCE_RUN: ${{ github.event.workflow_run.id }}
+          ARTIFACT_NAME: ${{ github.event.workflow_run.name == 'Kiểm thử cài đặt MyKOS' && format('mykos-install-evidence-{0}-{1}', github.event.workflow_run.id, github.event.workflow_run.run_attempt) || format('mykos-boot-evidence-{0}-{1}', github.event.workflow_run.id, github.event.workflow_run.run_attempt) }}
+        run: |
+          set -euo pipefail
+          count=$(gh api "repos/$GH_REPO/actions/runs/$SOURCE_RUN/artifacts" | jq --arg name "$ARTIFACT_NAME" '[.artifacts[] | select(.name == $name)] | length')
+          if [[ "$count" -gt 0 ]]; then
+            echo 'present=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'present=false' >> "$GITHUB_OUTPUT"
+            echo 'No evidence artifact: the preview may have been skipped or setup did not complete.'
+          fi
       - name: Tải bằng chứng của đúng lượt kiểm thử
+        if: steps.available.outputs.present == 'true'
         uses: actions/download-artifact@v4
         with:
           github-token: ${{ github.token }}
           run-id: ${{ github.event.workflow_run.id }}
-          name: mykos-boot-evidence-${{ github.event.workflow_run.id }}-${{ github.event.workflow_run.run_attempt }}
+          name: ${{ github.event.workflow_run.name == 'Kiểm thử cài đặt MyKOS' && format('mykos-install-evidence-{0}-{1}', github.event.workflow_run.id, github.event.workflow_run.run_attempt) || format('mykos-boot-evidence-{0}-{1}', github.event.workflow_run.id, github.event.workflow_run.run_attempt) }}
           path: evidence
       - name: Xuất kết quả và ảnh để rà soát qua log
+        if: steps.available.outputs.present == 'true'
         run: |
           python3 - <<'PYTHON'
           import base64

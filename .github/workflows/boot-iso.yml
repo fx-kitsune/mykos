@@ -14,7 +14,8 @@ on:
     branches: [main]
     paths:
       - .github/workflows/boot-iso.yml
-      - scripts/testing/**
+      - scripts/testing/boot_iso.py
+      - scripts/testing/probe_desktop.py
   workflow_run:
     workflows: [Tạo ISO MyKOS]
     types: [completed]
