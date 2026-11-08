@@ -90,12 +90,22 @@ if result['plasma']:
                 subprocess.Popen(['sudo', '-n', '--preserve-env=DISPLAY,XAUTHORITY,QT_QUICK_BACKEND,KWIN_COMPOSE,MYKOS_INSTALL_DEBUG',
                                   '/usr/bin/mykos-install'], env=installer_env, stdin=subprocess.DEVNULL,
                                  stdout=log, stderr=subprocess.STDOUT)
-            time.sleep(45)
+            time.sleep(2)
+        installer_ready = False
+        deadline = time.monotonic() + 300
+        while time.monotonic() < deadline:
+            alive = subprocess.run(['pgrep', '-x', 'calamares'], capture_output=True).returncode == 0
+            log_text = open(installer_log).read() if os.path.isfile(installer_log) else ''
+            installer_ready = (alive and 'STARTUP: Window now visible' in log_text
+                               and 'All requirements have been checked.' in log_text)
+            if installer_ready or not alive:
+                break
+            time.sleep(3)
         alive = subprocess.run(['pgrep', '-x', 'calamares'], capture_output=True).returncode == 0
-        result['installer'] = {'running': alive}
+        result['installer'] = {'running': alive, 'ready': installer_ready}
         if os.path.isfile(installer_log):
             result['installer']['log_tail'] = open(installer_log).read()[-14000:]
-        if alive:
+        if installer_ready:
             print('MYKOS_INSTALLER_READY', flush=True)
             time.sleep(5)
 print('MYKOS_DESKTOP_RESULT=' + json.dumps(result), flush=True)
@@ -134,7 +144,7 @@ def desktop_ready(result):
         return False
     if not all(result.get('applications', {}).get(app) for app in ['dolphin', 'konsole', 'systemsettings']):
         return False
-    if 'installer' in result and not result['installer'].get('running'):
+    if 'installer' in result and not (result['installer'].get('running') and result['installer'].get('ready')):
         return False
     response = result.get('containments', {})
     if response.get('returncode') != 0:
@@ -250,8 +260,8 @@ def main():
                     raise RuntimeError('Tài khoản live từ chối mật khẩu rỗng; không thử lại.')
                 if phase == 'login' and time.monotonic() - phase_started > 60:
                     raise TimeoutError('Không vào được shell live trong 60 giây; xem serial.log.')
-                if phase == 'probe' and time.monotonic() - phase_started > 600:
-                    raise TimeoutError('Guest không trả kết quả desktop trong 600 giây; xem serial.log.')
+                if phase == 'probe' and time.monotonic() - phase_started > 900:
+                    raise TimeoutError('Guest không trả kết quả desktop trong 900 giây; xem serial.log.')
                 if time.monotonic() - last_progress > 60:
                     tail = transcript.splitlines()[-3:]
                     print(json.dumps({'phase': phase, 'console_tail': tail}, ensure_ascii=False), flush=True)

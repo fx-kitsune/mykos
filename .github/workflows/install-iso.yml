@@ -57,7 +57,8 @@ jobs:
           import json, os, re
           from pathlib import Path
           result = json.loads(Path('validation/desktop-test/result.json').read_text())
-          eligible = result.get('status') == 'desktop-ready' and result.get('guest', {}).get('installer', {}).get('running') is True
+          installer = result.get('guest', {}).get('installer', {})
+          eligible = result.get('status') == 'desktop-ready' and installer.get('running') is True and installer.get('ready') is True
           with open(os.environ['GITHUB_OUTPUT'], 'a') as stream:
               print('eligible=' + str(eligible).lower(), file=stream)
               if eligible:

@@ -190,7 +190,7 @@ def main():
             if payload.count(needle) != 1:
                 raise RuntimeError('Cấu trúc lệnh chẩn đoán đã thay đổi; không tự đoán lệnh chạy.')
             payload = payload.replace(needle, "'/usr/bin/calamares', '--debug'")
-        result = vm.guest(payload, timeout=600)
+        result = vm.guest(payload, timeout=900)
         report['guest'] = result
         if not desktop_ready(result) or not result.get('installer', {}).get('running'):
             raise RuntimeError('Desktop hoặc Calamares chưa sẵn sàng.')
