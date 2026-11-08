@@ -15,7 +15,7 @@ Workspace là ứng dụng tùy chọn, không tự khởi chạy, không đại
 
 ## 2. Desktop mặc định
 
-Hình nền xanh mực hoặc nền sáng trung tính, hình học gấp nhẹ, không chữ. Một panel cạnh dưới cao 48 đơn vị logic, sát mép màn hình, không tạo khung nổi giống thanh điều hướng website.
+Hình nền xanh mực hoặc nền sáng trung tính, logo MyKOS đặt giữa, không chữ. Một panel cạnh dưới cao 48 đơn vị logic, sát mép màn hình, không tạo khung nổi giống thanh điều hướng website.
 
 Thứ tự panel: mở ứng dụng → ứng dụng ghim/đang chạy → khoảng trống → khay hệ thống → ngày giờ → hiện desktop. Ghim Tệp, trình duyệt đã có trong ảnh và Thiết lập. Nếu chưa có trình duyệt trong ảnh, không ghim một nút hỏng.
 
@@ -82,7 +82,7 @@ Khung xem hẹp của bản mẫu chỉ phục vụ rà soát; không cam kết 
 | Đăng nhập/khóa | SDDM và Plasma Screen Locker | Nhận diện tối giản, giữ xác thực gốc |
 | Workspace | Ứng dụng Qt/QML riêng | Tùy chọn, không tự mở cùng phiên |
 
-Gói `org.mykos.desktop` đã được thêm vào lớp cấu hình ảnh, đặt panel cạnh dưới và chỉ chạy nhánh tạo bố cục khi chưa có panel. Tài nguyên KDE hiện chỉ ghim Dolphin; trình duyệt và Thiết lập trong ảnh tham chiếu chưa được ghim vào cấu hình thật khi chưa đối chiếu định danh ứng dụng. Hình nền tối đã thay bằng hình học gấp không chữ. Chưa tạo ISO mới để kiểm chứng bố cục; đây vẫn là thay đổi cấu hình chờ nghiệm thu. Bản mẫu trình duyệt không thay Dolphin hoặc SDDM bằng ứng dụng web.
+Gói `org.mykos.desktop` đã được thêm vào lớp cấu hình ảnh, đặt panel cạnh dưới và chỉ chạy nhánh tạo bố cục khi chưa có panel. Tài nguyên KDE hiện chỉ ghim Dolphin; trình duyệt và Thiết lập trong ảnh tham chiếu chưa được ghim vào cấu hình thật khi chưa đối chiếu định danh ứng dụng. Hình nền tối dùng logo MyKOS đặt giữa trên nền xanh mực, không chữ. Chưa tạo ISO mới để kiểm chứng bố cục; đây vẫn là thay đổi cấu hình chờ nghiệm thu. Bản mẫu trình duyệt không thay Dolphin hoặc SDDM bằng ứng dụng web.
 
 ## 9. Áp dụng, phục hồi và nghiệm thu
 
