@@ -67,3 +67,7 @@ Xem [phạm vi Workspace](../desktop/README.md). Chưa có giao diện hệ th�
 - [Bằng chứng gồm kết quả, nhật ký và ảnh màn hình](https://github.com/fx-kitsune/mykos/actions/runs/42435820231/artifacts/13598969791) lưu trong 7 ngày.
 
 Chỉ nghiệm thu mức BIOS → nhân → môi trường người dùng ở bản sao chẩn đoán. Chưa xác nhận đăng nhập Plasma, âm thanh/mạng, khả năng khởi động nguyên trạng trên phần cứng thật hoặc cài đặt. Phần việc tiếp theo là nghiệm thu phiên Plasma và tích hợp Calamares sau đó.
+
+## Bộ thiết kế M1
+
+Đã chuẩn bị [đặc tả và bản mẫu M1](../design-system/m1/README.md): desktop, trình mở ứng dụng, thông báo, thiết lập, đăng nhập; màu Ink/Paper, quy tắc tiếp cận và ánh xạ từng phần sang KDE. Đã kiểm tra tương tác trình duyệt, bố cục hẹp và các cặp tương phản chữ được khai báo. Đây là kết quả thiết kế, chưa tích hợp toàn bộ vào Plasma/SDDM và không thay đổi các điều kiện nghiệm thu M0 còn thiếu.

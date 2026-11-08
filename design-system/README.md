@@ -2,6 +2,10 @@
 
 Thư mục chứa bộ biểu tượng MyKOS Fold 1.0 và bản mẫu tương tác MyKOS 0.2. Đây là tài nguyên nghiên cứu thiết kế và bản mẫu trình duyệt. Phần triển khai native sử dụng chúng được mô tả riêng trong [hướng dẫn giao diện](../desktop/README.md).
 
+## Bộ thiết kế M1
+
+[Bản thiết kế M1](m1/README.md) gồm năm màn hình tương tác, hai bảng màu Ink/Paper, giá trị dùng chung, ánh xạ KDE và tiêu chí nghiệm thu. Đây là bộ bàn giao thiết kế; chưa áp dụng toàn bộ vào ảnh hệ điều hành.
+
 ## Xem bản mẫu
 
 Chạy từ thư mục gốc dự án:

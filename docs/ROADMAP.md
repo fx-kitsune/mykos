@@ -24,6 +24,8 @@ Công việc:
 
 ## M1 — Trải nghiệm môi trường làm việc
 
+Đã chuẩn bị [bộ thiết kế M1](../design-system/m1/README.md) với bản mẫu năm màn hình và đặc tả. Đây là công việc thiết kế song song; chưa đánh dấu M0 hoặc M1 hoàn thành.
+
 **Mục tiêu:** Thống nhất cấu hình mặc định về hình thức và tương tác.
 
 Công việc:

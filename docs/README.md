@@ -10,6 +10,7 @@
 | Phân biệt phần đã làm, đã kiểm tra và còn thiếu | [Trạng thái triển khai](IMPLEMENTATION_STATUS.md) |
 | Chuẩn bị máy và tạo ISO | [Hướng dẫn tạo ISO](BUILD.md) |
 | Chạy và phát triển giao diện native | [Workspace và tích hợp KDE](../desktop/README.md) |
+| Triển khai thiết kế trải nghiệm M1 | [Đặc tả và bản mẫu M1](../design-system/m1/README.md) |
 | Tra cứu phong cách giao diện | [Bộ thiết kế](../design-system/README.md) |
 | Dựng biểu tượng đúng quy chuẩn | [Quy chuẩn biểu tượng Fold](../design-system/assets/icons/README.md) |
 | Kiểm thử khởi động và cài đặt | [Danh sách kiểm thử máy ảo](../tests/integration/VM_CHECKLIST.md) |
