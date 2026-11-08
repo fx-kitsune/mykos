@@ -5,6 +5,7 @@ import base64
 import hashlib
 import json
 import os
+import secrets
 from pathlib import Path
 import subprocess
 import time
@@ -22,6 +23,8 @@ def main():
     parser.add_argument('--diagnostic-direct', action='store_true',
                         help='Chỉ chẩn đoán Calamares trực tiếp; không nghiệm thu launcher của ISO.')
     parser.add_argument('--diagnostic-overlay', type=Path, help='Chỉ chẩn đoán: chép overlay hiện tại vào guest live, không nghiệm thu ISO gốc.')
+    parser.add_argument('--prepare-install', action='store_true',
+                        help='Chọn đĩa ảo trống và nhập tài khoản thử; dừng ở Summary, chưa ghi phân vùng.')
     args = parser.parse_args()
     iso, output = args.iso.resolve(), args.output.resolve()
     if not iso.is_file() or output.exists() or ',' in str(output):
@@ -105,7 +108,32 @@ def main():
             vm.key('alt', 'n')
             time.sleep(3)
             vm.capture('installer-' + name)
-        # Không chọn xóa đĩa hoặc bấm Install trong phép thử preview.
+        if args.prepare_install:
+            # The 1280x800 partition page and its empty /dev/vda were reviewed.
+            vm.click(334, 158)
+            time.sleep(3)
+            vm.capture('installer-erase-selected')
+            vm.key('alt', 'n')
+            time.sleep(3)
+            vm.capture('installer-users-empty')
+            # Calamares 3.3.5 UsersPage::onActivate focuses FullName. Its UI
+            # declares login, hostname, password, confirmation in this order.
+            password = 'Vm' + secrets.token_hex(12)
+            for index, value in enumerate(['Mykos Tester', 'vmtester', 'mykos-installed', password, password]):
+                if index:
+                    vm.key('tab')
+                vm.key('ctrl', 'a')
+                vm.type(value)
+            vm.capture('installer-users-filled')
+            vm.key('alt', 'n')
+            time.sleep(3)
+            vm.capture('installer-summary')
+            report['prepared_account'] = {'username': 'vmtester', 'hostname': 'mykos-installed',
+                                          'password': 'ephemeral, not retained'}
+            report['after_preparation'] = vm.guest("import json,subprocess\nresult=json.loads(subprocess.check_output(['lsblk','--json','--bytes','-o','NAME,TYPE,SIZE,MOUNTPOINTS']))")
+            if not empty_test_disk(report['after_preparation']):
+                raise RuntimeError('Đĩa thay đổi trong bước chuẩn bị; chưa được phép coi preview là cài đặt.')
+        # No Install/confirmation input here: disk writes belong to a separate test stage.
         report['status'] = 'installer-diagnostic-preview' if args.diagnostic_direct or args.diagnostic_overlay else 'installer-preview'
     except (OSError, ValueError, RuntimeError, subprocess.CalledProcessError) as error:
         report['error'] = str(error)

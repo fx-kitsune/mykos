@@ -137,6 +137,23 @@ class VM:
         for codes in key_sequence(text):
             self.key(*codes)
 
+    def click(self, x, y, expected_size=(1280, 800)):
+        # Coordinates come from reviewed screenshots; refuse a changed display mode.
+        from PIL import Image
+        self.capture('before-pointer-input')
+        with Image.open(self.output / 'before-pointer-input.png') as screenshot:
+            width, height = screenshot.size
+        if (width, height) != expected_size or not (0 <= x < width and 0 <= y < height):
+            raise RuntimeError('Kích thước màn hình khác ảnh đã rà soát; dừng thao tác chuột.')
+        events = [{'type': 'abs', 'data': {'axis': axis, 'value': round(value * 32767 / (extent - 1))}}
+                  for axis, value, extent in [('x', x, width), ('y', y, height)]]
+        self.qmp.command('input-send-event', {'events': events})
+        for down in [True, False]:
+            self.qmp.command('input-send-event', {'events': [
+                {'type': 'btn', 'data': {'button': 'left', 'down': down}}]})
+            time.sleep(.1)
+        self.last_input = time.monotonic()
+
     def capture(self, name):
         from PIL import Image
         path = self.output / (name + '.ppm')

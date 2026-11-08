@@ -28,9 +28,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y qemu-system-x86 qemu-utils xorriso python3-pil acl
           if [[ -c /dev/kvm ]]; then sudo setfacl -m "u:$(id -u):rw" /dev/kvm; fi
-      - name: Chẩn đoán trực tiếp, không chọn phân vùng
+      - name: Chẩn đoán đến Summary, chưa ghi phân vùng
         run: |
-          python3 scripts/testing/install_iso.py artifacts/source-iso/mykos-0.1.0-dev-amd64.iso --expected-sha 336e46b66e9596e67461c519c8ed565fc64c66213f617d6901ea2fe6a443f06f --output artifacts/install-test --diagnostic-direct --diagnostic-overlay distribution/installer/overlay
+          python3 scripts/testing/install_iso.py artifacts/source-iso/mykos-0.1.0-dev-amd64.iso --expected-sha 336e46b66e9596e67461c519c8ed565fc64c66213f617d6901ea2fe6a443f06f --output artifacts/install-test --diagnostic-direct --diagnostic-overlay distribution/installer/overlay --prepare-install
       - name: Lưu bằng chứng chẩn đoán
         if: always()
         uses: actions/upload-artifact@v4
