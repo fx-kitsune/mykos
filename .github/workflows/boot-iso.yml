@@ -24,7 +24,8 @@ permissions:
   actions: read
 concurrency:
   group: mykos-boot-${{ github.ref }}
-  cancel-in-progress: false
+  # Máy kiểm thử không gắn đĩa cài đặt; ưu tiên công cụ/ISO mới nhất.
+  cancel-in-progress: true
 jobs:
   boot:
     if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
