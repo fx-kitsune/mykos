@@ -13,7 +13,6 @@ on:
   push:
     branches: [main]
     paths:
-      - .github/workflows/boot-iso.yml
       - scripts/testing/boot_iso.py
       - scripts/testing/probe_desktop.py
   workflow_run:
@@ -98,10 +97,19 @@ jobs:
           python3 scripts/testing/probe_desktop.py artifacts/source-iso/mykos-0.1.0-dev-amd64.iso --output artifacts/desktop-test --timeout 1200 --software-rendering
       - name: Chuẩn bị bằng chứng kiểm thử
         if: always()
+        env:
+          SOURCE_BUILD_RUN: ${{ steps.source.outputs.run_id }}
+          SOURCE_ARTIFACT: ${{ steps.source.outputs.artifact_name }}
+          SOURCE_COMMIT: ${{ steps.source.outputs.source_sha }}
         run: |
           python3 - <<'PYTHON'
+          import json, os
           from pathlib import Path
           from PIL import Image
+          for path in Path('artifacts').glob('*-test/result.json'):
+              result = json.loads(path.read_text())
+              result.update(source_build_run_id=os.environ['SOURCE_BUILD_RUN'], source_artifact_name=os.environ['SOURCE_ARTIFACT'], source_commit=os.environ['SOURCE_COMMIT'])
+              path.write_text(json.dumps(result, ensure_ascii=False, indent=2) + '\n')
           for path in Path('artifacts').glob('*-test/*.ppm'):
               Image.open(path).save(path.with_suffix('.png'))
           PYTHON

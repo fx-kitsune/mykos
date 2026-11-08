@@ -70,6 +70,14 @@ jobs:
                   sha = result['iso_sha256']
                   assert re.fullmatch('[0-9a-f]{64}', sha)
                   print('iso_sha=' + sha, file=stream)
+                  run_id = str(result.get('source_build_run_id', ''))
+                  if run_id:
+                      assert re.fullmatch('[0-9]+', run_id)
+                      print('build_run_id=' + run_id, file=stream)
+                      artifact = result.get('source_artifact_name', '')
+                      if artifact:
+                          assert re.fullmatch('mykos-iso-amd64-' + run_id + '-[0-9]+', artifact)
+                          print('tested_artifact=' + artifact, file=stream)
           print('Eligible for installer preview:', eligible)
           PYTHON
       - name: Xác định artifact ISO nguồn
@@ -78,13 +86,23 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
+          TESTED_BUILD_RUN: ${{ steps.validate.outputs.build_run_id }}
+          TESTED_ARTIFACT: ${{ steps.validate.outputs.tested_artifact }}
         run: |
           set -euo pipefail
-          metadata=$(gh api --method GET "repos/$GH_REPO/actions/workflows/build-iso.yml/runs" -f branch=main -f status=success -f per_page=1 --jq '.workflow_runs[0]')
+          if [[ -n "$TESTED_BUILD_RUN" ]]; then
+            [[ "$TESTED_BUILD_RUN" =~ ^[0-9]+$ ]]
+            metadata=$(gh api "repos/$GH_REPO/actions/runs/$TESTED_BUILD_RUN")
+            [[ $(jq -r '.conclusion' <<< "$metadata") == success ]]
+          else
+            metadata=$(gh api --method GET "repos/$GH_REPO/actions/workflows/build-iso.yml/runs" -f branch=main -f status=success -f per_page=1 --jq '.workflow_runs[0]')
+          fi
           run_id=$(jq -r '.id' <<< "$metadata")
           attempt=$(jq -r '.run_attempt' <<< "$metadata")
           [[ "$run_id" =~ ^[0-9]+$ ]]
-          printf 'run_id=%s\nartifact_name=mykos-iso-amd64-%s-%s\n' "$run_id" "$run_id" "$attempt" >> "$GITHUB_OUTPUT"
+          artifact="${TESTED_ARTIFACT:-mykos-iso-amd64-$run_id-$attempt}"
+          [[ "$artifact" =~ ^mykos-iso-amd64-$run_id-[0-9]+$ ]]
+          printf 'run_id=%s\nartifact_name=%s\n' "$run_id" "$artifact" >> "$GITHUB_OUTPUT"
   preview:
     needs: source
     if: needs.source.outputs.eligible == 'true'
