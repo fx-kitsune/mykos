@@ -6,8 +6,8 @@ on:
   push:
     branches: [main]
     paths:
-      - .github/workflows/build-iso.yml
       - distribution/**
+      - '!distribution/installer/README.md'
       - desktop/workspace/**
       - scripts/build/**
 

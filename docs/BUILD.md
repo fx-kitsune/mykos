@@ -96,7 +96,7 @@ Kết quả lưu trong `mykos-boot-evidence-…` trong 7 ngày: `result.json`, n
 
 ### Khi nào ISO được tạo lại?
 
-Push lên `main` thay đổi `distribution/**`, `desktop/workspace/**`, `scripts/build/**` hoặc workflow build sẽ tạo ISO mới. Thay đổi tài liệu hay bản mẫu web không kích hoạt tạo ảnh. Có thể chạy thủ công bằng **Run workflow**. Kết quả kiểm thử BIOS phải khớp lượt build và SHA-256; không dùng kết quả của ISO cũ để nghiệm thu mã mới.
+Push lên `main` thay đổi `distribution/**`, `desktop/workspace/**`, `scripts/build/**` sẽ tạo ISO mới. Thay đổi tài liệu, workflow hoặc bản mẫu web không kích hoạt tạo ảnh; README của installer được loại trừ rõ ràng. Có thể chạy thủ công bằng **Run workflow**. Kết quả kiểm thử BIOS phải khớp lượt build và SHA-256; không dùng kết quả của ISO cũ để nghiệm thu mã mới.
 
 ### Bằng chứng phiên Plasma
 
