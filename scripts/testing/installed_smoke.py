@@ -150,3 +150,25 @@ def network_ready(result):
 def apt_ready(result):
     return (all(result.get(name, {}).get('returncode') == 0 for name in ['update', 'install', 'run', 'remove'])
             and result.get('final_package_status', {}).get('stdout', '').strip() in {'', 'not-installed', 'config-files'})
+
+
+def session_services_ready(result):
+    response = result.get('units', {})
+    if response.get('returncode') != 0:
+        return False
+    units = {}
+    for block in response.get('stdout', '').strip().split('\n\n'):
+        values = dict(line.split('=', 1) for line in block.splitlines() if '=' in line)
+        if values.get('Id'):
+            units[values['Id']] = values
+    expected = {'plasma-polkit-agent.service': 'org.kde.polkit-kde-authentication-agent-1',
+                'plasma-powerdevil.service': 'org.kde.Solid.PowerManagement',
+                'plasma-kscreen.service': 'org.kde.KScreen'}
+    for name, bus in expected.items():
+        unit = units.get(name, {})
+        if (unit.get('ActiveState') != 'active' or unit.get('SubState') != 'running'
+                or unit.get('Type') != 'dbus' or unit.get('BusName') != bus
+                or unit.get('Result') != 'success' or unit.get('NRestarts') != '0'
+                or unit.get('TimeoutStartUSec') not in {'1min', '60s'}):
+            return False
+    return True
