@@ -9,7 +9,7 @@ on:
     branches: [main]
     paths: [.github/workflows/inspect-boot-evidence.yml]
   workflow_run:
-    workflows: [Kiểm thử khởi động ISO, Kiểm thử cài đặt MyKOS, Chẩn đoán Calamares]
+    workflows: [Kiểm thử khởi động ISO, Kiểm thử cài đặt MyKOS, Chẩn đoán Calamares, Chẩn đoán phiên Plasma]
     types: [completed]
     branches: [main]
 permissions:

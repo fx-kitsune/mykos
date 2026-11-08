@@ -1,0 +1,43 @@
+name: Chẩn đoán phiên Plasma
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: [.github/workflows/diagnose-session.yml]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Tải đúng ISO đã nghiệm thu cài đặt
+        timeout-minutes: 10
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: 42490508466
+          name: mykos-iso-amd64-42490508466-1
+          path: artifacts/source-iso
+      - name: Cài công cụ
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-system-x86 xorriso python3-pil acl
+          if [[ -c /dev/kvm ]]; then sudo setfacl -m "u:$(id -u):rw" /dev/kvm; fi
+      - name: Thu unit và địa chỉ bus trong phiên live
+        run: |
+          python3 scripts/testing/session_probe.py artifacts/source-iso/mykos-0.1.0-dev-amd64.iso --expected-sha caadce0d0a2ba2734057045f2b81f5dbc709cabc25d054f32e1874509cb5492c --output artifacts/session-test
+      - name: Lưu bằng chứng chẩn đoán
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mykos-install-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            artifacts/session-test/*.json
+            artifacts/session-test/*.log
+            artifacts/session-test/*.png
+          retention-days: 7
