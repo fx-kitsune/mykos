@@ -1,0 +1,11 @@
+{
+  "KPackageStructure": "Plasma/LookAndFeel",
+  "KPlugin": {
+    "Id": "org.mykos.desktop",
+    "Name": "MyKOS",
+    "Description": "Bố cục desktop MyKOS tối giản trên KDE Plasma",
+    "Version": "0.1.0",
+    "License": "MIT",
+    "Authors": [{"Name": "MyKOS"}]
+  }
+}

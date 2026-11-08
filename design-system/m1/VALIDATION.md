@@ -1,39 +1,36 @@
-# Kiểm tra bộ thiết kế M1
+# Kiểm tra bản thiết kế desktop M1
 
-Ngày kiểm tra: 08/11/2026. Công cụ: Chromium và Playwright trên môi trường Linux cloud. Đây là kiểm tra bản mẫu trình duyệt, không phải kiểm thử KDE, SDDM hoặc ISO.
+Ngày 08/11/2026. Bản 2.0; Chromium và Playwright trên Linux cloud. Ảnh `previews/` chụp từ bản mẫu, không phải desktop trong ISO.
 
-## Đã kiểm tra
+## Phạm vi kiểm tra
 
-| Hạng mục | Kết quả |
-|---|---|
-| Năm màn hình xem thiết kế | Mở được desktop, menu ứng dụng, thông báo, thiết lập và đăng nhập |
-| Sáng/tối | Đổi màu toàn bản mẫu; có ảnh Ink và Paper |
-| Ghi chú | Tách ba ngữ cảnh và giữ nội dung khi chuyển qua lại trong phiên |
-| Tập trung | Bắt đầu ở 25:00, dừng và trở về trạng thái ban đầu |
-| Tìm ứng dụng | Truy vấn không dấu `thiet lap` trả đúng mục; Enter mở màn hình liên quan |
-| Không có kết quả | Có thông báo rõ và giữ ô tìm |
-| Đóng menu | Escape đóng hộp thoại theo hành vi trình duyệt |
-| Giảm chuyển động | Tùy chọn cập nhật trạng thái của bản mẫu |
-| Thông báo minh họa | Hành động có phản hồi và không gửi yêu cầu mạng |
-| Đăng nhập minh họa | Ngăn gửi biểu mẫu, xóa giá trị sau khi chọn đăng nhập; không lưu mật khẩu |
-| Khung xem | Kiểm tra ở 1440×1120 và 390×844; không tràn trang theo chiều ngang ở khung hẹp |
-| JavaScript | Không có lỗi thực thi được ghi nhận trong các luồng đã thử |
-| Tài nguyên | SVG Fold tải từ repo, không phụ thuộc phông hoặc thư viện mạng |
+- Desktop ban đầu không có cửa sổ tự mở, Workspace, câu chào hoặc thẻ nội dung; công cụ rà soát F1 mặc định ẩn.
+- Mở cửa sổ Tệp, danh sách thư mục, tìm không dấu, vào thư mục và trạng thái rỗng.
+- Thu nhỏ và khôi phục cửa sổ, giữ vị trí thư mục trong thao tác này; phóng to/khôi phục và đóng.
+- Mở menu ở góc dưới trái, tìm có/không dấu và Enter mở ứng dụng; không có kết quả; Escape đóng.
+- Workspace không nằm trong nhóm ghim mặc định.
+- Đổi sáng/tối từ cửa sổ thiết lập; trạng thái giảm chuyển động.
+- Mở/đóng thông báo rỗng; thay giá trị thanh âm lượng minh họa.
+- Màn hình đăng nhập ngăn gửi biểu mẫu và xóa mật khẩu sau thao tác; F1 cho phép quay lại desktop trong bản mẫu.
+- 1440×900 và khung 390×844 không tràn trang theo chiều ngang.
+- Không có lỗi JavaScript trong các luồng đã kiểm tra.
 
-## Tương phản chữ
+Các kết quả này chỉ nói về trình duyệt. Bản mẫu dùng một cửa sổ minh họa dùng chung; không thực thi lệnh Terminal, mở web hoặc quản lý tệp thật. Không suy ra hỗ trợ đa ứng dụng, xác thực, bộ gõ hoặc thiết bị từ bản mẫu.
 
-Chạy từ thư mục gốc:
+## Tương phản
 
 ```sh
 python3 design-system/m1/check-contrast.py
 ```
 
-Đã kiểm tra bảy cặp vai trò cho mỗi bảng màu: chữ chính/nền, chữ chính/bề mặt, chữ phụ/nền, chữ phụ/bề mặt, điểm nhấn/nền, chữ trên nhấn/nền nhấn và chữ lỗi/bề mặt. Tất cả đạt ít nhất 4,5:1. Giá trị thấp nhất trong các cặp đã kiểm tra là khoảng 4,77:1 ở chữ phụ trên nền Paper.
+Kiểm tra các cặp vai trò chữ trên nền/bề mặt và nút nhấn cho Ink/Paper; mức yêu cầu 4,5:1. Khi tích hợp phải kiểm tra lại trong Qt/Plasma, gồm tiêu điểm, độ mờ, chủ đề tương phản cao và tăng chữ. Chưa nghiệm thu trình đọc màn hình hoặc toàn bộ các cặp màu có thể xuất hiện.
 
-Các số đo không chứng minh mọi cặp màu, trạng thái không khả dụng, cấu hình tương phản cao hoặc bề mặt ứng dụng bên thứ ba đều đạt. Khi triển khai phải kiểm tra lại trong Qt/Plasma với độ mờ, hình nền, chủ đề và tỉ lệ thực tế.
+## Cần kiểm tra trên KDE
 
-## Chưa nghiệm thu
+Panel thật, Kickoff/KRunner, Dolphin, KWin, SDDM và màn hình khóa; HiDPI/nhiều màn hình; bộ gõ tiếng Việt; trình đọc màn hình; trạng thái nguồn/mạng/âm lượng thật; lưu và hoàn nguyên cấu hình người dùng. M0 và M1 chưa thay đổi trạng thái nghiệm thu bởi các kiểm tra bản mẫu này.
 
-Đăng nhập SDDM, mở khóa, trình đọc màn hình, IME/bộ gõ tiếng Việt trong KDE, HiDPI và nhiều màn hình, panel thật, danh sách ứng dụng cài đặt, thông báo hệ thống, phục hồi cấu hình và hiệu năng đồ họa. Không dùng kết quả của bản mẫu để đánh dấu hoàn thành các mục này.
+## Kiểm tra cấu hình Plasma
 
-Ảnh `previews/` là ảnh chụp bản mẫu trình duyệt với phông có sẵn trong môi trường kiểm tra; không phải ảnh desktop từ ISO.
+Đã bổ sung kiểm thử chạy mã bố cục thật trong môi trường API Plasma giả lập bằng Node.js: hồ sơ chưa có panel tạo đúng một panel cạnh dưới cao 48; có các widget KDE dự kiến và chỉ ghim Dolphin; hồ sơ có một hoặc nhiều panel không bị tạo thêm. Tổng bộ kiểm thử tích hợp hiện có 17 kiểm tra đạt.
+
+Kiểm thử API giả lập không xác nhận KPackage, KWin hoặc Plasma chạy đúng trên ISO. Gói giao diện, màu biểu tượng và việc áp hình nền cho hồ sơ mới vẫn cần thử trên KDE thực tế.

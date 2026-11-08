@@ -1,25 +1,67 @@
 const $ = selector => document.querySelector(selector);
-const screens = ['desktop', 'launcher', 'notifications', 'settings', 'login'];
-const notes = ['', '', ''];
-let context = 0, focusEnd = 0, toastTimer;
-const apps = [{id:'files',name:'Tệp',search:'tep files dolphin'}, {id:'browser',name:'Trình duyệt',search:'trinh duyet browser'}, {id:'terminal',name:'Trình dòng lệnh',search:'terminal konsole dong lenh'}, {id:'notes',name:'Ghi chú',search:'ghi chu notes kate'}, {id:'photos',name:'Hình ảnh',search:'hinh anh photos'}, {id:'settings',name:'Thiết lập',search:'thiet lap settings'}];
-function toast(text) { $('#toast').textContent=text; $('#toast').hidden=false; clearTimeout(toastTimer); toastTimer=setTimeout(()=>$('#toast').hidden=true,4000); }
-function themeToggle() { const light=document.body.dataset.theme!=='light'; document.body.dataset.theme=light?'light':'dark'; $('#theme').textContent=light?'Chuyển sang nền tối':'Chuyển sang nền sáng'; }
+const apps = [
+  {id:'files',name:'Tệp',asset:'files',search:'tep files dolphin'},
+  {id:'browser',name:'Trình duyệt',asset:'browser',search:'trinh duyet browser'},
+  {id:'notes',name:'Ghi chú',asset:'notes',search:'ghi chu kate'},
+  {id:'terminal',name:'Trình dòng lệnh',asset:'terminal',search:'terminal konsole dong lenh'},
+  {id:'photos',name:'Hình ảnh',asset:'photos',search:'hinh anh gwenview'},
+  {id:'settings',name:'Thiết lập',asset:'settings',search:'thiet lap settings'},
+  {id:'workspace',name:'Workspace',asset:'notes',search:'workspace khong gian'}
+];
+const folders = {home:'Thư mục cá nhân',documents:'Tài liệu',downloads:'Tải xuống',pictures:'Hình ảnh',trash:'Thùng rác'};
+const homeFolders = ['Tài liệu','Tải xuống','Hình ảnh','Âm nhạc','Video','Màn hình làm việc'];
+let currentApp = null, folder = 'home', allApps = false;
+const running = new Set();
 function normalize(text) { return text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d'); }
-function filter() { const query=normalize($('#appSearch').value); let count=0; document.querySelectorAll('#appList button').forEach((button,index)=>{button.hidden=!normalize(apps[index].search+' '+apps[index].name).includes(query);if(!button.hidden)count++;});$('#emptySearch').hidden=count>0; }
-function openLauncher() { $('#appSearch').value='';filter();if(!$('#launcher').open)$('#launcher').showModal();$('#appSearch').focus(); }
-function show(screen) { if(!screens.includes(screen))return; if($('#launcher').open)$('#launcher').close();document.querySelectorAll('.review-nav button').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.screen===screen)));$('#workspaceView').hidden=screen==='settings'||screen==='login';$('#settingsView').hidden=screen!=='settings';$('#notificationsView').hidden=screen!=='notifications';$('#loginView').hidden=screen!=='login';$('#panel').hidden=screen==='login';if(screen==='launcher')openLauncher(); }
-function previewApp(id) { if($('#launcher').open)$('#launcher').close(); if(id==='settings')show('settings');else toast('Bản mẫu: khi triển khai sẽ mở '+(apps.find(app=>app.id===id)?.name||'ứng dụng')+' bằng KDE.'); }
-$('#appList').replaceChildren(...apps.map(app=>{const button=document.createElement('button');button.dataset.app=app.id;const image=document.createElement('img');image.src='../assets/app-icons/'+app.id+'.svg';image.alt='';button.append(image,document.createTextNode(app.name));button.addEventListener('click',()=>previewApp(app.id));return button;}));
-document.querySelectorAll('[data-screen]').forEach(button=>button.addEventListener('click',()=>show(button.dataset.screen)));
-document.querySelectorAll('.quick-tools [data-app],.panel [data-app]').forEach(button=>button.addEventListener('click',()=>previewApp(button.dataset.app)));
-$('#theme').addEventListener('click',themeToggle);$('#settingsTheme').addEventListener('click',themeToggle);$('#launcherButton').addEventListener('click',openLauncher);$('#closeLauncher').addEventListener('click',()=>$('#launcher').close());$('#appSearch').addEventListener('input',filter);$('#appSearch').addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();const button=[...document.querySelectorAll('#appList button')].find(item=>!item.hidden);button?.click();}});
-$('#quickNote').addEventListener('input',event=>notes[context]=event.target.value);
-document.querySelectorAll('[data-context]').forEach(button=>button.addEventListener('click',()=>{context=Number(button.dataset.context);document.querySelectorAll('[data-context]').forEach(item=>item.setAttribute('aria-pressed',String(item===button)));$('#headline').innerHTML=['Chừa chỗ cho<br><em>điều bạn muốn làm.</em>','Để ý tưởng<br><em>tìm thấy hình hài.</em>','Từ dòng đầu tiên<br><em>đến điều tiếp theo.</em>'][context];$('#contextNumber').textContent='0'+(context+1);$('#contextName').textContent=['CÁ NHÂN','SÁNG TẠO','LẬP TRÌNH'][context];$('#projectTitle').textContent=['Một ý tưởng mới','Xưởng ý tưởng','Dự án tiếp theo'][context];$('#quickNote').value=notes[context];}));
-$('#focus').addEventListener('click',()=>{focusEnd=focusEnd?0:Date.now()+1500000;renderFocus();});
-function renderFocus(){const seconds=Math.max(0,Math.ceil((focusEnd-Date.now())/1000));if(focusEnd&&!seconds){focusEnd=0;toast('Đã kết thúc một nhịp tập trung.');}$('#focusLabel').textContent=focusEnd?`${String(Math.floor(seconds/60)).padStart(2,'0')}:${String(seconds%60).padStart(2,'0')} · Nhấn để dừng`:'Một nhịp tập trung';}
-setInterval(renderFocus,1000);
-$('#reducedMotion').addEventListener('change',event=>document.body.dataset.reducedMotion=String(event.target.checked));$('#resetPreview').addEventListener('click',()=>{document.body.dataset.theme='dark';document.body.dataset.reducedMotion='false';$('#reducedMotion').checked=false;$('#theme').textContent='Chuyển sang nền sáng';toast('Đã đặt lại giao diện của bản mẫu.');});
-$('#notificationOpen').addEventListener('click',()=>toast('Bản mẫu: mở thư mục chứa tệp đã sao chép.'));$('#notificationRetry').addEventListener('click',()=>toast('Bản mẫu: thử tải lại danh sách; không thực hiện yêu cầu mạng.'));
-$('#loginForm').addEventListener('submit',event=>{event.preventDefault();$('#password').value='';toast('Đây là bản mẫu đăng nhập, không xác thực tài khoản.');});
-document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!$('#launcher').open)show('desktop');if((event.ctrlKey||event.metaKey)&&event.code==='Space'&&$('#loginView').hidden){event.preventDefault();openLauncher();}});
+function closePopups() { if($('#launcher').open)$('#launcher').close();$('#notifications').hidden=true;$('#sound').hidden=true;$('#notificationsButton').setAttribute('aria-expanded','false');$('#soundButton').setAttribute('aria-expanded','false'); }
+function renderTasks() { document.querySelectorAll('#tasks [data-app]').forEach(button=>{button.classList.toggle('running',running.has(button.dataset.app));button.classList.toggle('active',button.dataset.app===currentApp&&!$('#appWindow').hidden);}); }
+function renderApps() {
+  const query=normalize($('#appSearch').value);
+  const visible=apps.filter(app=>(allApps||query||app.id!=='workspace')&&normalize(app.name+' '+app.search).includes(query));
+  $('#appList').replaceChildren(...visible.map(app=>{const button=document.createElement('button');const image=document.createElement('img');image.src='../assets/app-icons/'+app.asset+'.svg';image.alt='';button.dataset.app=app.id;button.append(image,document.createTextNode(app.name));button.onclick=()=>openApp(app.id);return button;}));
+  $('#emptySearch').hidden=visible.length>0;$('#appList').hidden=visible.length===0;
+  $('#listTitle').textContent=query?'Kết quả tìm kiếm':(allApps?'Tất cả ứng dụng':'Đã ghim');
+  $('#allApps').textContent=allApps?'Đã ghim':'Tất cả ứng dụng';
+}
+function openLauncher() { closePopups();$('#login').hidden=true;$('#appSearch').value='';allApps=false;renderApps();$('#launcher').showModal();$('#appSearch').focus(); }
+function setFolder(id) { folder=id;$('#breadcrumb').textContent=folders[id];$('#fileSearch').value='';document.querySelectorAll('[data-folder]').forEach(button=>{if(button.dataset.folder===id)button.setAttribute('aria-current','page');else button.removeAttribute('aria-current');});renderFiles(); }
+function renderFiles() {
+  const names=folder==='home'?homeFolders:[];
+  const filtered=names.filter(name=>normalize(name).includes(normalize($('#fileSearch').value)));
+  $('#fileList').replaceChildren(...filtered.map(name=>{const button=document.createElement('button');button.className='file-row';const label=document.createElement('span');label.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons/sprite.svg#files"/></svg>';label.append(document.createTextNode(name));const type=document.createElement('span');type.textContent='Thư mục';const size=document.createElement('span');size.textContent='—';button.append(label,type,size);button.onclick=()=>{document.querySelectorAll('.file-row').forEach(row=>row.classList.remove('selected'));button.classList.add('selected');};button.ondblclick=()=>setFolder({'Tài liệu':'documents','Tải xuống':'downloads','Hình ảnh':'pictures'}[name]||'documents');return button;}));
+  $('#emptyFiles').hidden=filtered.length>0;$('#emptyFiles').textContent=names.length&&!filtered.length?'Không tìm thấy mục phù hợp':'Thư mục trống';$('#fileCount').textContent=filtered.length+' mục';
+}
+function openApp(id) {
+  const app=apps.find(item=>item.id===id);if(!app)return;
+  closePopups();$('#login').hidden=true;$('#loginMessage').textContent='';if(currentApp===id){$('#appWindow').hidden=false;renderTasks();return;}currentApp=id;running.add(id);$('#appWindow').hidden=false;$('#windowTitle').textContent=app.name;
+  $('#filesView').hidden=id!=='files';$('#settingsView').hidden=id!=='settings';$('#simpleView').hidden=['files','settings'].includes(id);
+  $('#simpleView').replaceChildren();$('#simpleView').className='simple-content';
+  if(id==='files')setFolder(folder);
+  if(id==='photos')$('#simpleView').textContent='Không có hình ảnh';
+  if(id==='terminal')$('#simpleView').textContent='mykos@desktop:~$';
+  if(id==='notes'){const area=document.createElement('textarea');area.setAttribute('aria-label','Ghi chú minh họa');area.style.cssText='width:100%;height:420px;border:0;background:transparent;color:inherit;font:inherit;resize:none;outline-offset:-3px';$('#simpleView').append(area);}
+  if(id==='browser'){const address=document.createElement('input');address.placeholder='Địa chỉ web';address.setAttribute('aria-label','Địa chỉ web minh họa');address.readOnly=true;$('#simpleView').classList.add('browser');$('#simpleView').append(address);}
+  if(id==='workspace'){$('#simpleView').textContent='';}
+  renderTasks();$('#closeWindow').focus();
+}
+function showDesktop() { closePopups();$('#appWindow').hidden=true;$('#login').hidden=true;$('#password').value='';renderTasks(); }
+function setTheme(theme) { document.body.dataset.theme=theme;document.querySelectorAll('[data-theme-choice]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.themeChoice===theme))); }
+$('#launcherButton').onclick=openLauncher;$('#closeLauncher').onclick=()=>$('#launcher').close();$('#appSearch').oninput=renderApps;
+$('#appSearch').onkeydown=event=>{if(event.key==='Enter'){event.preventDefault();$('#appList button')?.click();}};
+$('#allApps').onclick=()=>{allApps=!allApps;renderApps();};
+document.querySelectorAll('#tasks [data-app]').forEach(button=>button.onclick=()=>{if(currentApp===button.dataset.app&&!$('#appWindow').hidden){$('#appWindow').hidden=true;renderTasks();}else openApp(button.dataset.app);});
+$('#closeWindow').onclick=()=>{running.delete(currentApp);currentApp=null;$('#appWindow').hidden=true;renderTasks();$('#launcherButton').focus();};
+$('#minimize').onclick=()=>{$('#appWindow').hidden=true;renderTasks();};$('#maximize').onclick=()=>$('#appWindow').classList.toggle('maximized');$('#showDesktop').onclick=showDesktop;
+document.querySelectorAll('[data-folder]').forEach(button=>button.onclick=()=>setFolder(button.dataset.folder));$('#fileSearch').oninput=renderFiles;$('#back').onclick=()=>setFolder('home');
+document.querySelectorAll('[data-theme-choice]').forEach(button=>button.onclick=()=>setTheme(button.dataset.themeChoice));$('#reducedMotion').onchange=event=>document.body.dataset.reducedMotion=String(event.target.checked);
+$('#notificationsButton').onclick=()=>{const opening=$('#notifications').hidden;closePopups();$('#notifications').hidden=!opening;$('#notificationsButton').setAttribute('aria-expanded',String(opening));};$('#closeNotifications').onclick=closePopups;
+$('#soundButton').onclick=()=>{const opening=$('#sound').hidden;closePopups();$('#sound').hidden=!opening;$('#soundButton').setAttribute('aria-expanded',String(opening));};$('#volume').oninput=event=>$('#volumeValue').textContent=event.target.value+'%';
+$('#lock').onclick=()=>{closePopups();$('#login').hidden=false;$('#password').value='';$('#loginMessage').textContent='';$('#password').focus();};
+$('#loginForm').onsubmit=event=>{event.preventDefault();$('#password').value='';$('#loginMessage').textContent='Bản mẫu không xác thực tài khoản.';};
+$('#clock').onclick=()=>{const date=$('#clock small');date.hidden=!date.hidden;};
+$('#hideReview').onclick=()=>$('#reviewTools').hidden=true;
+document.querySelectorAll('[data-review]').forEach(button=>button.onclick=()=>{const screen=button.dataset.review;$('#reviewTools').hidden=true;if(screen==='desktop')showDesktop();else if(screen==='launcher')openLauncher();else if(screen==='login'){$('#login').hidden=false;$('#password').focus();}else openApp(screen);});
+document.addEventListener('keydown',event=>{if(event.key==='F1'){event.preventDefault();$('#reviewTools').hidden=!$('#reviewTools').hidden;}if(event.key==='Escape')closePopups();if((event.ctrlKey||event.metaKey)&&event.code==='Space'&&$('#login').hidden){event.preventDefault();openLauncher();}});
+document.addEventListener('pointerdown',event=>{if(!event.target.closest('.popup,#notificationsButton,#soundButton,dialog')){ $('#notifications').hidden=true;$('#sound').hidden=true;$('#notificationsButton').setAttribute('aria-expanded','false');$('#soundButton').setAttribute('aria-expanded','false'); }});
+let drag=null;$('#titlebar').onpointerdown=event=>{if(event.target.closest('button')||$('#appWindow').classList.contains('maximized'))return;const rect=$('#appWindow').getBoundingClientRect();drag={x:event.clientX-rect.left,y:event.clientY-rect.top};$('#titlebar').setPointerCapture(event.pointerId);};
+$('#titlebar').onpointermove=event=>{if(!drag)return;$('#appWindow').style.left=Math.max(0,Math.min(innerWidth-160,event.clientX-drag.x))+'px';$('#appWindow').style.top=Math.max(0,Math.min(innerHeight-90,event.clientY-drag.y))+'px';};$('#titlebar').onpointerup=()=>drag=null;

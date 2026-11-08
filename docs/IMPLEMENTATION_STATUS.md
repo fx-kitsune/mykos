@@ -70,4 +70,4 @@ Chỉ nghiệm thu mức BIOS → nhân → môi trường người dùng ở b�
 
 ## Bộ thiết kế M1
 
-Đã chuẩn bị [đặc tả và bản mẫu M1](../design-system/m1/README.md): desktop, trình mở ứng dụng, thông báo, thiết lập, đăng nhập; màu Ink/Paper, quy tắc tiếp cận và ánh xạ từng phần sang KDE. Đã kiểm tra tương tác trình duyệt, bố cục hẹp và các cặp tương phản chữ được khai báo. Đây là kết quả thiết kế, chưa tích hợp toàn bộ vào Plasma/SDDM và không thay đổi các điều kiện nghiệm thu M0 còn thiếu.
+[Bản thiết kế M1 phiên bản 2.0](../design-system/m1/README.md) thay thế bố cục trang tổng quan cũ. Desktop mặc định chỉ có hình nền và panel; menu, cửa sổ tệp và thiết lập xuất hiện theo thao tác. Đã bỏ câu chào, thẻ nội dung và Workspace tự mở khỏi bản mẫu. Fold chỉ giữ ở màu, biểu tượng và chất liệu. Đồng thời đã thêm gói giao diện Plasma `org.mykos.desktop`, bố cục panel chỉ tạo khi hồ sơ chưa có panel, hình nền tối mới và biểu tượng menu. Đã kiểm thử quy tắc bố cục với API giả lập; chưa tạo ISO mới để kiểm chứng việc áp cấu hình trong Plasma. Không thay giao diện Workspace native.

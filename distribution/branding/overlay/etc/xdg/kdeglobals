@@ -1,5 +1,5 @@
 [KDE]
-LookAndFeelPackage=org.kde.breeze.desktop
+LookAndFeelPackage=org.mykos.desktop
 SingleClick=false
 
 [General]

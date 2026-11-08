@@ -4,7 +4,7 @@ Thư mục chứa bộ biểu tượng MyKOS Fold 1.0 và bản mẫu tương t�
 
 ## Bộ thiết kế M1
 
-[Bản thiết kế M1](m1/README.md) gồm năm màn hình tương tác, hai bảng màu Ink/Paper, giá trị dùng chung, ánh xạ KDE và tiêu chí nghiệm thu. Đây là bộ bàn giao thiết kế; chưa áp dụng toàn bộ vào ảnh hệ điều hành.
+[Bản thiết kế M1](m1/README.md) phiên bản 2.0 tập trung vào desktop tối giản, panel, menu và cửa sổ ứng dụng; có hai bảng màu Ink/Paper, ánh xạ KDE và tiêu chí nghiệm thu. Bố cục trang tổng quan M1 cũ đã được thay thế. Đây là bộ bàn giao thiết kế; chưa áp dụng toàn bộ vào ảnh hệ điều hành.
 
 ## Xem bản mẫu
 
