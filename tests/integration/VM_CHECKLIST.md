@@ -15,13 +15,13 @@ Công cụ dùng KVM khi truy cập được, ngược lại dùng TCG. Lệnh n
 | Kiểm thử | Kết quả mong đợi | Trạng thái |
 |---|---|---|
 | Khởi động trực tiếp bằng BIOS | Qua BIOS và nhân tới môi trường người dùng, trên bản sao thêm console | ĐẠT: [QEMU/TCG 42435820231](https://github.com/fx-kitsune/mykos/actions/runs/42435820231), 08/11/2026 |
-| Đăng nhập và phiên KDE | Plasma, trình mở ứng dụng và điều hướng bàn phím hoạt động | MỘT PHẦN: đăng nhập/tiến trình/ứng dụng đạt; giao diện đen do KWin OpenGL trên QEMU/TCG, đang xử lý |
+| Đăng nhập và phiên KDE | Plasma, trình mở ứng dụng và điều hướng bàn phím hoạt động | MỘT PHẦN: [42481797224](https://github.com/fx-kitsune/mykos/actions/runs/42481797224) đạt desktop phản hồi và mở ứng dụng với profile software; mặc định OpenGL và cảnh báo Powerdevil/polkit chưa nghiệm thu |
 | Mạng | DHCP, DNS và HTTPS qua NetworkManager | CHƯA CHẠY |
 | Âm thanh | Phát âm thanh và điều chỉnh âm lượng bằng PipeWire | CHƯA CHẠY |
 | Màn hình | Đổi độ phân giải; kiểm tra phiên Wayland riêng | CHƯA CHẠY |
 | Tệp và trình dòng lệnh | Mở Dolphin/Konsole; tệp giữ được trong phiên đang chạy | CHƯA CHẠY |
 | Gói phần mềm | Làm mới APT có xác thực; mở Discover và Flatpak | CHƯA CHẠY |
-| Cài vào đĩa ảo trống | Hoàn tất, khởi động lại không cần ISO | CHƯA CHẠY: cấu hình Calamares BIOS đã chuẩn bị, chờ ISO mới |
+| Cài vào đĩa ảo trống | Hoàn tất, khởi động lại không cần ISO | CHƯA CÀI: [42488462653](https://github.com/fx-kitsune/mykos/actions/runs/42488462653) chỉ đạt preview tới phân vùng với overlay chẩn đoán; chưa ghi đĩa |
 | Đăng nhập bản cài | Tài khoản thường; quản trị có cấp quyền rõ ràng | BỊ CHẶN |
 | Cập nhật và khởi động lại | APT cập nhật, khởi động lại và phiên làm việc bình thường | BỊ CHẶN |
 | Phục hồi | Thực hiện hướng dẫn cứu hộ sau cập nhật lỗi | BỊ CHẶN |

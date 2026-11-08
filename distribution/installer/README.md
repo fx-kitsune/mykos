@@ -33,3 +33,7 @@ Ghi SHA-256 ISO, cấu hình máy ảo, bố cục đĩa và bằng chứng vào
 Workflow `install-iso.yml` chỉ tiếp tục từ kết quả desktop `desktop-ready` có Calamares đang mở. ISO tải xuống phải khớp SHA-256 của kết quả đó trước khi tạo đĩa. Công cụ `scripts/testing/install_iso.py` tạo đúng một QCOW2 mới 40 GiB và kiểm tra guest chỉ thấy đĩa `vda` trống này.
 
 Giai đoạn preview chụp trang chào và các trang kế tiếp bằng phím điều hướng; **không chọn xóa đĩa, không bấm Install**. Kết quả `installer-preview` chỉ cung cấp ảnh để rà soát; không phải bằng chứng cài đặt. Artifact chỉ lưu log/JSON/ảnh, không lưu đĩa ảo. Sau khi rà soát preview mới tiếp tục kiểm thử cài đặt và boot từ đĩa.
+
+Tùy chọn `--prepare-install` đi tiếp từ ảnh phân vùng đã rà soát: chọn xóa trên đúng đĩa ảo mới, nhập tài khoản `vmtester` với mật khẩu ngẫu nhiên dùng một lần, chụp trang tổng kết rồi dừng trước Install. Công cụ kiểm tra lại đĩa vẫn chưa có phân vùng. Mật khẩu không được giữ lại trong báo cáo. Chế độ này vẫn chỉ là chuẩn bị, chưa cài đặt.
+
+Workflow chẩn đoán có thể dùng `--diagnostic-overlay` để chép cấu hình hiện tại vào phiên live; mỗi tệp được ghi mã SHA-256. Kết quả `installer-diagnostic-preview` không thay thế việc thử lại ISO chứa sẵn cấu hình và launcher chính thức.

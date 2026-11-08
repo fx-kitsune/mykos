@@ -2,6 +2,8 @@
 
 Cập nhật ngày 08/11/2026. **M0 đang thực hiện, chưa nghiệm thu.**
 
+Tình trạng hiện tại: đã tạo ISO có Calamares; desktop phản hồi trong profile đồ họa phần mềm. Cấu hình installer mới đã mở được đến trang phân vùng trong máy ảo chẩn đoán, nhưng chưa cài xuống đĩa hoặc boot bản cài. Các mục bên dưới lưu lại tiến trình và kết quả theo từng ISO, không phải tất cả đều mô tả bản mới nhất.
+
 ## Đã triển khai
 
 - Cấu hình Ubuntu Noble amd64 và nguồn kho có chữ ký.
@@ -30,7 +32,7 @@ Máy chạy Debian 13, không có root/sudo hoặc thiết bị KVM; dung lượ
 ## Còn thiếu để nghiệm thu M0
 
 - Kiểm tra đăng nhập và tác vụ trong môi trường Plasma; mức khởi động BIOS tới môi trường người dùng đã có bằng chứng với bản sao thêm console.
-- Tích hợp Calamares, kiểm thử cài đặt và lần đăng nhập đầu trên bản cài.
+- Nghiệm thu Calamares đã tích hợp, kiểm thử cài đặt và lần đăng nhập đầu trên bản cài.
 - Kiểm tra mạng, âm thanh, màn hình, quản lý gói, cập nhật và phục hồi.
 - Khóa kho theo thời điểm, khóa bộ công cụ và so sánh bản dựng độc lập.
 - Xác định, kiểm thử ma trận phần cứng; xem UEFI/Secure Boot là mục tiêu riêng.
@@ -98,3 +100,13 @@ Bằng chứng được đọc qua workflow `inspect-boot-evidence.yml` trong re
 - Ảnh thật đã hiển thị panel và các cửa sổ; hình nền vẫn đen do chưa ghi rõ Image cho desktop mới. Mã khởi tạo đã được sửa chọn đường dẫn SVG logo, chờ xác nhận trong ISO kế tiếp.
 - Journal TCG vẫn có lần khởi động Powerdevil/polkit-agent hết thời gian chờ; không xem kết quả desktop là nghiệm thu nguồn điện, thao tác quản trị, mạng hoặc phần cứng.
 - Đã bổ sung cấu hình Calamares BIOS, wrapper chỉ chạy live, module tạo bản cài và GRUB. Chưa có kết quả cài xuống đĩa. Bản build kế tiếp sẽ kiểm tra mở Calamares và hình nền đã sửa.
+
+## Calamares mở được trong máy ảo chẩn đoán
+
+- Hai lỗi khởi chạy thực tế đã được sửa: launcher truyền nhầm thư mục dữ liệu bằng `--config`; branding thiếu trường `slideshow` bắt buộc của Calamares 3.3.5. Đã thêm QML slideshow và cấu hình tắt tải log lên máy chủ.
+- [Chẩn đoán 42488462653](https://github.com/fx-kitsune/mykos/actions/runs/42488462653) đã đạt `installer-diagnostic-preview`. Đã rà soát ảnh chào, vị trí, bàn phím và phân vùng; Calamares nhận đúng một đĩa `/dev/vda` trống khoảng 40 GiB. Chưa chọn xóa đĩa hoặc ghi phân vùng.
+- Phép thử này dùng ISO build `42484136362` và chép overlay installer mới vào phiên live; kết quả ghi mã băm từng tệp overlay. Nó xác nhận cấu hình mới nạp được, **không nghiệm thu launcher hoặc nội dung nguyên trạng của ISO cũ**.
+- [Build 42488294820](https://github.com/fx-kitsune/mykos/actions/runs/42488294820) trên commit `730d054` đã thành công, chứa các sửa lỗi này. Kiểm thử khởi động/desktop của chính ISO này đang chạy ở [42489679609](https://github.com/fx-kitsune/mykos/actions/runs/42489679609).
+- Công cụ kiểm thử giữ phiên VM hoạt động bằng phím Shift định kỳ để tránh màn hình khóa che bằng chứng; không đổi chính sách khóa màn hình của sản phẩm.
+
+Tiếp theo: rà soát trang tài khoản và tổng kết trên đĩa ảo mới, thực hiện cài đặt, rồi tháo ISO để kiểm tra GRUB và tài khoản bản cài. Mạng, âm thanh, cập nhật, phục hồi và phần cứng vẫn chưa nghiệm thu.
