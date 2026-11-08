@@ -28,3 +28,9 @@ Công cụ dùng KVM khi truy cập được, ngược lại dùng TCG. Lệnh n
 | UEFI / Secure Boot | Kiểm chứng riêng theo phần sụn ảo | CHƯA HỖ TRỢ |
 
 Không thử gián đoạn cập nhật trên dữ liệu quan trọng. Chưa cấu hình ảnh chụp trạng thái hoặc hoàn tác; sao lưu là yêu cầu riêng, không phụ thuộc cơ chế hoàn tác tương lai.
+
+## Bằng chứng tự động từ Actions
+
+Workflow `.github/workflows/boot-iso.yml` sử dụng lại ISO đã build và kiểm tra mã SHA-256. Công cụ `scripts/testing/boot_iso.py` khởi động BIOS từ bản sao có bổ sung console nối tiếp, xuất nhật ký và ảnh màn hình. Kết quả `userspace-ready` chỉ xác nhận đã quan sát dấu hiệu môi trường người dùng hoạt động; các dòng đăng nhập Plasma, thiết bị và cài đặt trong bảng vẫn cần kiểm tra độc lập.
+
+Mỗi kết quả ghi SHA-256 của ISO nguồn và bản sao chẩn đoán. Không xem ảnh chụp màn hình đơn lẻ hoặc thông báo nhân Linux là bằng chứng toàn bộ M0 đã đạt. Nếu kiểm thử hết thời gian chờ, xem `serial.log`, `qemu.log` và `screen.png` trước khi chạy lại.

@@ -53,3 +53,7 @@ Xem [phạm vi Workspace](../desktop/README.md). Chưa có giao diện hệ th�
 - CI kiểm tra cấu hình/giao diện của cùng commit cũng đã đạt.
 
 Đây là bản dựng phát triển chưa kiểm thử khởi động. Chưa xác nhận đăng nhập Plasma, cài đặt Calamares, phần cứng hoặc phục hồi; M0 vẫn chưa nghiệm thu. Các bước tạo ảnh không còn bị chặn bởi cấu hình máy cá nhân vì đã chuyển sang máy chạy của GitHub.
+
+## Bước nghiệm thu khởi động tiếp theo
+
+Đã bổ sung workflow QEMU dùng lại Artifacts, kiểm tra mã SHA-256 và khởi động BIOS từ bản sao thêm console nối tiếp. Có nhật ký, ảnh màn hình và kết quả có cấu trúc; chưa thay đổi trạng thái nghiệm thu khởi động trước khi có lượt chạy thực tế. Các kiểm thử công cụ cũng xác nhận thông báo nhân đơn thuần không được xem là thành công và lỗi khởi động phải thắng dấu hiệu thành công cũ trong nhật ký.
