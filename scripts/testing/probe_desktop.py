@@ -35,14 +35,30 @@ result = {'uid': os.getuid(), 'plasma': shell.returncode == 0,
           'applications': {}, 'sessions': diagnostic(['loginctl', 'list-sessions', '--no-legend', '--no-pager']),
           'processes': diagnostic(['ps', '-u', str(os.getuid()), '-o', 'pid,comm,args'])}
 if result['plasma']:
-    print('MYKOS_DESKTOP_READY', flush=True)
-    time.sleep(5)
     pid = shell.stdout.split()[0]
     env = os.environ.copy()
     for item in open('/proc/' + pid + '/environ', 'rb').read().split(b'\0'):
         if b'=' in item:
             key, value = item.split(b'=', 1)
             env[key.decode()] = value.decode(errors='replace')
+    result['rendering_environment'] = {key: env.get(key) for key in ['KWIN_COMPOSE', 'QT_QUICK_BACKEND']}
+    env['QT_SELECT'] = 'qt5'
+    if shutil.which('qdbus'):
+        deadline = time.monotonic() + 180
+        while time.monotonic() < deadline:
+            response = diagnostic(['qdbus', 'org.kde.plasmashell', '/PlasmaShell',
+                'org.kde.PlasmaShell.evaluateScript', 'print(JSON.stringify({panels:panels().length,desktops:desktops().length}))'], env)
+            result['containments'] = response
+            try:
+                counts = json.loads(response.get('stdout', ''))
+            except ValueError:
+                counts = {}
+            if response.get('returncode') == 0 and counts.get('panels', 0) > 0 and counts.get('desktops', 0) > 0:
+                print('MYKOS_DESKTOP_READY', flush=True)
+                time.sleep(5)
+                break
+            print('MYKOS_PLASMA_WAIT=' + json.dumps(response), flush=True)
+            time.sleep(3)
     for app in ['dolphin', 'konsole', 'systemsettings']:
         executable = shutil.which(app)
         if app == 'systemsettings' and not executable:
@@ -62,10 +78,6 @@ if result['plasma']:
             capture_output=True, text=True).stdout.strip()
     time.sleep(30)
     result['user_journal'] = diagnostic(['journalctl', '--user', '-b', '--no-pager', '-n', '80', '-o', 'cat'], env)
-    if shutil.which('qdbus'):
-        env['QT_SELECT'] = 'qt5'
-        result['containments'] = diagnostic(['qdbus', 'org.kde.plasmashell', '/PlasmaShell',
-            'org.kde.PlasmaShell.evaluateScript', 'print(JSON.stringify({panels:panels().length,desktops:desktops().length}))'], env)
     config = os.path.expanduser('~/.config/plasma-org.kde.plasma.desktop-appletsrc')
     if os.path.isfile(config):
         result['desktop_config'] = open(config).read()[-8000:]
@@ -211,8 +223,8 @@ def main():
                     raise RuntimeError('Tài khoản live từ chối mật khẩu rỗng; không thử lại.')
                 if phase == 'login' and time.monotonic() - phase_started > 60:
                     raise TimeoutError('Không vào được shell live trong 60 giây; xem serial.log.')
-                if phase == 'probe' and time.monotonic() - phase_started > 300:
-                    raise TimeoutError('Guest không trả kết quả desktop trong 300 giây; xem serial.log.')
+                if phase == 'probe' and time.monotonic() - phase_started > 600:
+                    raise TimeoutError('Guest không trả kết quả desktop trong 600 giây; xem serial.log.')
                 if time.monotonic() - last_progress > 60:
                     tail = transcript.splitlines()[-3:]
                     print(json.dumps({'phase': phase, 'console_tail': tail}, ensure_ascii=False), flush=True)
