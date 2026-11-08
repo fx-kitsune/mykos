@@ -281,7 +281,9 @@ def main():
             boot_output = output / 'installed-boot'
             boot_output.mkdir()
             # Deliberately construct a new command with no CD-ROM or probe ISO.
-            installed_command = ['qemu-system-x86_64', '-accel', accel, '-m', '4096', '-smp', '2',
+            # Hosted runner permissions can change after the first QEMU exits.
+            # Let QEMU fall back if KVM cannot be opened for this second process.
+            installed_command = ['qemu-system-x86_64', '-machine', 'accel=kvm:tcg', '-m', '4096', '-smp', '2',
                 '-boot', 'order=c', '-display', 'none', '-vga', 'std',
                 '-nic', 'user,model=virtio-net-pci', '-usb', '-device', 'usb-tablet',
                 '-drive', 'file=' + str(disk) + ',format=qcow2,if=virtio',
@@ -289,6 +291,7 @@ def main():
                 '-qmp', 'unix:' + str(boot_output / 'qmp.sock') + ',server=on,wait=off', '-no-reboot']
             report['installed_boot_command'] = installed_command
             vm = VM(installed_command, boot_output)
+            report['installed_boot_acceleration'] = 'kvm' if vm.qmp.command('query-kvm').get('enabled') else 'tcg'
             print('Installed boot: ISO detached; waiting for GRUB and installed console', flush=True)
             vm.login(username='vmtester', hostname='mykos-installed', password=password)
             vm.capture('installed-login-screen')

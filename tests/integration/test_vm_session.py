@@ -4,6 +4,7 @@ from pathlib import Path
 import sys
 import shlex
 import subprocess
+import tempfile
 import unittest
 from unittest.mock import patch
 
@@ -15,6 +16,12 @@ with patch.object(sys, 'path', [str(SCRIPTS), *sys.path]):
 
 
 class VMSessionTests(unittest.TestCase):
+    def test_startup_failure_keeps_the_actual_process_error(self):
+        with tempfile.TemporaryDirectory() as output:
+            command = [sys.executable, '-c', "import sys;sys.stderr.write('fixture disk is locked');sys.exit(2)"]
+            with self.assertRaisesRegex(RuntimeError, 'fixture disk is locked'):
+                vm.VM(command, output)
+
     def test_guest_command_round_trip_preserves_quoted_data(self):
         command = vm.command_for_guest('result={"text":\'a "quoted" value\',"ready":True}', 'TAG=')
         self.assertLess(len(command), 4096)

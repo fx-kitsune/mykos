@@ -74,7 +74,8 @@ class VM:
         while not serial_path.exists():
             if self.process.poll() is not None or time.monotonic() > deadline:
                 self.close()
-                raise RuntimeError('QEMU không mở console; xem qemu.log.')
+                details = (self.output / 'qemu.log').read_text(errors='replace')[-2500:]
+                raise RuntimeError('QEMU không mở console: ' + details)
             time.sleep(.2)
         self.serial = socket.socket(socket.AF_UNIX)
         self.serial.connect(str(serial_path))
@@ -83,7 +84,8 @@ class VM:
         while not qmp_path.exists():
             if self.process.poll() is not None or time.monotonic() > deadline:
                 self.close()
-                raise RuntimeError('QEMU không mở QMP.')
+                details = (self.output / 'qemu.log').read_text(errors='replace')[-2500:]
+                raise RuntimeError('QEMU không mở QMP: ' + details)
             time.sleep(.2)
         self.qmp = QMP(qmp_path)
         self.last_input = time.monotonic()
