@@ -15,7 +15,7 @@ Công cụ dùng KVM khi truy cập được, ngược lại dùng TCG. Lệnh n
 | Kiểm thử | Kết quả mong đợi | Trạng thái |
 |---|---|---|
 | Khởi động trực tiếp bằng BIOS | Qua BIOS và nhân tới môi trường người dùng, trên bản sao thêm console | ĐẠT: [QEMU/TCG 42435820231](https://github.com/fx-kitsune/mykos/actions/runs/42435820231), 08/11/2026 |
-| Đăng nhập và phiên KDE | Plasma, trình mở ứng dụng và điều hướng bàn phím hoạt động | MỘT PHẦN: [42481797224](https://github.com/fx-kitsune/mykos/actions/runs/42481797224) đạt desktop phản hồi và mở ứng dụng với profile software; mặc định OpenGL và cảnh báo Powerdevil/polkit chưa nghiệm thu |
+| Đăng nhập và phiên KDE | Plasma, trình mở ứng dụng và điều hướng bàn phím hoạt động | MỘT PHẦN: [42523552134](https://github.com/fx-kitsune/mykos/actions/runs/42523552134) đăng nhập SDDM/Plasma X11 và mở ứng dụng trong bản cài đạt; đang nghiệm thu sửa deadline Powerdevil/PolicyKit/KScreen; mặc định OpenGL chưa nghiệm thu |
 | Hình nền mặc định | Logo MyKOS giữa nền tối trong desktop thật | ĐẠT trên ISO build 42490508466: đã rà soát `live-wallpaper.png` của [42492925690](https://github.com/fx-kitsune/mykos/actions/runs/42492925690) |
 | Mạng | DHCP, DNS và HTTPS qua NetworkManager | ĐẠT trên virtio-net/QEMU: [42522062087](https://github.com/fx-kitsune/mykos/actions/runs/42522062087); chưa kiểm tra Wi-Fi/phần cứng thật |
 | Âm thanh | Phát âm thanh và điều chỉnh âm lượng bằng PipeWire | CHƯA CHẠY |
@@ -23,7 +23,7 @@ Công cụ dùng KVM khi truy cập được, ngược lại dùng TCG. Lệnh n
 | Tệp và trình dòng lệnh | Mở Dolphin/Konsole; tệp giữ được trong phiên đang chạy | CHƯA CHẠY |
 | Gói phần mềm | Làm mới APT có xác thực; mở Discover và Flatpak | MỘT PHẦN: [42522062087](https://github.com/fx-kitsune/mykos/actions/runs/42522062087) đạt APT update/cài/chạy/gỡ hello; Discover/Flatpak còn chờ |
 | Cài vào đĩa ảo trống | Hoàn tất, khởi động lại không cần ISO | ĐẠT BIOS/QCOW2: [42521038587](https://github.com/fx-kitsune/mykos/actions/runs/42521038587) cài xong, tháo ISO, boot GRUB từ đĩa; console xác nhận root ext4 trên vda1 |
-| Đăng nhập bản cài | Tài khoản thường; quản trị có cấp quyền rõ ràng | MỘT PHẦN: console UID 1000 đạt; [42522062087](https://github.com/fx-kitsune/mykos/actions/runs/42522062087) xác nhận sudo yêu cầu và chấp nhận đúng mật khẩu; đăng nhập GUI còn chờ |
+| Đăng nhập bản cài | Tài khoản thường; quản trị có cấp quyền rõ ràng | ĐẠT console/SDDM/sudo: [42523552134](https://github.com/fx-kitsune/mykos/actions/runs/42523552134), UID 1000, mật khẩu được xác thực. PolicyKit GUI được theo dõi riêng trong mục phiên KDE |
 | Cập nhật và khởi động lại | APT cập nhật, khởi động lại và phiên làm việc bình thường | BỊ CHẶN |
 | Phục hồi | Thực hiện hướng dẫn cứu hộ sau cập nhật lỗi | BỊ CHẶN |
 | UEFI / Secure Boot | Kiểm chứng riêng theo phần sụn ảo | CHƯA HỖ TRỢ |

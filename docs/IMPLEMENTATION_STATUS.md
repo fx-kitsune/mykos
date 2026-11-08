@@ -2,7 +2,7 @@
 
 Cập nhật ngày 09/11/2026 (giờ Việt Nam). **M0 đang thực hiện, chưa nghiệm thu.**
 
-Tình trạng hiện tại: ISO đã hiển thị đúng hình nền logo; Calamares cài xuống đĩa ảo, boot GRUB không ISO, đăng nhập console thường, mạng và vòng APT đã đạt. Đăng nhập Plasma của bản cài đang kiểm tra; âm thanh/đổi độ phân giải còn chờ. Các mục bên dưới lưu lại tiến trình và kết quả theo từng ISO, không phải tất cả đều mô tả bản mới nhất.
+Tình trạng hiện tại: ISO đã hiển thị đúng hình nền logo; cài đặt/boot không ISO, đăng nhập Plasma X11, mạng và vòng APT đã đạt. Đang kiểm tra âm thanh/màn hình và ISO mới sửa deadline khởi động ba dịch vụ Plasma. Các mục bên dưới lưu lại tiến trình và kết quả theo từng ISO, không phải tất cả đều mô tả bản mới nhất.
 
 ## Đã triển khai
 
@@ -129,3 +129,10 @@ Phép thử chỉ bật serial-getty trong bản cài dùng riêng để quan s�
 [42522062087](https://github.com/fx-kitsune/mykos/actions/runs/42522062087) đã đạt `installed-cli-smoke-ready` trên cùng ISO. NetworkManager có lease DHCP và tuyến mặc định, DNS phân giải được kho Ubuntu, HTTPS trả 200 với đầu tệp InRelease đúng định dạng. `sudo -n true` bị từ chối vì cần mật khẩu; xác thực bằng mật khẩu tài khoản đã nhập trong Calamares thành công. APT làm mới chỉ mục theo xác thực mặc định, cài/chạy/gỡ `hello` đều trả mã 0, gói thử không còn được cài sau phép thử.
 
 SDDM và greeter hoạt động; ảnh sau các kiểm tra CLI đã hiện màn hình đăng nhập với phiên Plasma (X11). Ảnh đen trước đó được chụp quá sớm trong lần boot TCG. Chưa xem việc greeter hiển thị là bằng chứng đăng nhập Plasma; phép thử tiếp theo nhập tài khoản/mật khẩu qua SDDM và kiểm tra session cùng ứng dụng.
+
+## Đăng nhập Plasma và sửa deadline dịch vụ
+
+- [42523552134](https://github.com/fx-kitsune/mykos/actions/runs/42523552134) đã đạt `installed-desktop-ready`: nhập tài khoản/mật khẩu qua SDDM, logind xác nhận phiên X11 `active`, `Class=user`, `Remote=no` trên seat0. Plasma phản hồi, Dolphin/Konsole/Thiết lập hoạt động và bộ màu là MyKOSDark. Đã rà soát ảnh ứng dụng và hình nền logo trong bản cài.
+- Journal vẫn ghi PolicyKit agent/Powerdevil lặp khởi động và KScreen không trả lời. [Chẩn đoán 42525892264](https://github.com/fx-kitsune/mykos/actions/runs/42525892264) xác nhận D-Bus của phiên live có tăng tốc là thống nhất, ba unit hoạt động với deadline mặc định 5 giây.
+- [So sánh TCG 42526372487](https://github.com/fx-kitsune/mykos/actions/runs/42526372487) tái hiện hai unit restart 17 lần và KScreen `failed`. Thử override người dùng `TimeoutStartSec=60s` rồi khởi động lại unit: cả ba chuyển sang `active/running`, D-Bus đăng ký đúng tên và `NRestarts=0`.
+- Commit `187042d` đưa deadline 60 giây vào drop-in toàn hệ thống cho đúng ba user unit. [Build 42527363919](https://github.com/fx-kitsune/mykos/actions/runs/42527363919) đang tạo ISO chứa sửa đổi. Phép thử bản cài tiếp theo yêu cầu unit vẫn là `Type=dbus`, đúng BusName, hoạt động và không restart, kể cả sau đổi độ phân giải/mở Discover. Chưa nghiệm thu sửa đổi trong ISO trước kết quả khởi động lạnh.
