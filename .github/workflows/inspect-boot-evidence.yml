@@ -1,5 +1,13 @@
 name: Đọc bằng chứng kiểm thử máy ảo
 on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Lượt kiểm thử cần đọc lại; để trống dùng lượt cài đặt gần nhất
+        required: false
+  push:
+    branches: [main]
+    paths: [.github/workflows/inspect-boot-evidence.yml]
   workflow_run:
     workflows: [Kiểm thử khởi động ISO, Kiểm thử cài đặt MyKOS, Chẩn đoán Calamares]
     types: [completed]
@@ -18,13 +26,18 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-          SOURCE_RUN: ${{ github.event.workflow_run.id }}
-          ARTIFACT_NAME: ${{ github.event.workflow_run.name != 'Kiểm thử khởi động ISO' && format('mykos-install-evidence-{0}-{1}', github.event.workflow_run.id, github.event.workflow_run.run_attempt) || format('mykos-boot-evidence-{0}-{1}', github.event.workflow_run.id, github.event.workflow_run.run_attempt) }}
+          SOURCE_RUN: ${{ inputs.run_id || github.event.workflow_run.id }}
         run: |
           set -euo pipefail
-          count=$(gh api "repos/$GH_REPO/actions/runs/$SOURCE_RUN/artifacts" | jq --arg name "$ARTIFACT_NAME" '[.artifacts[] | select(.name == $name)] | length')
-          if [[ "$count" -gt 0 ]]; then
+          if [[ -z "$SOURCE_RUN" ]]; then
+            SOURCE_RUN=$(gh api --method GET "repos/$GH_REPO/actions/workflows/install-iso.yml/runs" -f branch=main -f status=completed -f per_page=1 --jq '.workflow_runs[0].id')
+          fi
+          [[ "$SOURCE_RUN" =~ ^[0-9]+$ ]]
+          artifact=$(gh api "repos/$GH_REPO/actions/runs/$SOURCE_RUN/artifacts" | jq -r '[.artifacts[] | select(.name | test("^mykos-(install|boot)-evidence-"))][0].name // empty')
+          if [[ -n "$artifact" ]]; then
+            [[ "$artifact" =~ ^mykos-(install|boot)-evidence-$SOURCE_RUN-[0-9]+$ ]]
             echo 'present=true' >> "$GITHUB_OUTPUT"
+            printf 'run_id=%s\nartifact_name=%s\n' "$SOURCE_RUN" "$artifact" >> "$GITHUB_OUTPUT"
           else
             echo 'present=false' >> "$GITHUB_OUTPUT"
             echo 'No evidence artifact: the preview may have been skipped or setup did not complete.'
@@ -34,8 +47,8 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           github-token: ${{ github.token }}
-          run-id: ${{ github.event.workflow_run.id }}
-          name: ${{ github.event.workflow_run.name != 'Kiểm thử khởi động ISO' && format('mykos-install-evidence-{0}-{1}', github.event.workflow_run.id, github.event.workflow_run.run_attempt) || format('mykos-boot-evidence-{0}-{1}', github.event.workflow_run.id, github.event.workflow_run.run_attempt) }}
+          run-id: ${{ steps.available.outputs.run_id }}
+          name: ${{ steps.available.outputs.artifact_name }}
           path: evidence
       - name: Xuất kết quả và ảnh để rà soát qua log
         if: steps.available.outputs.present == 'true'
@@ -43,14 +56,15 @@ jobs:
           python3 - <<'PYTHON'
           import base64
           import hashlib
+          import re
           from pathlib import Path
           root = Path('evidence')
           for path in sorted(root.rglob('result.json')):
               print('MYKOS_RESULT ' + str(path.relative_to(root)))
               print(path.read_text())
-          for path in sorted(root.rglob('serial.log')):
+          for path in sorted([*root.rglob('serial.log'), *root.rglob('qemu.log')]):
               print('MYKOS_CONSOLE_TAIL ' + str(path.relative_to(root)))
-              print(path.read_text(errors='replace')[-6000:])
+              print(re.sub(r'\$(?:y|[156]|2[aby])\$[^\s"\\]+', '[test-password-hash]', path.read_text(errors='replace')[-6000:]))
           for path in sorted(root.rglob('*.png')):
               data = path.read_bytes()
               # Giới hạn kích thước, không thực thi hoặc diễn giải nội dung ảnh.
