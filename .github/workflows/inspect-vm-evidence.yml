@@ -1,0 +1,64 @@
+name: Chẩn đoán kiểm thử máy ảo
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Mã lượt kiểm thử máy ảo cần đọc bằng chứng
+        required: true
+        default: '42445556775'
+  push:
+    branches: [main]
+    paths: [.github/workflows/inspect-vm-evidence.yml]
+  workflow_run:
+    workflows: [Kiểm thử khởi động ISO]
+    types: [completed]
+    branches: [main]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  inspect:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'failure'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Xác định artifact kiểm thử
+        id: source
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          SOURCE_RUN: ${{ inputs.run_id || github.event.workflow_run.id }}
+        run: |
+          set -euo pipefail
+          source_run_id="$SOURCE_RUN"
+          if [[ -z "$source_run_id" ]]; then
+            source_run_id=$(gh api --method GET "repos/$GH_REPO/actions/workflows/boot-iso.yml/runs" -f branch=main -f status=failure -f per_page=1 --jq '.workflow_runs[0].id')
+          fi
+          [[ "$source_run_id" =~ ^[0-9]+$ ]]
+          source_attempt=$(gh api "repos/$GH_REPO/actions/runs/$source_run_id" --jq '.run_attempt')
+          printf 'run_id=%s\nartifact_name=mykos-boot-evidence-%s-%s\n' "$source_run_id" "$source_run_id" "$source_attempt" >> "$GITHUB_OUTPUT"
+      - name: Tải bằng chứng trong cùng repo
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ steps.source.outputs.run_id }}
+          name: ${{ steps.source.outputs.artifact_name }}
+          path: evidence
+      - name: Đọc kết quả và console
+        run: |
+          python3 - <<'PYTHON'
+          from pathlib import Path
+          for path in sorted(Path('evidence').rglob('*')):
+              if path.name in {'result.json', 'serial.log', 'qemu.log'}:
+                  print('\n=== ' + str(path) + ' ===', flush=True)
+                  print(path.read_text(errors='replace')[-16000:], flush=True)
+          PYTHON
+      - name: Xuất ảnh kiểm thử qua nhật ký riêng của repo
+        run: |
+          python3 - <<'PYTHON'
+          import base64, json
+          from pathlib import Path
+          for path in sorted(Path('evidence').rglob('*.png')):
+              if path.stat().st_size <= 1024 * 1024:
+                  print('MYKOS_IMAGE=' + json.dumps({'path': str(path), 'base64': base64.b64encode(path.read_bytes()).decode()}), flush=True)
+          PYTHON
