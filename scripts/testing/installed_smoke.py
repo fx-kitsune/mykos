@@ -84,6 +84,48 @@ for line in sessions.splitlines():
 '''
 
 
+SESSION_SERVICES = r'''
+import os, subprocess
+from pathlib import Path
+def check(args,env=None):
+    try:
+        p=subprocess.run(args,env=env,capture_output=True,text=True,timeout=30)
+        return {'returncode':p.returncode,'stdout':p.stdout[-16000:],'stderr':p.stderr[-2000:]}
+    except (OSError,subprocess.TimeoutExpired) as error:
+        return {'error':str(error)}
+keys=['DBUS_SESSION_BUS_ADDRESS','XDG_RUNTIME_DIR','DISPLAY','XAUTHORITY','XDG_SESSION_ID','XDG_CURRENT_DESKTOP','KWIN_COMPOSE','QT_QUICK_BACKEND']
+result={'serial_environment':{key:os.environ.get(key) for key in keys},'processes':[],
+        'units':check(['systemctl','--user','show','dbus.service','plasma-polkit-agent.service','plasma-powerdevil.service','plasma-kscreen.service','-p','Id,Type,BusName,MainPID,ActiveState,SubState,Result,NRestarts,TimeoutStartUSec']),
+        'unit_definitions':check(['systemctl','--user','cat','dbus.service','plasma-polkit-agent.service','plasma-powerdevil.service']),
+        'manager_environment':check(['systemctl','--user','show-environment']),
+        'packages':check(['dpkg-query','-W','-f=${binary:Package} ${db:Status-Status} ${Version}\n','dbus-user-session','dbus-x11','dbus-daemon']),
+        'session_list':check(['loginctl','list-sessions','--no-legend','--no-pager'])}
+# Keep only session/graphics keys; never return the complete process or manager environment.
+if 'stdout' in result['manager_environment']:
+    result['manager_environment']['stdout']='\n'.join(line for line in result['manager_environment']['stdout'].splitlines() if line.split('=',1)[0] in keys)
+for line in subprocess.check_output(['ps','-u',str(os.getuid()),'-o','pid=,ppid=,comm=,args='],text=True).splitlines():
+    parts=line.split(None,3)
+    if len(parts)<4 or parts[2] not in ['dbus-daemon','plasmashell','systemd','polkit-kde-auth','org_kde_powerde']:
+        continue
+    pid=parts[0]
+    item={'pid':pid,'ppid':parts[1],'command':parts[3]}
+    try:
+        env=os.environ.copy()
+        for entry in Path('/proc/'+pid+'/environ').read_bytes().split(b'\0'):
+            if b'=' in entry:
+                key,value=entry.split(b'=',1)
+                env[key.decode()]=value.decode(errors='replace')
+        item['environment']={key:env.get(key) for key in keys}
+        if parts[2]=='plasmashell':
+            item['bus_id']=check(['dbus-send','--session','--print-reply','--dest=org.freedesktop.DBus','/org/freedesktop/DBus','org.freedesktop.DBus.GetId'],env)
+            item['bus_names']=check(['dbus-send','--session','--print-reply','--dest=org.freedesktop.DBus','/org/freedesktop/DBus','org.freedesktop.DBus.ListNames'],env)
+    except OSError as error:
+        item['error']=str(error)
+    result['processes'].append(item)
+result['serial_bus_id']=check(['dbus-send','--session','--print-reply','--dest=org.freedesktop.DBus','/org/freedesktop/DBus','org.freedesktop.DBus.GetId'])
+'''
+
+
 def network_ready(result):
     try:
         routes = json.loads(result['routes']['stdout'])

@@ -15,7 +15,7 @@ import wave
 from boot_iso import digest, prepare_menu
 from probe_desktop import GUEST, SOFTWARE_PARAMETERS, desktop_ready
 from vm_session import VM, empty_test_disk
-from installed_smoke import NETWORK, APT, DISPLAY, GRAPHICAL_SESSION, network_ready, apt_ready
+from installed_smoke import NETWORK, APT, DISPLAY, GRAPHICAL_SESSION, SESSION_SERVICES, network_ready, apt_ready
 from multimedia_probe import GUEST as MULTIMEDIA, guest_ready as multimedia_ready, analyze_wave
 
 
@@ -368,6 +368,7 @@ def main():
                 raise RuntimeError('Chưa xác nhận được phiên X11 hoạt động của tài khoản thường trên seat0.')
             if report['installed_desktop'].get('color_scheme') != 'MyKOSDark':
                 raise RuntimeError('Bản cài chưa dùng bộ màu MyKOSDark mặc định.')
+            report['installed_session_services'] = vm.guest(SESSION_SERVICES, timeout=240)
             vm.capture('installed-applications')
             vm.click(1266, 777)
             time.sleep(3)
