@@ -6,7 +6,7 @@ MyKOS là bản phân phối Linux dành cho máy tính cá nhân, phát triển
 
 ## Trạng thái dự án
 
-Dự án đang thực hiện **M0 — Nền tảng và lần khởi động đầu tiên**. Chưa có ISO hoặc trình cài đặt được nghiệm thu. Mục tiêu hiện tại là ảnh hệ thống chạy trực tiếp ở chế độ BIOS truyền thống; UEFI, Secure Boot, Calamares và phần cứng thật còn cần kiểm thử.
+Dự án đang thực hiện **M0 — Nền tảng và lần khởi động đầu tiên**. Chưa có ISO hoặc trình cài đặt được nghiệm thu. Đã có ISO tạo thành công trên Actions và kiểm thử QEMU/TCG xác nhận bản sao thêm console khởi động qua BIOS tới môi trường người dùng. Phiên Plasma và cài đặt chưa nghiệm thu. Mục tiêu hiện tại là ảnh hệ thống chạy trực tiếp ở chế độ BIOS truyền thống; UEFI, Secure Boot, Calamares và phần cứng thật còn cần kiểm thử.
 
 Đã có cấu hình Ubuntu 24.04 LTS Noble amd64, danh sách gói KDE, công cụ tạo ISO, thông tin bản dựng, mã kiểm tra SHA-256, lệnh chạy QEMU và kiểm thử cấu hình. Nền tảng Noble cung cấp Plasma 5.27.
 

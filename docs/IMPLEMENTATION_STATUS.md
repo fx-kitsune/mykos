@@ -1,6 +1,6 @@
 # Trạng thái triển khai
 
-Cập nhật ngày 07/11/2026. **M0 đang thực hiện, chưa nghiệm thu.**
+Cập nhật ngày 08/11/2026. **M0 đang thực hiện, chưa nghiệm thu.**
 
 ## Đã triển khai
 
@@ -29,7 +29,7 @@ Máy chạy Debian 13, không có root/sudo hoặc thiết bị KVM; dung lượ
 
 ## Còn thiếu để nghiệm thu M0
 
-- Khởi động và kiểm tra môi trường làm việc trực tiếp.
+- Kiểm tra đăng nhập và tác vụ trong môi trường Plasma; mức khởi động BIOS tới môi trường người dùng đã có bằng chứng với bản sao thêm console.
 - Tích hợp Calamares, kiểm thử cài đặt và lần đăng nhập đầu trên bản cài.
 - Kiểm tra mạng, âm thanh, màn hình, quản lý gói, cập nhật và phục hồi.
 - Khóa kho theo thời điểm, khóa bộ công cụ và so sánh bản dựng độc lập.
@@ -57,3 +57,13 @@ Xem [phạm vi Workspace](../desktop/README.md). Chưa có giao diện hệ th�
 ## Bước nghiệm thu khởi động tiếp theo
 
 Đã bổ sung workflow QEMU dùng lại Artifacts, kiểm tra mã SHA-256 và khởi động BIOS từ bản sao thêm console nối tiếp. Có nhật ký, ảnh màn hình và kết quả có cấu trúc; chưa thay đổi trạng thái nghiệm thu khởi động trước khi có lượt chạy thực tế. Các kiểm thử công cụ cũng xác nhận thông báo nhân đơn thuần không được xem là thành công và lỗi khởi động phải thắng dấu hiệu thành công cũ trong nhật ký.
+
+## Kết quả kiểm thử BIOS ngày 08/11/2026
+
+- [Lượt QEMU 42435820231](https://github.com/fx-kitsune/mykos/actions/runs/42435820231) trên commit `e3fb762` đã đạt với trạng thái `userspace-ready`.
+- ISO nguồn có SHA-256 `4cfe76fce312aa970f7e04540e8d14cd4341e7e1c41b0312f0451f0b57442774`.
+- Máy ảo dùng TCG, RAM 4 GiB và hai CPU, không gắn đĩa cài đặt; toàn bộ công cụ kiểm thử ghi nhận khoảng 168 giây.
+- Bản sao thêm console có SHA-256 `96321cbbf52584a9c1ce4b26888e8dec35e4a9792773fd948773d74a4842b78a`; nhân, initrd và squashfs giữ nguyên từ ISO nguồn.
+- [Bằng chứng gồm kết quả, nhật ký và ảnh màn hình](https://github.com/fx-kitsune/mykos/actions/runs/42435820231/artifacts/13598969791) lưu trong 7 ngày.
+
+Chỉ nghiệm thu mức BIOS → nhân → môi trường người dùng ở bản sao chẩn đoán. Chưa xác nhận đăng nhập Plasma, âm thanh/mạng, khả năng khởi động nguyên trạng trên phần cứng thật hoặc cài đặt. Phần việc tiếp theo là nghiệm thu phiên Plasma và tích hợp Calamares sau đó.

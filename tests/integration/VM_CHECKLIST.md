@@ -14,7 +14,7 @@ Công cụ dùng KVM khi truy cập được, ngược lại dùng TCG. Lệnh n
 
 | Kiểm thử | Kết quả mong đợi | Trạng thái |
 |---|---|---|
-| Khởi động trực tiếp bằng BIOS | Có menu khởi động, nhân và phiên đồ họa | CHƯA CHẠY |
+| Khởi động trực tiếp bằng BIOS | Qua BIOS và nhân tới môi trường người dùng, trên bản sao thêm console | ĐẠT: [QEMU/TCG 42435820231](https://github.com/fx-kitsune/mykos/actions/runs/42435820231), 08/11/2026 |
 | Đăng nhập và phiên KDE | Plasma, trình mở ứng dụng và điều hướng bàn phím hoạt động | CHƯA CHẠY |
 | Mạng | DHCP, DNS và HTTPS qua NetworkManager | CHƯA CHẠY |
 | Âm thanh | Phát âm thanh và điều chỉnh âm lượng bằng PipeWire | CHƯA CHẠY |
