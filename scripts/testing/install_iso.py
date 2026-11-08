@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Mở và rà soát installer trên đĩa QCOW2 mới; dừng trước chọn phân vùng."""
 import argparse
+import base64
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -19,6 +21,7 @@ def main():
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--diagnostic-direct', action='store_true',
                         help='Chỉ chẩn đoán Calamares trực tiếp; không nghiệm thu launcher của ISO.')
+    parser.add_argument('--diagnostic-overlay', type=Path, help='Chỉ chẩn đoán: chép overlay hiện tại vào guest live, không nghiệm thu ISO gốc.')
     args = parser.parse_args()
     iso, output = args.iso.resolve(), args.output.resolve()
     if not iso.is_file() or output.exists() or ',' in str(output):
@@ -28,7 +31,7 @@ def main():
         parser.error('ISO không khớp mã SHA-256 đã nghiệm thu desktop; không tạo hoặc gắn đĩa.')
     output.mkdir(parents=True)
     report = {'status': 'failed', 'iso_sha256': actual_sha,
-              'diagnostic_direct': args.diagnostic_direct,
+              'diagnostic_direct': args.diagnostic_direct, 'diagnostic_overlay': bool(args.diagnostic_overlay),
               'scope': 'Xem installer với đĩa ảo mới; chưa cài đặt hoặc ghi phân vùng.',
               'disk': 'install-disk.qcow2', 'disk_size_bytes': 40 * 1024**3}
     vm = None
@@ -62,6 +65,30 @@ def main():
         report['inventory'] = inventory
         if not empty_test_disk(inventory):
             raise RuntimeError('Chỉ chấp nhận đúng một đĩa vda mới, 40 GiB và chưa có phân vùng.')
+        if args.diagnostic_overlay:
+            overlay = args.diagnostic_overlay.resolve()
+            if not overlay.is_dir():
+                raise ValueError('Không tìm thấy overlay chẩn đoán.')
+            report['overlay_files'] = []
+            for path in sorted(overlay.rglob('*')):
+                if path.is_symlink():
+                    raise ValueError('Overlay chẩn đoán không chấp nhận symlink.')
+                if not path.is_file():
+                    continue
+                relative = path.relative_to(overlay).as_posix()
+                content = path.read_bytes()
+                destination = '/' + relative
+                mode = '0755' if relative == 'usr/bin/mykos-install' else '0644'
+                script = 'import base64,subprocess,tempfile\n'
+                script += 'with tempfile.NamedTemporaryFile() as f:\n'
+                script += '    f.write(base64.b64decode(' + repr(base64.b64encode(content).decode()) + ')); f.flush()\n'
+                script += '    p=subprocess.run(["sudo","-n","install","-D","-m",' + repr(mode) + ',f.name,' + repr(destination) + '],capture_output=True,text=True)\n'
+                script += '    result={"returncode":p.returncode,"stderr":p.stderr}\n'
+                copied = vm.guest(script, timeout=30)
+                if copied.get('returncode') != 0:
+                    raise RuntimeError('Không chép được overlay vào guest: ' + relative + ' ' + copied.get('stderr', ''))
+                report['overlay_files'].append({'path': relative, 'sha256': hashlib.sha256(content).hexdigest()})
+            print('Installer diagnostic: current overlay applied only to live guest', flush=True)
         print('Installer preview: verified fresh vda; opening Calamares', flush=True)
         payload = GUEST
         if args.diagnostic_direct:
@@ -79,7 +106,7 @@ def main():
             time.sleep(3)
             vm.capture('installer-' + name)
         # Không chọn xóa đĩa hoặc bấm Install trong phép thử preview.
-        report['status'] = 'installer-diagnostic-preview' if args.diagnostic_direct else 'installer-preview'
+        report['status'] = 'installer-diagnostic-preview' if args.diagnostic_direct or args.diagnostic_overlay else 'installer-preview'
     except (OSError, ValueError, RuntimeError, subprocess.CalledProcessError) as error:
         report['error'] = str(error)
     finally:
