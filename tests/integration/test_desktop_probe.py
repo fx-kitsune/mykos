@@ -13,6 +13,11 @@ with patch.object(sys, 'path', [str(SCRIPTS), *sys.path]):
 
 
 class DesktopProbeTests(unittest.TestCase):
+    def test_prompt_is_not_lost_when_systemd_logs_continue(self):
+        self.assertTrue(probe.has_prompt('boot', 'mykos-live login: \n[ OK ] Started a service.\n'))
+        self.assertTrue(probe.has_prompt('login', 'mykos@mykos-live:~$ \n[ OK ] Started a service.\n'))
+        self.assertFalse(probe.has_prompt('login', 'mykos-live login: mykos\nPassword: '))
+
     def test_login_or_echoed_command_is_not_guest_evidence(self):
         self.assertIsNone(probe.guest_result('mykos-live login:\n'))
         self.assertIsNone(probe.guest_result('echo MYKOS_DESKTOP_RESULT={}\n'))

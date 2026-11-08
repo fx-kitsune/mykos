@@ -5,11 +5,16 @@ on:
       build_run_id:
         description: Mã lượt tạo ISO có Artifacts còn hạn
         required: true
-        default: '42392072303'
+        default: '42443779141'
       artifact_name:
         description: Tên gói ISO của lượt tạo ảnh
         required: true
-        default: mykos-iso-amd64-42392072303-1
+        default: mykos-iso-amd64-42443779141-1
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/boot-iso.yml
+      - scripts/testing/**
   workflow_run:
     workflows: [Tạo ISO MyKOS]
     types: [completed]
@@ -22,7 +27,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   boot:
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     name: BIOS và môi trường chạy trực tiếp
     runs-on: ubuntu-24.04
     timeout-minutes: 70
@@ -31,12 +36,35 @@ jobs:
         uses: actions/checkout@v4
         with:
           persist-credentials: false
+      - name: Xác định ISO nguồn đã build thành công
+        id: source
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          INPUT_RUN: ${{ inputs.build_run_id }}
+          INPUT_ARTIFACT: ${{ inputs.artifact_name }}
+          EVENT_RUN: ${{ github.event.workflow_run.id }}
+        run: |
+          set -euo pipefail
+          source_run_id="${INPUT_RUN:-${EVENT_RUN:-}}"
+          if [[ -z "$source_run_id" ]]; then
+            source_run_id=$(gh api --method GET "repos/$GH_REPO/actions/workflows/build-iso.yml/runs" -f branch=main -f status=success -f per_page=1 --jq '.workflow_runs[0].id')
+          fi
+          [[ "$source_run_id" =~ ^[0-9]+$ ]]
+          metadata=$(gh api "repos/$GH_REPO/actions/runs/$source_run_id")
+          [[ $(jq -r '.conclusion' <<< "$metadata") == success ]]
+          source_attempt=$(jq -r '.run_attempt' <<< "$metadata")
+          source_sha=$(jq -r '.head_sha' <<< "$metadata")
+          source_artifact="${INPUT_ARTIFACT:-mykos-iso-amd64-$source_run_id-$source_attempt}"
+          [[ "$source_artifact" =~ ^[a-zA-Z0-9._-]+$ ]]
+          printf 'run_id=%s\nartifact_name=%s\nsource_sha=%s\n' "$source_run_id" "$source_artifact" "$source_sha" >> "$GITHUB_OUTPUT"
+          printf 'ISO source: run %s, commit %s, artifact %s\n' "$source_run_id" "$source_sha" "$source_artifact"
       - name: Tải ISO đã tạo thành công
         uses: actions/download-artifact@v4
         with:
           github-token: ${{ github.token }}
-          run-id: ${{ inputs.build_run_id || github.event.workflow_run.id }}
-          name: ${{ inputs.artifact_name || format('mykos-iso-amd64-{0}-{1}', github.event.workflow_run.id, github.event.workflow_run.run_attempt) }}
+          run-id: ${{ steps.source.outputs.run_id }}
+          name: ${{ steps.source.outputs.artifact_name }}
           path: artifacts/source-iso
       - name: Cài QEMU và công cụ đọc ISO
         run: |

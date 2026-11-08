@@ -35,13 +35,16 @@ if result['plasma']:
             key, value = item.split(b'=', 1)
             env[key.decode()] = value.decode(errors='replace')
     for app in ['dolphin', 'konsole', 'systemsettings']:
-        if not shutil.which(app):
+        executable = shutil.which(app)
+        if app == 'systemsettings' and not executable:
+            executable = shutil.which('systemsettings5')
+        if not executable:
             result['applications'][app] = False
             continue
         with open('/tmp/mykos-probe-' + app + '.log', 'w') as log:
-            subprocess.Popen([app], env=env, stdout=log, stderr=subprocess.STDOUT)
+            subprocess.Popen([executable], env=env, stdout=log, stderr=subprocess.STDOUT)
         time.sleep(5)
-        result['applications'][app] = running(app).returncode == 0
+        result['applications'][app] = running(os.path.basename(executable)).returncode == 0
     if shutil.which('kreadconfig5'):
         result['color_scheme'] = subprocess.run(
             ['kreadconfig5', '--file', 'kdeglobals', '--group', 'General', '--key', 'ColorScheme'],
@@ -58,6 +61,11 @@ def guest_result(text):
                 raise ValueError('Kết quả guest phải là JSON object.')
             return result
     return None
+
+
+def has_prompt(phase, text):
+    pattern = r'mykos-live login:' if phase == 'boot' else r'mykos@mykos-live:[^\n]*[$]'
+    return re.search(pattern, text) is not None
 
 
 def main():
@@ -105,7 +113,9 @@ def main():
             serial.connect(str(serial_path))
             serial.settimeout(1)
             phase = 'boot'
+            phase_started = time.monotonic()
             desktop_captured = False
+            print('Desktop probe: waiting for live console', flush=True)
             while time.monotonic() < deadline:
                 if machine.poll() is not None:
                     raise RuntimeError('QEMU thoát trước khi thu được kết quả.')
@@ -121,13 +131,23 @@ def main():
                 if not desktop_captured and qmp is not None and '\nMYKOS_DESKTOP_READY\n' in transcript:
                     qmp.command('screendump', {'filename': str(output / 'desktop.ppm')})
                     desktop_captured = True
-                if phase == 'boot' and re.search(r'mykos-live login:\s*$', transcript):
+                # systemd có thể ghi thêm trạng thái sau lời nhắc getty/shell.
+                # Không đòi prompt nằm ở cuối toàn bộ console.
+                if phase == 'boot' and has_prompt(phase, transcript):
                     serial.sendall(b'mykos\n')
                     phase = 'login'
-                elif phase == 'login' and re.search(r'mykos@[^\n]*[$]\s*$', transcript):
+                    phase_started = time.monotonic()
+                    print('Desktop probe: logging in as live user mykos', flush=True)
+                elif phase == 'login' and has_prompt(phase, transcript):
                     payload = base64.b64encode(GUEST.encode()).decode()
                     serial.sendall(('python3 -c "import base64; exec(base64.b64decode(\'' + payload + '\'))"\n').encode())
                     phase = 'probe'
+                    phase_started = time.monotonic()
+                    print('Desktop probe: checking Plasma and applications', flush=True)
+                if phase == 'login' and time.monotonic() - phase_started > 60:
+                    raise TimeoutError('Không vào được shell live trong 60 giây; xem serial.log.')
+                if phase == 'probe' and time.monotonic() - phase_started > 300:
+                    raise TimeoutError('Guest không trả kết quả desktop trong 300 giây; xem serial.log.')
                 result = guest_result(transcript)
                 if result is not None:
                     report['guest'] = result
