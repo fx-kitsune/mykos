@@ -9,11 +9,14 @@ import subprocess
 import time
 import zlib
 
-from boot_iso import QMP
+from boot_iso import FAILURE, QMP
+
+CSI = re.compile(r'\x1b\[[0-?]*[ -/]*[@-~]')
 
 
 def frame(text, marker):
     for line in reversed(text.splitlines(keepends=True)):
+        line = CSI.sub('', line)
         if line.endswith('\n') and line.startswith(marker):
             return json.loads(line[len(marker):])
     return None
@@ -36,9 +39,14 @@ def key_sequence(text):
 
 
 def empty_test_disk(inventory, size=40 * 1024**3):
-    disks = [disk for disk in inventory.get('blockdevices', []) if disk.get('type') == 'disk']
-    return (len(disks) == 1 and disks[0].get('name') == 'vda'
-            and int(disks[0].get('size', 0)) == size and not disks[0].get('children'))
+    try:
+        disks = [disk for disk in inventory.get('blockdevices', []) if disk.get('type') == 'disk'
+                 and not (re.fullmatch(r'fd[0-9]+', disk.get('name', ''))
+                          and int(disk.get('size', 0)) <= 4 * 1024**2)]
+        return (len(disks) == 1 and disks[0].get('name') == 'vda'
+                and int(disks[0].get('size', 0)) == size and not disks[0].get('children'))
+    except (ValueError, TypeError):
+        return False
 
 
 def command_for_guest(script, marker):
@@ -78,6 +86,8 @@ class VM:
     def wait(self, predicate, timeout=600, start=0):
         deadline = time.monotonic() + timeout
         while time.monotonic() < deadline:
+            if FAILURE.search(self.transcript):
+                raise RuntimeError('Guest báo lỗi khởi động; xem serial.log.')
             value = predicate(self.transcript[start:])
             if value:
                 return value

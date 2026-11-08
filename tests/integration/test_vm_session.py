@@ -28,11 +28,14 @@ class VMSessionTests(unittest.TestCase):
         self.assertFalse(vm.empty_test_disk({'blockdevices': [disk, dict(disk, name='vdb')]}))
         self.assertFalse(vm.empty_test_disk({'blockdevices': [dict(disk, size=20 * 1024**3)]}))
         self.assertFalse(vm.empty_test_disk({'blockdevices': []}))
+        self.assertTrue(vm.empty_test_disk({'blockdevices': [disk, {'name': 'fd0', 'type': 'disk', 'size': 4096}]}))
+        self.assertFalse(vm.empty_test_disk({'blockdevices': [disk, dict(disk, name='fd0')]}))
 
     def test_fragmented_result_is_not_decoded_until_newline(self):
         self.assertIsNone(vm.frame('TAG={"ready":', 'TAG='))
         self.assertIsNone(vm.frame('echo TAG={}\n', 'TAG='))
         self.assertEqual(vm.frame('TAG={"ready":true}\n', 'TAG='), {'ready': True})
+        self.assertEqual(vm.frame('\x1b[?2004lTAG={"ready":true}\n\x1b[?2004huser@host:~$ ', 'TAG='), {'ready': True})
 
     def test_keyboard_test_data_rejects_unhandled_characters(self):
         self.assertEqual(vm.key_sequence('Vm 1-'), [['shift', 'v'], ['m'], ['spc'], ['1'], ['minus']])
