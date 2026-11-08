@@ -72,6 +72,18 @@ result={'sddm':check(['systemctl','status','sddm','--no-pager','-n','30']),
 '''
 
 
+GRAPHICAL_SESSION = r'''
+import subprocess
+sessions=subprocess.check_output(['loginctl','list-sessions','--no-legend','--no-pager'],text=True)
+result={'sessions':sessions,'graphical':{}}
+for line in sessions.splitlines():
+    parts=line.split()
+    if len(parts)>3 and parts[2]=='vmtester' and parts[3]=='seat0':
+        output=subprocess.check_output(['loginctl','show-session',parts[0],'-p','Name','-p','Type','-p','State','-p','Class','-p','Remote'],text=True)
+        result['graphical']=dict(line.split('=',1) for line in output.splitlines() if '=' in line)
+'''
+
+
 def network_ready(result):
     try:
         routes = json.loads(result['routes']['stdout'])

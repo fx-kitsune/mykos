@@ -14,7 +14,7 @@ import time
 from boot_iso import digest, prepare_menu
 from probe_desktop import GUEST, SOFTWARE_PARAMETERS, desktop_ready
 from vm_session import VM, empty_test_disk
-from installed_smoke import NETWORK, APT, DISPLAY, network_ready, apt_ready
+from installed_smoke import NETWORK, APT, DISPLAY, GRAPHICAL_SESSION, network_ready, apt_ready
 
 
 def installation_state(log):
@@ -125,6 +125,8 @@ def main():
                         help='Sau cài đặt, tháo ISO và đăng nhập console bản cài bằng mật khẩu đã nhập trong GUI.')
     parser.add_argument('--smoke-installed', action='store_true',
                         help='Sau boot, kiểm tra DHCP/DNS/HTTPS, sudo có mật khẩu và cài/gỡ gói bằng APT.')
+    parser.add_argument('--desktop-installed', action='store_true',
+                        help='Sau kiểm tra CLI, đăng nhập SDDM bằng bàn phím và kiểm tra phiên Plasma X11.')
     args = parser.parse_args()
     if args.install and not args.prepare_install:
         parser.error('--install cần --prepare-install để rà soát toàn bộ luồng trước xác nhận.')
@@ -132,6 +134,8 @@ def main():
         parser.error('--boot-installed cần --install trong cùng phiên để giữ mật khẩu dùng một lần trong bộ nhớ.')
     if args.smoke_installed and not args.boot_installed:
         parser.error('--smoke-installed cần --boot-installed.')
+    if args.desktop_installed and not args.smoke_installed:
+        parser.error('--desktop-installed cần --smoke-installed để chờ và thu bằng chứng SDDM trước thao tác.')
     iso, output = args.iso.resolve(), args.output.resolve()
     if not iso.is_file() or output.exists() or ',' in str(output):
         parser.error('Cần ISO có sẵn và thư mục kết quả mới, không chứa dấu phẩy.')
@@ -326,6 +330,40 @@ def main():
             vm.capture('installed-greeter-after-smoke')
             report['scope'] = 'Cài và boot không ISO, đăng nhập console thường, DHCP/DNS/HTTPS, sudo có mật khẩu và vòng APT. Chưa nghiệm thu đăng nhập GUI hoặc âm thanh.'
             report['status'] = 'installed-diagnostic-cli-smoke-ready' if args.diagnostic_direct or args.diagnostic_overlay else 'installed-cli-smoke-ready'
+        if args.desktop_installed:
+            report['status'] = 'failed'
+            display = report['installed_display_after']
+            if (display['greeter'].get('returncode') != 0
+                    or 'Message received from greeter: Connect' not in display['journal'].get('stdout', '')):
+                raise RuntimeError('SDDM chưa nạp greeter; dừng trước nhập tài khoản.')
+            # Reviewed ubuntu-theme at 1280x800: Username initially focused;
+            # Tab advances to Password. Session selector is Plasma (X11).
+            print('Installed desktop: signing in through the reviewed SDDM greeter once', flush=True)
+            vm.key('ctrl', 'a')
+            vm.type('vmtester')
+            vm.key('tab')
+            time.sleep(2)
+            vm.capture('installed-password-field')
+            vm.type(password)
+            vm.key('ret')
+            report['installed_desktop'] = vm.guest(GUEST, timeout=900)
+            if not desktop_ready(report['installed_desktop']):
+                raise RuntimeError('Plasma hoặc ứng dụng của bản cài chưa phản hồi sau đăng nhập SDDM.')
+            report['installed_graphical_session'] = vm.guest(GRAPHICAL_SESSION, timeout=60)
+            graphical = report['installed_graphical_session']['graphical']
+            if (graphical.get('Name') != 'vmtester' or graphical.get('Type') != 'x11'
+                    or graphical.get('State') != 'active' or graphical.get('Class') != 'user'
+                    or graphical.get('Remote') != 'no'):
+                raise RuntimeError('Chưa xác nhận được phiên X11 hoạt động của tài khoản thường trên seat0.')
+            if report['installed_desktop'].get('color_scheme') != 'MyKOSDark':
+                raise RuntimeError('Bản cài chưa dùng bộ màu MyKOSDark mặc định.')
+            vm.capture('installed-applications')
+            vm.click(1266, 777)
+            time.sleep(3)
+            vm.capture('installed-wallpaper')
+            vm.click(1266, 777)
+            report['scope'] = 'Cài và boot BIOS không ISO, xác thực SDDM/Plasma X11 tài khoản thường, ứng dụng KDE, mạng/HTTPS, sudo và APT. Chưa nghiệm thu âm thanh, cập nhật/recovery hoặc phần cứng.'
+            report['status'] = 'installed-diagnostic-desktop-ready' if args.diagnostic_direct or args.diagnostic_overlay else 'installed-desktop-ready'
     except (OSError, ValueError, RuntimeError, subprocess.CalledProcessError) as error:
         report['error'] = str(error)
     finally:
@@ -341,7 +379,8 @@ def main():
     return 0 if report['status'] in {'installer-preview', 'installer-diagnostic-preview',
                                     'installer-complete', 'installer-diagnostic-complete',
                                     'installed-userspace-ready', 'installed-diagnostic-userspace-ready',
-                                    'installed-cli-smoke-ready', 'installed-diagnostic-cli-smoke-ready'} else 1
+                                    'installed-cli-smoke-ready', 'installed-diagnostic-cli-smoke-ready',
+                                    'installed-desktop-ready', 'installed-diagnostic-desktop-ready'} else 1
 
 
 if __name__ == '__main__':
