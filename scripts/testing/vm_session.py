@@ -137,6 +137,24 @@ class VM:
             raise RuntimeError('Guest: ' + result['__mykos_guest_error__'])
         return result
 
+    def authenticate_sudo(self, password):
+        nonce = secrets.token_hex(8)
+        prompt, marker = 'MYKOS_SUDO_' + nonce + ': ', 'MYKOS_SUDO_RESULT_' + nonce
+        start = len(self.transcript)
+        command = "sudo -k; sudo -p '" + prompt + "' -v; printf '\\n" + marker + "=%s\\n' $?\n"
+        self.serial.sendall(command.encode())
+        self.wait(lambda text: re.search(r'(?m)^' + re.escape(prompt), CSI.sub('', text)), 60, start)
+        # sudo has disabled terminal echo before emitting this unique prompt.
+        self.serial.sendall((password + '\r').encode())
+        def authenticated(text):
+            if 'Sorry, try again.' in text:
+                raise RuntimeError('Sudo từ chối mật khẩu của tài khoản thử; không thử lại.')
+            match = re.search(r'(?m)^' + re.escape(marker) + r'=([0-9]+)', CSI.sub('', text))
+            if match and match.group(1) != '0':
+                raise RuntimeError('Tài khoản bản cài không xác thực sudo được.')
+            return match
+        self.wait(authenticated, 60, start)
+
     def key(self, *codes):
         self.qmp.command('send-key', {'keys': [{'type': 'qcode', 'data': code} for code in codes], 'hold-time': 60})
         self.last_input = time.monotonic()

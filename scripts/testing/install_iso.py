@@ -14,6 +14,7 @@ import time
 from boot_iso import digest, prepare_menu
 from probe_desktop import GUEST, SOFTWARE_PARAMETERS, desktop_ready
 from vm_session import VM, empty_test_disk
+from installed_smoke import NETWORK, APT, DISPLAY, network_ready, apt_ready
 
 
 def installation_state(log):
@@ -122,11 +123,15 @@ def main():
                         help='Cài thật vào QCOW2 mới đã xác minh; chưa nghiệm thu boot bản cài.')
     parser.add_argument('--boot-installed', action='store_true',
                         help='Sau cài đặt, tháo ISO và đăng nhập console bản cài bằng mật khẩu đã nhập trong GUI.')
+    parser.add_argument('--smoke-installed', action='store_true',
+                        help='Sau boot, kiểm tra DHCP/DNS/HTTPS, sudo có mật khẩu và cài/gỡ gói bằng APT.')
     args = parser.parse_args()
     if args.install and not args.prepare_install:
         parser.error('--install cần --prepare-install để rà soát toàn bộ luồng trước xác nhận.')
     if args.boot_installed and not args.install:
         parser.error('--boot-installed cần --install trong cùng phiên để giữ mật khẩu dùng một lần trong bộ nhớ.')
+    if args.smoke_installed and not args.boot_installed:
+        parser.error('--smoke-installed cần --boot-installed.')
     iso, output = args.iso.resolve(), args.output.resolve()
     if not iso.is_file() or output.exists() or ',' in str(output):
         parser.error('Cần ISO có sẵn và thư mục kết quả mới, không chứa dấu phẩy.')
@@ -304,6 +309,23 @@ def main():
                 raise RuntimeError('Bản cài chưa đạt kiểm tra tài khoản thường và root trên đĩa sau tháo ISO.')
             report['scope'] = 'Cài QCOW2, boot GRUB không ISO, đăng nhập console tài khoản thường. Chưa nghiệm thu đăng nhập GUI hoặc thiết bị.'
             report['status'] = 'installed-diagnostic-userspace-ready' if args.diagnostic_direct or args.diagnostic_overlay else 'installed-userspace-ready'
+        if args.smoke_installed:
+            report['status'] = 'failed'
+            print('Installed smoke: checking DHCP, DNS, HTTPS and password-required sudo', flush=True)
+            report['installed_display_before'] = vm.guest(DISPLAY, timeout=180)
+            report['installed_network'] = vm.guest(NETWORK, timeout=240)
+            if not network_ready(report['installed_network']):
+                raise RuntimeError('Mạng hoặc chính sách sudo của bản cài chưa đạt; xem installed_network.')
+            print('Installed smoke: authenticating sudo once with the GUI-created password', flush=True)
+            vm.authenticate_sudo(password)
+            print('Installed smoke: signed APT update, install/run/purge hello', flush=True)
+            report['installed_apt'] = vm.guest(APT, timeout=1000)
+            if not apt_ready(report['installed_apt']):
+                raise RuntimeError('Vòng APT có xác thực chưa đạt; xem installed_apt.')
+            report['installed_display_after'] = vm.guest(DISPLAY, timeout=180)
+            vm.capture('installed-greeter-after-smoke')
+            report['scope'] = 'Cài và boot không ISO, đăng nhập console thường, DHCP/DNS/HTTPS, sudo có mật khẩu và vòng APT. Chưa nghiệm thu đăng nhập GUI hoặc âm thanh.'
+            report['status'] = 'installed-diagnostic-cli-smoke-ready' if args.diagnostic_direct or args.diagnostic_overlay else 'installed-cli-smoke-ready'
     except (OSError, ValueError, RuntimeError, subprocess.CalledProcessError) as error:
         report['error'] = str(error)
     finally:
@@ -318,7 +340,8 @@ def main():
         print(json.dumps(report, ensure_ascii=False, indent=2))
     return 0 if report['status'] in {'installer-preview', 'installer-diagnostic-preview',
                                     'installer-complete', 'installer-diagnostic-complete',
-                                    'installed-userspace-ready', 'installed-diagnostic-userspace-ready'} else 1
+                                    'installed-userspace-ready', 'installed-diagnostic-userspace-ready',
+                                    'installed-cli-smoke-ready', 'installed-diagnostic-cli-smoke-ready'} else 1
 
 
 if __name__ == '__main__':
