@@ -114,7 +114,9 @@ def main():
             serial.settimeout(1)
             phase = 'boot'
             phase_started = time.monotonic()
+            last_progress = phase_started
             desktop_captured = False
+            empty_password_sent = False
             print('Desktop probe: waiting for live console', flush=True)
             while time.monotonic() < deadline:
                 if machine.poll() is not None:
@@ -124,6 +126,8 @@ def main():
                     if not chunk:
                         raise RuntimeError('Console đã đóng.')
                     transcript += chunk.decode(errors='replace').replace('\r', '')
+                    # Giữ console kể cả khi runner hủy lệnh trước khối finally.
+                    (output / 'serial.log').write_text(transcript)
                 except socket.timeout:
                     pass
                 if qmp is None and qmp_path.exists():
@@ -134,7 +138,7 @@ def main():
                 # systemd có thể ghi thêm trạng thái sau lời nhắc getty/shell.
                 # Không đòi prompt nằm ở cuối toàn bộ console.
                 if phase == 'boot' and has_prompt(phase, transcript):
-                    serial.sendall(b'mykos\n')
+                    serial.sendall(b'mykos\r')
                     phase = 'login'
                     phase_started = time.monotonic()
                     print('Desktop probe: logging in as live user mykos', flush=True)
@@ -144,10 +148,23 @@ def main():
                     phase = 'probe'
                     phase_started = time.monotonic()
                     print('Desktop probe: checking Plasma and applications', flush=True)
+                elif phase == 'login' and not empty_password_sent and re.search(r'(?im)^password:', transcript):
+                    # Casper 25adduser đặt hash của mật khẩu rỗng khi có SDDM;
+                    # PAM vẫn có thể hỏi Password. Chỉ gửi Enter một lần cho
+                    # tài khoản live định sẵn, không thử mật khẩu khác.
+                    serial.sendall(b'\r')
+                    empty_password_sent = True
+                    print('Desktop probe: submitting the live account empty password once', flush=True)
+                if phase == 'login' and empty_password_sent and 'Login incorrect' in transcript:
+                    raise RuntimeError('Tài khoản live từ chối mật khẩu rỗng; không thử lại.')
                 if phase == 'login' and time.monotonic() - phase_started > 60:
                     raise TimeoutError('Không vào được shell live trong 60 giây; xem serial.log.')
                 if phase == 'probe' and time.monotonic() - phase_started > 300:
                     raise TimeoutError('Guest không trả kết quả desktop trong 300 giây; xem serial.log.')
+                if time.monotonic() - last_progress > 60:
+                    tail = transcript.splitlines()[-3:]
+                    print(json.dumps({'phase': phase, 'console_tail': tail}, ensure_ascii=False), flush=True)
+                    last_progress = time.monotonic()
                 result = guest_result(transcript)
                 if result is not None:
                     report['guest'] = result
@@ -178,6 +195,8 @@ def main():
                 machine.kill()
                 machine.wait()
         (output / 'serial.log').write_text(transcript)
+        if report['status'] != 'desktop-services-ready':
+            print('Desktop probe console tail:\n' + transcript[-4000:], flush=True)
         report['elapsed_seconds'] = round(time.monotonic() - started, 1)
         (output / 'result.json').write_text(json.dumps(report, ensure_ascii=False, indent=2) + '\n')
         print(json.dumps(report, ensure_ascii=False, indent=2))
