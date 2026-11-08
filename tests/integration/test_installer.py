@@ -14,6 +14,14 @@ spec.loader.exec_module(target)
 
 
 class InstallerTests(unittest.TestCase):
+    def test_erase_layout_has_an_explicit_ext4_root_without_preselecting_erase(self):
+        partition = json.loads((CONFIG / 'modules/partition.conf').read_text())
+        roots = [entry for entry in partition['partitionLayout'] if entry.get('mountPoint') == '/']
+        self.assertEqual(len(roots), 1)
+        self.assertEqual(roots[0]['filesystem'], 'ext4')
+        self.assertEqual(roots[0]['size'], '100%')
+        self.assertEqual(partition['initialPartitioningChoice'], 'none')
+
     def test_branding_has_required_slideshow_and_local_images(self):
         directory = CONFIG / 'branding/mykos'
         branding = json.loads((directory / 'branding.desc').read_text())

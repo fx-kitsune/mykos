@@ -124,6 +124,7 @@ def main():
                     vm.key('tab')
                 vm.key('ctrl', 'a')
                 vm.type(value)
+            time.sleep(2)
             vm.capture('installer-users-filled')
             vm.key('alt', 'n')
             time.sleep(3)
@@ -133,6 +134,7 @@ def main():
             report['after_preparation'] = vm.guest("import json,subprocess\nresult=json.loads(subprocess.check_output(['lsblk','--json','--bytes','-o','NAME,TYPE,SIZE,MOUNTPOINTS']))")
             if not empty_test_disk(report['after_preparation']):
                 raise RuntimeError('Đĩa thay đổi trong bước chuẩn bị; chưa được phép coi preview là cài đặt.')
+            report['preparation_log'] = vm.guest("from pathlib import Path\nresult={'log':Path('/tmp/mykos-installer-probe.log').read_text(errors='replace')[-24000:]}")
         # No Install/confirmation input here: disk writes belong to a separate test stage.
         report['status'] = 'installer-diagnostic-preview' if args.diagnostic_direct or args.diagnostic_overlay else 'installer-preview'
     except (OSError, ValueError, RuntimeError, subprocess.CalledProcessError) as error:
