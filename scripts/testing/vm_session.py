@@ -50,9 +50,13 @@ def empty_test_disk(inventory, size=40 * 1024**3):
 
 
 def command_for_guest(script, marker):
-    payload = base64.b64encode(zlib.compress(script.encode())).decode()
-    command = ('python3 -c "import base64,zlib,json; n={}; exec(zlib.decompress(base64.b64decode(\''
-               + payload + '\')),n); print(\'' + marker + '\'+json.dumps(n[\'result\']),flush=True)"\n')
+    wrapped = ('import json\nn={}\ntry:\n    exec(' + repr(script) + ',n)\n'
+               '    result=n["result"]\nexcept Exception as error:\n'
+               '    result={"__mykos_guest_error__":type(error).__name__+": "+str(error)}\n'
+               'print(' + repr(marker) + '+json.dumps(result),flush=True)\n')
+    payload = base64.b64encode(zlib.compress(wrapped.encode())).decode()
+    command = ('python3 -c "import base64,zlib; exec(zlib.decompress(base64.b64decode(\''
+               + payload + '\')))"\n')
     if len(command.encode()) >= 4096:
         raise ValueError('Lệnh guest vượt giới hạn một dòng của tty.')
     return command
@@ -126,7 +130,10 @@ class VM:
         command = command_for_guest(script, marker)
         start = len(self.transcript)
         self.serial.sendall(command.encode())
-        return self.wait(lambda text: frame(text, marker), timeout, start)
+        result = self.wait(lambda text: frame(text, marker), timeout, start)
+        if isinstance(result, dict) and '__mykos_guest_error__' in result:
+            raise RuntimeError('Guest: ' + result['__mykos_guest_error__'])
+        return result
 
     def key(self, *codes):
         self.qmp.command('send-key', {'keys': [{'type': 'qcode', 'data': code} for code in codes], 'hold-time': 60})

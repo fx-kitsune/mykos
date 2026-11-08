@@ -31,6 +31,12 @@ class VMSessionTests(unittest.TestCase):
         self.assertTrue(vm.empty_test_disk({'blockdevices': [disk, {'name': 'fd0', 'type': 'disk', 'size': 4096}]}))
         self.assertFalse(vm.empty_test_disk({'blockdevices': [disk, dict(disk, name='fd0')]}))
 
+    def test_guest_exception_returns_a_complete_frame_instead_of_timing_out(self):
+        command = vm.command_for_guest("raise RuntimeError('target mount failed')", 'TAG=')
+        process = subprocess.run(shlex.split(command), capture_output=True, text=True, check=True)
+        self.assertEqual(vm.frame(process.stdout, 'TAG='),
+                         {'__mykos_guest_error__': 'RuntimeError: target mount failed'})
+
     def test_fragmented_result_is_not_decoded_until_newline(self):
         self.assertIsNone(vm.frame('TAG={"ready":', 'TAG='))
         self.assertIsNone(vm.frame('echo TAG={}\n', 'TAG='))
