@@ -25,7 +25,7 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     name: BIOS và môi trường chạy trực tiếp
     runs-on: ubuntu-24.04
-    timeout-minutes: 40
+    timeout-minutes: 70
     steps:
       - name: Lấy công cụ kiểm thử
         uses: actions/checkout@v4
@@ -50,12 +50,19 @@ jobs:
         timeout-minutes: 25
         run: |
           python3 scripts/testing/boot_iso.py artifacts/source-iso/mykos-0.1.0-dev-amd64.iso --output artifacts/boot-test --timeout 1200
+      - name: Kiểm tra phiên Plasma và mở ứng dụng
+        timeout-minutes: 25
+        run: |
+          python3 scripts/testing/probe_desktop.py artifacts/source-iso/mykos-0.1.0-dev-amd64.iso --output artifacts/desktop-test --timeout 1200
       - name: Chuẩn bị bằng chứng kiểm thử
         if: always()
         run: |
-          if test -f artifacts/boot-test/screen.ppm; then
-            python3 -c 'from PIL import Image; Image.open("artifacts/boot-test/screen.ppm").save("artifacts/boot-test/screen.png")'
-          fi
+          python3 - <<'PYTHON'
+          from pathlib import Path
+          from PIL import Image
+          for path in Path('artifacts').glob('*-test/screen.ppm'):
+              Image.open(path).save(path.with_suffix('.png'))
+          PYTHON
       - name: Lưu kết quả, nhật ký và ảnh màn hình
         if: always()
         uses: actions/upload-artifact@v4
@@ -67,5 +74,10 @@ jobs:
             artifacts/boot-test/*.cfg
             artifacts/boot-test/*.png
             artifacts/boot-test/*.ppm
+            artifacts/desktop-test/*.json
+            artifacts/desktop-test/*.log
+            artifacts/desktop-test/*.cfg
+            artifacts/desktop-test/*.png
+            artifacts/desktop-test/*.ppm
           if-no-files-found: warn
           retention-days: 7

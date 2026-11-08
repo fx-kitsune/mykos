@@ -97,3 +97,9 @@ Kết quả lưu trong `mykos-boot-evidence-…` trong 7 ngày: `result.json`, n
 ### Khi nào ISO được tạo lại?
 
 Push lên `main` thay đổi `distribution/**`, `desktop/workspace/**`, `scripts/build/**` hoặc workflow build sẽ tạo ISO mới. Thay đổi tài liệu hay bản mẫu web không kích hoạt tạo ảnh. Có thể chạy thủ công bằng **Run workflow**. Kết quả kiểm thử BIOS phải khớp lượt build và SHA-256; không dùng kết quả của ISO cũ để nghiệm thu mã mới.
+
+### Bằng chứng phiên Plasma
+
+Sau kiểm thử BIOS, workflow chạy `scripts/testing/probe_desktop.py` trên một máy ảo mới với cùng ISO nguồn. Công cụ chỉ bổ sung console nối tiếp vào bản sao, đăng nhập tài khoản live `mykos`, đợi Plasma và kiểm tra tiến trình KWin; sau đó mở Dolphin, Konsole và Thiết lập bằng môi trường của phiên Plasma. Không dùng sudo, không thay cấu hình hệ thống guest và không gắn ổ đĩa cài đặt.
+
+Kết quả `desktop-services-ready` xác nhận tiến trình và thao tác mở ứng dụng, chưa thay thế rà soát giao diện, bàn phím, mạng, âm thanh hoặc cài đặt. Nếu không đăng nhập được hoặc desktop không chạy, bước kiểm thử thất bại và giữ console cùng ảnh màn hình. Bằng chứng nằm trong `desktop-test/` của artifact kiểm thử; JSON ghi SHA-256 ISO nguồn và bản sao. Cần xem ảnh và ghi kết quả riêng trong danh sách nghiệm thu trước khi đánh dấu phiên Plasma đạt.
