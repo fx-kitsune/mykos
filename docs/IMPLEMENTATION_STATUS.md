@@ -2,7 +2,7 @@
 
 Cập nhật ngày 09/11/2026 (giờ Việt Nam). **M0 đang thực hiện, chưa nghiệm thu.**
 
-Tình trạng hiện tại: ISO đã hiển thị đúng hình nền logo; Calamares cài xuống đĩa ảo, boot GRUB không ISO và đăng nhập console tài khoản thường đã đạt. Mạng/APT và đăng nhập đồ họa của bản cài đang kiểm tra. Các mục bên dưới lưu lại tiến trình và kết quả theo từng ISO, không phải tất cả đều mô tả bản mới nhất.
+Tình trạng hiện tại: ISO đã hiển thị đúng hình nền logo; Calamares cài xuống đĩa ảo, boot GRUB không ISO, đăng nhập console thường, mạng và vòng APT đã đạt. Đăng nhập Plasma của bản cài đang kiểm tra; âm thanh/đổi độ phân giải còn chờ. Các mục bên dưới lưu lại tiến trình và kết quả theo từng ISO, không phải tất cả đều mô tả bản mới nhất.
 
 ## Đã triển khai
 
@@ -123,3 +123,9 @@ Tiếp theo: rà soát trang tài khoản và tổng kết trên đĩa ảo mớ
 [Kiểm thử 42521038587](https://github.com/fx-kitsune/mykos/actions/runs/42521038587) trên cùng ISO SHA-256 `caadce0d0a2ba2734057045f2b81f5dbc709cabc25d054f32e1874509cb5492c` đã đạt `installed-userspace-ready`. Sau khi cài, công cụ tháo ISO, mở QEMU mới, boot GRUB từ QCOW2 và đăng nhập console bằng đúng mật khẩu đã nhập ở Calamares. Guest xác nhận UID 1000, hostname `mykos-installed`, `/` là ext4 trên `/dev/vda1`; dòng lệnh nhân không có `boot=casper`. Lần boot này dùng TCG sau khi KVM của runner mất quyền truy cập. Tổng thời gian công cụ ghi nhận khoảng 427,5 giây.
 
 Phép thử chỉ bật serial-getty trong bản cài dùng riêng để quan sát đăng nhập, không sửa GRUB hoặc tham số nhân. Ảnh đăng nhập đồ họa lúc này còn đen với con trỏ, nên **chưa nghiệm thu SDDM/Plasma của bản cài**. Lượt tiếp theo thu trạng thái/journal SDDM, kiểm tra DHCP/DNS/HTTPS, yêu cầu mật khẩu sudo và vòng làm mới APT có xác thực → cài/chạy/gỡ `hello`.
+
+## Mạng và APT của bản cài đã đạt
+
+[42522062087](https://github.com/fx-kitsune/mykos/actions/runs/42522062087) đã đạt `installed-cli-smoke-ready` trên cùng ISO. NetworkManager có lease DHCP và tuyến mặc định, DNS phân giải được kho Ubuntu, HTTPS trả 200 với đầu tệp InRelease đúng định dạng. `sudo -n true` bị từ chối vì cần mật khẩu; xác thực bằng mật khẩu tài khoản đã nhập trong Calamares thành công. APT làm mới chỉ mục theo xác thực mặc định, cài/chạy/gỡ `hello` đều trả mã 0, gói thử không còn được cài sau phép thử.
+
+SDDM và greeter hoạt động; ảnh sau các kiểm tra CLI đã hiện màn hình đăng nhập với phiên Plasma (X11). Ảnh đen trước đó được chụp quá sớm trong lần boot TCG. Chưa xem việc greeter hiển thị là bằng chứng đăng nhập Plasma; phép thử tiếp theo nhập tài khoản/mật khẩu qua SDDM và kiểm tra session cùng ứng dụng.

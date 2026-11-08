@@ -111,4 +111,4 @@ Nhân Linux riêng, bản phân nhánh toàn bộ Plasma, định dạng gói ri
 
 ## Việc tiếp theo
 
-Cấu hình nền tảng và công cụ đã được triển khai. Trọng tâm tiếp theo là tạo ISO thật trên máy Ubuntu đủ điều kiện, kiểm thử khởi động, tích hợp Calamares, cài xuống đĩa ảo và xác nhận lần đăng nhập đầu. Chưa mở rộng phạm vi trước khi hoàn thành các tiêu chí M0.
+ISO, Calamares BIOS, cài xuống đĩa ảo, boot GRUB không ISO và đăng nhập console thường đã có bằng chứng. Bản cài đã đạt mạng và vòng APT có xác thực. Trọng tâm tiếp theo là đăng nhập Plasma qua SDDM, âm thanh, đổi độ phân giải, tệp/ứng dụng và điều kiện tái lập ảnh. Xem các lượt kiểm thử và giới hạn hiện tại trong [trạng thái triển khai](IMPLEMENTATION_STATUS.md). Chưa mở rộng phạm vi trước khi hoàn thành các tiêu chí M0.
