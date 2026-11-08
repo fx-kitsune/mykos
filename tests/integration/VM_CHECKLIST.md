@@ -16,13 +16,14 @@ Công cụ dùng KVM khi truy cập được, ngược lại dùng TCG. Lệnh n
 |---|---|---|
 | Khởi động trực tiếp bằng BIOS | Qua BIOS và nhân tới môi trường người dùng, trên bản sao thêm console | ĐẠT: [QEMU/TCG 42435820231](https://github.com/fx-kitsune/mykos/actions/runs/42435820231), 08/11/2026 |
 | Đăng nhập và phiên KDE | Plasma, trình mở ứng dụng và điều hướng bàn phím hoạt động | MỘT PHẦN: [42481797224](https://github.com/fx-kitsune/mykos/actions/runs/42481797224) đạt desktop phản hồi và mở ứng dụng với profile software; mặc định OpenGL và cảnh báo Powerdevil/polkit chưa nghiệm thu |
+| Hình nền mặc định | Logo MyKOS giữa nền tối trong desktop thật | ĐẠT trên ISO build 42490508466: đã rà soát `live-wallpaper.png` của [42492925690](https://github.com/fx-kitsune/mykos/actions/runs/42492925690) |
 | Mạng | DHCP, DNS và HTTPS qua NetworkManager | CHƯA CHẠY |
 | Âm thanh | Phát âm thanh và điều chỉnh âm lượng bằng PipeWire | CHƯA CHẠY |
 | Màn hình | Đổi độ phân giải; kiểm tra phiên Wayland riêng | CHƯA CHẠY |
 | Tệp và trình dòng lệnh | Mở Dolphin/Konsole; tệp giữ được trong phiên đang chạy | CHƯA CHẠY |
 | Gói phần mềm | Làm mới APT có xác thực; mở Discover và Flatpak | CHƯA CHẠY |
-| Cài vào đĩa ảo trống | Hoàn tất, khởi động lại không cần ISO | CHƯA CÀI: [42488462653](https://github.com/fx-kitsune/mykos/actions/runs/42488462653) chỉ đạt preview tới phân vùng với overlay chẩn đoán; chưa ghi đĩa |
-| Đăng nhập bản cài | Tài khoản thường; quản trị có cấp quyền rõ ràng | BỊ CHẶN |
+| Cài vào đĩa ảo trống | Hoàn tất, khởi động lại không cần ISO | MỘT PHẦN: [42492925690](https://github.com/fx-kitsune/mykos/actions/runs/42492925690) cài xong và đích đạt kiểm tra; boot bị chặn bởi quyền KVM của runner, đang thử fallback TCG |
+| Đăng nhập bản cài | Tài khoản thường; quản trị có cấp quyền rõ ràng | CHƯA ĐĂNG NHẬP: kiểm tra đích xác nhận tài khoản có mật khẩu, nhóm sudo, root khóa và sudoers live đã gỡ |
 | Cập nhật và khởi động lại | APT cập nhật, khởi động lại và phiên làm việc bình thường | BỊ CHẶN |
 | Phục hồi | Thực hiện hướng dẫn cứu hộ sau cập nhật lỗi | BỊ CHẶN |
 | UEFI / Secure Boot | Kiểm chứng riêng theo phần sụn ảo | CHƯA HỖ TRỢ |

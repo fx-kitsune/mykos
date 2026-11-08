@@ -1,8 +1,8 @@
 # Trạng thái triển khai
 
-Cập nhật ngày 08/11/2026. **M0 đang thực hiện, chưa nghiệm thu.**
+Cập nhật ngày 09/11/2026 (giờ Việt Nam). **M0 đang thực hiện, chưa nghiệm thu.**
 
-Tình trạng hiện tại: đã tạo ISO có Calamares; desktop phản hồi trong profile đồ họa phần mềm. Cấu hình installer mới đã mở được đến trang phân vùng trong máy ảo chẩn đoán, nhưng chưa cài xuống đĩa hoặc boot bản cài. Các mục bên dưới lưu lại tiến trình và kết quả theo từng ISO, không phải tất cả đều mô tả bản mới nhất.
+Tình trạng hiện tại: ISO đã hiển thị đúng hình nền logo, Calamares đã cài xuống đĩa ảo và kiểm tra đích đạt. Lần boot bản cài đang kiểm thử lại sau lỗi quyền KVM của runner. Các mục bên dưới lưu lại tiến trình và kết quả theo từng ISO, không phải tất cả đều mô tả bản mới nhất.
 
 ## Đã triển khai
 
@@ -110,3 +110,10 @@ Bằng chứng được đọc qua workflow `inspect-boot-evidence.yml` trong re
 - Công cụ kiểm thử giữ phiên VM hoạt động bằng phím Shift định kỳ để tránh màn hình khóa che bằng chứng; không đổi chính sách khóa màn hình của sản phẩm.
 
 Tiếp theo: rà soát trang tài khoản và tổng kết trên đĩa ảo mới, thực hiện cài đặt, rồi tháo ISO để kiểm tra GRUB và tài khoản bản cài. Mạng, âm thanh, cập nhật, phục hồi và phần cứng vẫn chưa nghiệm thu.
+
+## Cài đặt thực tế và hình nền đã xác nhận
+
+- [Build 42490508466](https://github.com/fx-kitsune/mykos/actions/runs/42490508466) trên commit `be895b2` thành công; ISO SHA-256 `caadce0d0a2ba2734057045f2b81f5dbc709cabc25d054f32e1874509cb5492c`. Bố cục xóa đĩa đã khai báo rõ một phân vùng gốc ext4, thay cho kế hoạch mặc định từng chỉ tạo bảng phân vùng trống.
+- [Kiểm thử 42491888587](https://github.com/fx-kitsune/mykos/actions/runs/42491888587) đạt BIOS, desktop software và Calamares nạp xong module/kiểm tra điều kiện. Công cụ hiện yêu cầu các dấu hiệu sẵn sàng này, không chỉ tiến trình đang chạy.
+- [Kiểm thử cài đặt 42492925690](https://github.com/fx-kitsune/mykos/actions/runs/42492925690) đã thực hiện xác nhận Install trên QCOW2 mới 40 GiB. Calamares hoàn tất, tạo kernel/initrd và GRUB BIOS; kiểm tra đích chỉ đọc xác nhận root ext4, tài khoản `vmtester` có mật khẩu/nhóm sudo, root khóa, Casper/Calamares và sudoers live đã gỡ. Ảnh `live-wallpaper.png` đã được rà soát, hiển thị logo MyKOS giữa nền tối.
+- Toàn bộ lượt cài đặt vẫn mang kết quả **failed**: QEMU thứ hai không mở được KVM (`Permission denied`), nên chưa boot bản cài. Đã thêm fallback KVM → TCG và kiểm tra bằng QEMU cục bộ; lượt tiếp theo phải xác nhận boot không ISO và đăng nhập thật trước khi nâng trạng thái nghiệm thu.

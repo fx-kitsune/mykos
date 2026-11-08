@@ -1,6 +1,6 @@
 # Trình cài đặt MyKOS với Calamares
 
-Đã chuẩn bị cấu hình Calamares cho Ubuntu Noble và BIOS truyền thống. **Chưa nghiệm thu cài xuống đĩa hoặc lần đăng nhập đầu của bản cài.** Không xem cấu hình, kiểm thử đơn vị hay việc mở cửa sổ trình cài đặt là bằng chứng cài đặt thành công.
+Calamares cho Ubuntu Noble và BIOS đã hoàn tất cài xuống QCOW2 mới trong [42492925690](https://github.com/fx-kitsune/mykos/actions/runs/42492925690); kernel/initrd/GRUB và tài khoản đích đã đạt kiểm tra. **Boot và lần đăng nhập đầu của bản cài chưa nghiệm thu** do QEMU lần hai mất quyền KVM trên runner; đang thử lại với fallback TCG. Không xem cấu hình, kiểm thử đơn vị hay việc mở cửa sổ trình cài đặt là bằng chứng cài đặt thành công.
 
 ## Phạm vi hiện tại
 
