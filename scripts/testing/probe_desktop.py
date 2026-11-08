@@ -14,6 +14,7 @@ import zlib
 from boot_iso import QMP, digest, prepare_menu
 
 MARKER = 'MYKOS_DESKTOP_RESULT='
+SOFTWARE_PARAMETERS = ' systemd.setenv=KWIN_COMPOSE=N systemd.setenv=QT_QUICK_BACKEND=software'
 # Chạy bằng tài khoản live thông thường, không dùng sudo hoặc thay cấu hình guest.
 GUEST = r'''
 import json, os, shutil, subprocess, time
@@ -99,17 +100,35 @@ def guest_command():
             + payload + '\')))"\n').encode()
 
 
+def desktop_ready(result):
+    if result.get('uid', 0) == 0 or not result.get('plasma') or not result.get('kwin'):
+        return False
+    if not all(result.get('applications', {}).get(app) for app in ['dolphin', 'konsole', 'systemsettings']):
+        return False
+    response = result.get('containments', {})
+    if response.get('returncode') != 0:
+        return False
+    try:
+        counts = json.loads(response.get('stdout', '').strip())
+        return counts.get('panels', 0) > 0 and counts.get('desktops', 0) > 0
+    except (ValueError, AttributeError, TypeError):
+        return False
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('iso', type=Path)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--timeout', type=int, default=1200)
+    parser.add_argument('--software-rendering', action='store_true',
+                        help='Bản sao dùng Qt Quick software và tắt compositor X11 cho QEMU/TCG.')
     args = parser.parse_args()
     iso, output = args.iso.resolve(), args.output.resolve()
     if not iso.is_file() or output.exists() or args.timeout < 300:
         parser.error('Cần ISO có sẵn, thư mục mới và thời gian chờ ít nhất 300 giây.')
     output.mkdir(parents=True)
     report = {'iso_sha256': digest(iso), 'status': 'failed',
+              'rendering_profile': 'software' if args.software_rendering else 'default',
               'scope': 'Tiến trình Plasma/KWin và mở ứng dụng; ảnh cần rà soát trực quan. Chưa nghiệm thu cài đặt hoặc thiết bị.',
               'instrumentation': 'Bản sao chỉ thêm console nối tiếp; không gắn đĩa cài đặt.'}
     machine = serial = qmp = None
@@ -120,6 +139,9 @@ def main():
         subprocess.run(['xorriso', '-osirrox', 'on', '-indev', str(iso), '-extract',
                         '/isolinux/isolinux.cfg', str(menu)], check=True)
         prepare_menu(menu)
+        if args.software_rendering:
+            menu.write_text('\n'.join(line + SOFTWARE_PARAMETERS if line.lstrip().startswith('append ')
+                                      else line for line in menu.read_text().splitlines()) + '\n')
         probe_iso = output / 'desktop-probe.iso'
         subprocess.run(['xorriso', '-indev', str(iso), '-outdev', str(probe_iso),
                         '-boot_image', 'any', 'replay', '-map', str(menu),
@@ -198,11 +220,10 @@ def main():
                 result = guest_result(transcript)
                 if result is not None:
                     report['guest'] = result
-                    if result.get('uid', 0) != 0 and result.get('plasma') and result.get('kwin') and all(
-                            result.get('applications', {}).get(app) for app in ['dolphin', 'konsole', 'systemsettings']):
-                        report['status'] = 'desktop-services-ready'
+                    if desktop_ready(result):
+                        report['status'] = 'desktop-ready'
                     else:
-                        report['error'] = 'Chưa đạt đủ tiến trình desktop và ứng dụng; xem kết quả guest.'
+                        report['error'] = 'Desktop chưa phản hồi hoặc thiếu panel/màn hình/ứng dụng; xem kết quả guest.'
                     break
             else:
                 raise TimeoutError('Hết thời gian chờ ở bước ' + phase + '; xem console và ảnh.')
@@ -225,12 +246,12 @@ def main():
                 machine.kill()
                 machine.wait()
         (output / 'serial.log').write_text(transcript)
-        if report['status'] != 'desktop-services-ready':
+        if report['status'] != 'desktop-ready':
             print('Desktop probe console tail:\n' + transcript[-4000:], flush=True)
         report['elapsed_seconds'] = round(time.monotonic() - started, 1)
         (output / 'result.json').write_text(json.dumps(report, ensure_ascii=False, indent=2) + '\n')
         print(json.dumps(report, ensure_ascii=False, indent=2))
-    return 0 if report['status'] == 'desktop-services-ready' else 1
+    return 0 if report['status'] == 'desktop-ready' else 1
 
 
 if __name__ == '__main__':

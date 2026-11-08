@@ -82,7 +82,7 @@ jobs:
       - name: Kiểm tra phiên Plasma và mở ứng dụng
         timeout-minutes: 25
         run: |
-          python3 scripts/testing/probe_desktop.py artifacts/source-iso/mykos-0.1.0-dev-amd64.iso --output artifacts/desktop-test --timeout 1200
+          python3 scripts/testing/probe_desktop.py artifacts/source-iso/mykos-0.1.0-dev-amd64.iso --output artifacts/desktop-test --timeout 1200 --software-rendering
       - name: Chuẩn bị bằng chứng kiểm thử
         if: always()
         run: |

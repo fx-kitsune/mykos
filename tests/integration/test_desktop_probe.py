@@ -13,6 +13,17 @@ with patch.object(sys, 'path', [str(SCRIPTS), *sys.path]):
 
 
 class DesktopProbeTests(unittest.TestCase):
+    def test_running_processes_do_not_prove_desktop_responds(self):
+        result = {'uid': 1000, 'plasma': True, 'kwin': True,
+                  'applications': dict.fromkeys(['dolphin', 'konsole', 'systemsettings'], True)}
+        self.assertFalse(probe.desktop_ready(result))
+        result['containments'] = {'error': 'D-Bus timed out'}
+        self.assertFalse(probe.desktop_ready(result))
+        result['containments'] = {'returncode': 0, 'stdout': '{"panels":0,"desktops":1}'}
+        self.assertFalse(probe.desktop_ready(result))
+        result['containments']['stdout'] = '{"panels":1,"desktops":1}'
+        self.assertTrue(probe.desktop_ready(result))
+
     def test_console_command_fits_canonical_tty_line(self):
         self.assertLess(len(probe.guest_command()), 4096)
         compile(probe.guest_command().decode().split('"', 1)[1].rsplit('"', 1)[0], 'guest-command', 'exec')
