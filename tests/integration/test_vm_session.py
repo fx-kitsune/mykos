@@ -16,6 +16,11 @@ with patch.object(sys, 'path', [str(SCRIPTS), *sys.path]):
 
 
 class VMSessionTests(unittest.TestCase):
+    def test_kvm_permissions_are_not_changed_outside_github_hosted_runners(self):
+        with patch.dict(vm.os.environ, {'RUNNER_ENVIRONMENT': 'self-hosted'}), patch.object(vm.subprocess, 'run') as command:
+            self.assertEqual(vm.refresh_kvm_access(), {'attempted': False, 'reason': 'not-github-hosted'})
+            command.assert_not_called()
+
     def test_startup_failure_keeps_the_actual_process_error(self):
         with tempfile.TemporaryDirectory() as output:
             command = [sys.executable, '-c', "import sys;sys.stderr.write('fixture disk is locked');sys.exit(2)"]

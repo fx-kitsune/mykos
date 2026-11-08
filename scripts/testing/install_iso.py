@@ -170,8 +170,7 @@ def main():
         subprocess.run(['xorriso', '-indev', str(iso), '-outdev', str(probe), '-boot_image', 'any',
                         'replay', '-map', str(menu), '/isolinux/isolinux.cfg', '-commit'], check=True)
         report['probe_iso_sha256'] = digest(probe)
-        accel = 'kvm' if os.access('/dev/kvm', os.R_OK | os.W_OK) else 'tcg'
-        command = ['qemu-system-x86_64', '-accel', accel, '-m', '4096', '-smp', '2',
+        command = ['qemu-system-x86_64', '-machine', 'accel=kvm:tcg', '-m', '4096', '-smp', '2',
                    '-boot', 'order=d', '-cdrom', str(probe), '-display', 'none', '-vga', 'std',
                    '-nic', 'user,model=virtio-net-pci', '-usb', '-device', 'usb-tablet',
                    '-drive', 'file=' + str(disk) + ',format=qcow2,if=virtio',
@@ -179,6 +178,8 @@ def main():
                    '-qmp', 'unix:' + str(output / 'qmp.sock') + ',server=on,wait=off', '-no-reboot']
         report['command'] = command
         vm = VM(command, output)
+        report['live_acceleration'] = 'kvm' if vm.qmp.command('query-kvm').get('enabled') else 'tcg'
+        report['live_kvm_access'] = vm.kvm_access
         print('Installer preview: waiting for live login', flush=True)
         vm.login()
         inventory = vm.guest("import json,subprocess\nresult=json.loads(subprocess.check_output(['lsblk','--json','--bytes','-o','NAME,TYPE,SIZE,MOUNTPOINTS']))")
@@ -311,6 +312,7 @@ def main():
                 installed_command.extend(['-audiodev', 'wav,id=audio0,path=' + str(audio_capture),
                                           '-device', 'intel-hda', '-device', 'hda-output,audiodev=audio0'])
             vm = VM(installed_command, boot_output)
+            report['installed_kvm_access'] = vm.kvm_access
             report['installed_boot_acceleration'] = 'kvm' if vm.qmp.command('query-kvm').get('enabled') else 'tcg'
             print('Installed boot: ISO detached; waiting for GRUB and installed console', flush=True)
             vm.login(username='vmtester', hostname='mykos-installed', password=password)

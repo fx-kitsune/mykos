@@ -96,6 +96,7 @@ def main():
         report['command'] = command
         report['probe_iso_sha256'] = digest(probe)
         vm = VM(command, output)
+        report['kvm_access'] = vm.kvm_access
         report['acceleration'] = 'kvm' if vm.qmp.command('query-kvm').get('enabled') else 'tcg'
         print('Session diagnostic: waiting for live console', flush=True)
         vm.login()

@@ -1,6 +1,7 @@
 """Phiên QEMU dùng riêng cho kiểm thử installer trên một đĩa mới."""
 import base64
 import json
+import os
 from pathlib import Path
 import re
 import secrets
@@ -12,6 +13,21 @@ import zlib
 from boot_iso import FAILURE, QMP
 
 CSI = re.compile(r'\x1b\[[0-?]*[ -/]*[@-~]')
+
+
+def refresh_kvm_access():
+    # The workflow already grants this same UID-only ACL. Hosted udev can reset
+    # it while an ISO is being prepared or after the first QEMU process exits.
+    if os.environ.get('RUNNER_ENVIRONMENT') != 'github-hosted':
+        return {'attempted': False, 'reason': 'not-github-hosted'}
+    if not Path('/dev/kvm').is_char_device():
+        return {'attempted': False, 'reason': 'no-kvm-device'}
+    try:
+        process = subprocess.run(['sudo', '-n', 'setfacl', '-m', 'u:' + str(os.getuid()) + ':rw', '/dev/kvm'],
+                                 capture_output=True, text=True, timeout=10)
+        return {'attempted': True, 'returncode': process.returncode, 'stderr': process.stderr[-1000:]}
+    except (OSError, subprocess.TimeoutExpired) as error:
+        return {'attempted': True, 'error': str(error)}
 
 
 def frame(text, marker):
@@ -67,6 +83,7 @@ class VM:
         self.output = Path(output)
         self.transcript = ''
         self.serial = self.qmp = None
+        self.kvm_access = refresh_kvm_access() if any('kvm' in item for item in command) else {'attempted': False, 'reason': 'not-requested'}
         self.log = (self.output / 'qemu.log').open('w')
         self.process = subprocess.Popen(command, stdout=self.log, stderr=subprocess.STDOUT)
         serial_path = self.output / 'serial.sock'
