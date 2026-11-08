@@ -390,6 +390,9 @@ def main():
             report['installed_multimedia'] = vm.guest(MULTIMEDIA, timeout=360)
             if not multimedia_ready(report['installed_multimedia']):
                 raise RuntimeError('Kiểm tra tệp/màn hình/PipeWire/Discover/Flatpak chưa đạt; xem installed_multimedia.')
+            report['session_services_after_multimedia'] = vm.guest(SESSION_SERVICES, timeout=240)
+            if not session_services_ready(report['session_services_after_multimedia']):
+                raise RuntimeError('Dịch vụ phiên không còn ổn định sau đổi màn hình/mở Discover.')
             vm.capture('installed-multimedia')
             report['scope'] = 'BIOS/QCOW2, đăng nhập Plasma X11, mạng/APT/sudo, tệp, đổi độ phân giải, Discover/Flatpak và PipeWire/HDA ảo. Chưa nghiệm thu cập nhật/recovery, Wayland hoặc phần cứng thật.'
             report['status'] = 'installed-diagnostic-multimedia-ready' if args.diagnostic_direct or args.diagnostic_overlay else 'installed-multimedia-ready'
