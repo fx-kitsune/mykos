@@ -2,11 +2,14 @@ name: Tạo ISO MyKOS
 
 on:
   workflow_dispatch:
-  # Tạo lần đầu khi thêm workflow; sửa tài liệu hoặc mã ứng dụng không tự tạo ISO.
+  # Tạo lại ảnh khi đầu vào của ISO thay đổi; tài liệu và web mẫu không kích hoạt build.
   push:
     branches: [main]
     paths:
       - .github/workflows/build-iso.yml
+      - distribution/**
+      - desktop/workspace/**
+      - scripts/build/**
 
 permissions:
   contents: read

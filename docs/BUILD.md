@@ -82,7 +82,7 @@ Workflow dọn các SDK Android, .NET và GHC cài sẵn trên máy tạm do Git
 
 Nếu lỗi, tải nhật ký riêng; xem `preflight.log`, `build.log`, `toolchain.txt` và thông tin đĩa. Thiếu dung lượng, hết thời gian, thiếu đúng phiên bản gói hoặc lỗi tích hợp live-build đều phải được xử lý theo thông báo thực tế. Nếu bị hủy cưỡng bức, runner dừng hoặc hết hạn job, GitHub có thể không thực hiện được bước lưu nhật ký cuối.
 
-Tạo ảnh và xác minh SHA-256 chưa phải kiểm thử khởi động. Workflow hiện ghi cấu trúc khởi động bằng `xorriso` nhưng chưa chạy QEMU, chưa xác nhận màn hình Plasma và chưa thử cài đặt. Tiếp tục theo [danh sách nghiệm thu máy ảo](../tests/integration/VM_CHECKLIST.md).
+Tạo ảnh và xác minh SHA-256 chưa phải kiểm thử khởi động. Workflow build ghi cấu trúc khởi động bằng `xorriso`; sau khi thành công, workflow kiểm thử BIOS chạy QEMU tự động. Chưa xác nhận màn hình Plasma và chưa thử cài đặt. Tiếp tục theo [danh sách nghiệm thu máy ảo](../tests/integration/VM_CHECKLIST.md).
 
 ## Kiểm thử khởi động bằng Actions
 
@@ -92,4 +92,8 @@ Workflow kiểm tra toàn bộ `SHA256SUMS`, tạo bản sao ISO có thêm tham 
 
 QEMU dùng KVM nếu có quyền truy cập, nếu không dùng TCG; RAM 4 GiB, hai CPU ảo, không gắn đĩa cài đặt. Giới hạn chờ khởi động là 20 phút. Chỉ thấy thông báo nhân Linux chưa đủ để đạt: phải có dấu hiệu vào môi trường người dùng, như đích systemd phù hợp hoặc lời nhắc đăng nhập của máy trực tiếp. Lỗi nhân hoặc không tìm thấy hệ thống tệp trực tiếp khiến kiểm thử thất bại.
 
-Kết quả lưu trong `mykos-boot-evidence-…` trong 7 ngày: `result.json`, nhật ký nối tiếp, nhật ký QEMU, menu chẩn đoán và ảnh màn hình. Không lưu thêm bản sao ISO lớn. Xem ảnh thủ công để xác nhận giao diện thực tế; đạt kiểm thử này chưa chứng minh đăng nhập Plasma, mạng/âm thanh, Calamares hoặc phục hồi. Lần chạy đầu khi thêm workflow được kích hoạt tự động; về sau sửa workflow hoặc công cụ `scripts/testing/boot_iso.py` cũng kích hoạt chạy lại.
+Kết quả lưu trong `mykos-boot-evidence-…` trong 7 ngày: `result.json`, nhật ký nối tiếp, nhật ký QEMU, menu chẩn đoán và ảnh màn hình. Không lưu thêm bản sao ISO lớn. Xem ảnh thủ công để xác nhận giao diện thực tế; đạt kiểm thử này chưa chứng minh đăng nhập Plasma, mạng/âm thanh, Calamares hoặc phục hồi. Sau mỗi lượt tạo ISO thành công trên `main`, workflow kiểm thử tự động nhận đúng mã lượt build và tên artifact của lượt đó. Có thể chạy thủ công để kiểm tra lại một artifact cụ thể.
+
+### Khi nào ISO được tạo lại?
+
+Push lên `main` thay đổi `distribution/**`, `desktop/workspace/**`, `scripts/build/**` hoặc workflow build sẽ tạo ISO mới. Thay đổi tài liệu hay bản mẫu web không kích hoạt tạo ảnh. Có thể chạy thủ công bằng **Run workflow**. Kết quả kiểm thử BIOS phải khớp lượt build và SHA-256; không dùng kết quả của ISO cũ để nghiệm thu mã mới.

@@ -10,9 +10,10 @@ on:
         description: Tên gói ISO của lượt tạo ảnh
         required: true
         default: mykos-iso-amd64-42392072303-1
-  push:
+  workflow_run:
+    workflows: [Tạo ISO MyKOS]
+    types: [completed]
     branches: [main]
-    paths: [.github/workflows/boot-iso.yml, scripts/testing/boot_iso.py]
 permissions:
   contents: read
   actions: read
@@ -21,6 +22,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   boot:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     name: BIOS và môi trường chạy trực tiếp
     runs-on: ubuntu-24.04
     timeout-minutes: 40
@@ -33,8 +35,8 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           github-token: ${{ github.token }}
-          run-id: ${{ inputs.build_run_id || '42392072303' }}
-          name: ${{ inputs.artifact_name || 'mykos-iso-amd64-42392072303-1' }}
+          run-id: ${{ inputs.build_run_id || github.event.workflow_run.id }}
+          name: ${{ inputs.artifact_name || format('mykos-iso-amd64-{0}-{1}', github.event.workflow_run.id, github.event.workflow_run.run_attempt) }}
           path: artifacts/source-iso
       - name: Cài QEMU và công cụ đọc ISO
         run: |
