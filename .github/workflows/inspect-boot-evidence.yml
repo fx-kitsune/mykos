@@ -1,0 +1,46 @@
+name: Đọc bằng chứng kiểm thử máy ảo
+on:
+  workflow_run:
+    workflows: [Kiểm thử khởi động ISO]
+    types: [completed]
+    branches: [main]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  inspect:
+    if: github.event.workflow_run.conclusion != 'cancelled'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Tải bằng chứng của đúng lượt kiểm thử
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ github.event.workflow_run.id }}
+          name: mykos-boot-evidence-${{ github.event.workflow_run.id }}-${{ github.event.workflow_run.run_attempt }}
+          path: evidence
+      - name: Xuất kết quả và ảnh để rà soát qua log
+        run: |
+          python3 - <<'PYTHON'
+          import base64
+          import hashlib
+          from pathlib import Path
+          root = Path('evidence')
+          for path in sorted(root.rglob('result.json')):
+              print('MYKOS_RESULT ' + str(path.relative_to(root)))
+              print(path.read_text())
+          for path in sorted(root.rglob('serial.log')):
+              print('MYKOS_CONSOLE_TAIL ' + str(path.relative_to(root)))
+              print(path.read_text(errors='replace')[-6000:])
+          for path in sorted(root.rglob('*.png')):
+              data = path.read_bytes()
+              # Giới hạn kích thước, không thực thi hoặc diễn giải nội dung ảnh.
+              if len(data) > 1024 * 1024:
+                  raise ValueError('Ảnh bằng chứng vượt 1 MiB: ' + str(path))
+              encoded = base64.b64encode(data).decode('ascii')
+              print('MYKOS_PNG_BEGIN ' + str(path.relative_to(root)) + ' ' + hashlib.sha256(data).hexdigest())
+              for start in range(0, len(encoded), 4000):
+                  print('MYKOS_PNG_DATA ' + encoded[start:start + 4000])
+              print('MYKOS_PNG_END')
+          PYTHON
