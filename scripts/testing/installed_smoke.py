@@ -110,19 +110,25 @@ for line in subprocess.check_output(['ps','-u',str(os.getuid()),'-o','pid=,ppid=
     pid=parts[0]
     item={'pid':pid,'ppid':parts[1],'command':parts[3]}
     try:
-        env=os.environ.copy()
+        process_env={}
         for entry in Path('/proc/'+pid+'/environ').read_bytes().split(b'\0'):
             if b'=' in entry:
                 key,value=entry.split(b'=',1)
-                env[key.decode()]=value.decode(errors='replace')
-        item['environment']={key:env.get(key) for key in keys}
-        if parts[2]=='plasmashell':
+                process_env[key.decode()]=value.decode(errors='replace')
+        item['environment']={key:process_env.get(key) for key in keys}
+        env=os.environ.copy()
+        env.update(process_env)
+        if parts[2]=='plasmashell' and process_env.get('DBUS_SESSION_BUS_ADDRESS'):
             item['bus_id']=check(['dbus-send','--session','--print-reply','--dest=org.freedesktop.DBus','/org/freedesktop/DBus','org.freedesktop.DBus.GetId'],env)
             item['bus_names']=check(['dbus-send','--session','--print-reply','--dest=org.freedesktop.DBus','/org/freedesktop/DBus','org.freedesktop.DBus.ListNames'],env)
     except OSError as error:
         item['error']=str(error)
     result['processes'].append(item)
-result['serial_bus_id']=check(['dbus-send','--session','--print-reply','--dest=org.freedesktop.DBus','/org/freedesktop/DBus','org.freedesktop.DBus.GetId'])
+if os.environ.get('DBUS_SESSION_BUS_ADDRESS'):
+    result['serial_bus_id']=check(['dbus-send','--session','--print-reply','--dest=org.freedesktop.DBus','/org/freedesktop/DBus','org.freedesktop.DBus.GetId'])
+runtime_env=os.environ.copy()
+runtime_env['DBUS_SESSION_BUS_ADDRESS']='unix:path=/run/user/'+str(os.getuid())+'/bus'
+result['runtime_bus_id']=check(['dbus-send','--session','--print-reply','--dest=org.freedesktop.DBus','/org/freedesktop/DBus','org.freedesktop.DBus.GetId'],runtime_env)
 '''
 
 
