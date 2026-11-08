@@ -82,12 +82,15 @@ class VM:
                 raise RuntimeError('QEMU không mở QMP.')
             time.sleep(.2)
         self.qmp = QMP(qmp_path)
+        self.last_input = time.monotonic()
 
     def wait(self, predicate, timeout=600, start=0):
         deadline = time.monotonic() + timeout
         while time.monotonic() < deadline:
             if FAILURE.search(self.transcript):
                 raise RuntimeError('Guest báo lỗi khởi động; xem serial.log.')
+            if time.monotonic() - self.last_input > 30:
+                self.key('shift')
             value = predicate(self.transcript[start:])
             if value:
                 return value
@@ -127,6 +130,7 @@ class VM:
 
     def key(self, *codes):
         self.qmp.command('send-key', {'keys': [{'type': 'qcode', 'data': code} for code in codes], 'hold-time': 60})
+        self.last_input = time.monotonic()
         time.sleep(.1)
 
     def type(self, text):

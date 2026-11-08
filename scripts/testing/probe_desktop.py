@@ -199,6 +199,7 @@ def main():
             phase = 'boot'
             phase_started = time.monotonic()
             last_progress = phase_started
+            last_input = phase_started
             desktop_captured = False
             installer_captured = False
             empty_password_sent = False
@@ -217,6 +218,9 @@ def main():
                     pass
                 if qmp is None and qmp_path.exists():
                     qmp = QMP(qmp_path)
+                if qmp is not None and time.monotonic() - last_input > 30:
+                    qmp.command('send-key', {'keys': [{'type': 'qcode', 'data': 'shift'}], 'hold-time': 60})
+                    last_input = time.monotonic()
                 if not desktop_captured and qmp is not None and 'MYKOS_DESKTOP_READY\n' in transcript:
                     qmp.command('screendump', {'filename': str(output / 'desktop.ppm')})
                     desktop_captured = True
