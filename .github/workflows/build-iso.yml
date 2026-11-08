@@ -16,7 +16,8 @@ permissions:
 
 concurrency:
   group: mykos-iso-${{ github.ref }}
-  cancel-in-progress: false
+  # Không giữ lượt build của đầu vào đã bị thay bằng bản sửa mới.
+  cancel-in-progress: true
 
 jobs:
   build:
