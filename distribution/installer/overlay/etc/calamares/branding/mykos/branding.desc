@@ -30,5 +30,12 @@
     "SidebarText": "#edf0e7",
     "SidebarTextCurrent": "#20271c",
     "SidebarBackgroundCurrent": "#d7ef83"
+  },
+  "slideshow": "show.qml",
+  "slideshowAPI": 2,
+  "uploadServer": {
+    "type": "none",
+    "url": "",
+    "sizeLimit": 0
   }
 }

@@ -14,6 +14,18 @@ spec.loader.exec_module(target)
 
 
 class InstallerTests(unittest.TestCase):
+    def test_branding_has_required_slideshow_and_local_images(self):
+        directory = CONFIG / 'branding/mykos'
+        branding = json.loads((directory / 'branding.desc').read_text())
+        self.assertEqual(branding['componentName'], directory.name)
+        self.assertTrue((directory / branding['slideshow']).is_file())
+        self.assertEqual(branding['slideshowAPI'], 2)
+        for path in branding['images'].values():
+            self.assertTrue((directory / path).is_file())
+        self.assertEqual(branding['uploadServer']['type'], 'none')
+        settings = json.loads((CONFIG / 'settings.conf').read_text())
+        self.assertIn('quit-at-end', settings)
+
     def test_installer_has_grub_and_mounts_needed_for_target_commands(self):
         packages = (ROOT / 'distribution/packages/desktop.list.chroot').read_text().splitlines()
         for package in ['calamares', 'grub-pc-bin', 'grub2-common']:
