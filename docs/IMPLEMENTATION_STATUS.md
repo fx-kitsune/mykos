@@ -2,7 +2,7 @@
 
 Cập nhật ngày 09/11/2026 (giờ Việt Nam). **M0 đang thực hiện, chưa nghiệm thu.**
 
-Tình trạng hiện tại: ISO đã hiển thị đúng hình nền logo, Calamares đã cài xuống đĩa ảo và kiểm tra đích đạt. Lần boot bản cài đang kiểm thử lại sau lỗi quyền KVM của runner. Các mục bên dưới lưu lại tiến trình và kết quả theo từng ISO, không phải tất cả đều mô tả bản mới nhất.
+Tình trạng hiện tại: ISO đã hiển thị đúng hình nền logo; Calamares cài xuống đĩa ảo, boot GRUB không ISO và đăng nhập console tài khoản thường đã đạt. Mạng/APT và đăng nhập đồ họa của bản cài đang kiểm tra. Các mục bên dưới lưu lại tiến trình và kết quả theo từng ISO, không phải tất cả đều mô tả bản mới nhất.
 
 ## Đã triển khai
 
@@ -117,3 +117,9 @@ Tiếp theo: rà soát trang tài khoản và tổng kết trên đĩa ảo mớ
 - [Kiểm thử 42491888587](https://github.com/fx-kitsune/mykos/actions/runs/42491888587) đạt BIOS, desktop software và Calamares nạp xong module/kiểm tra điều kiện. Công cụ hiện yêu cầu các dấu hiệu sẵn sàng này, không chỉ tiến trình đang chạy.
 - [Kiểm thử cài đặt 42492925690](https://github.com/fx-kitsune/mykos/actions/runs/42492925690) đã thực hiện xác nhận Install trên QCOW2 mới 40 GiB. Calamares hoàn tất, tạo kernel/initrd và GRUB BIOS; kiểm tra đích chỉ đọc xác nhận root ext4, tài khoản `vmtester` có mật khẩu/nhóm sudo, root khóa, Casper/Calamares và sudoers live đã gỡ. Ảnh `live-wallpaper.png` đã được rà soát, hiển thị logo MyKOS giữa nền tối.
 - Toàn bộ lượt cài đặt vẫn mang kết quả **failed**: QEMU thứ hai không mở được KVM (`Permission denied`), nên chưa boot bản cài. Đã thêm fallback KVM → TCG và kiểm tra bằng QEMU cục bộ; lượt tiếp theo phải xác nhận boot không ISO và đăng nhập thật trước khi nâng trạng thái nghiệm thu.
+
+## Boot bản cài không ISO đã đạt
+
+[Kiểm thử 42521038587](https://github.com/fx-kitsune/mykos/actions/runs/42521038587) trên cùng ISO SHA-256 `caadce0d0a2ba2734057045f2b81f5dbc709cabc25d054f32e1874509cb5492c` đã đạt `installed-userspace-ready`. Sau khi cài, công cụ tháo ISO, mở QEMU mới, boot GRUB từ QCOW2 và đăng nhập console bằng đúng mật khẩu đã nhập ở Calamares. Guest xác nhận UID 1000, hostname `mykos-installed`, `/` là ext4 trên `/dev/vda1`; dòng lệnh nhân không có `boot=casper`. Lần boot này dùng TCG sau khi KVM của runner mất quyền truy cập. Tổng thời gian công cụ ghi nhận khoảng 427,5 giây.
+
+Phép thử chỉ bật serial-getty trong bản cài dùng riêng để quan sát đăng nhập, không sửa GRUB hoặc tham số nhân. Ảnh đăng nhập đồ họa lúc này còn đen với con trỏ, nên **chưa nghiệm thu SDDM/Plasma của bản cài**. Lượt tiếp theo thu trạng thái/journal SDDM, kiểm tra DHCP/DNS/HTTPS, yêu cầu mật khẩu sudo và vòng làm mới APT có xác thực → cài/chạy/gỡ `hello`.

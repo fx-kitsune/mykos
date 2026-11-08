@@ -22,8 +22,8 @@ Công cụ dùng KVM khi truy cập được, ngược lại dùng TCG. Lệnh n
 | Màn hình | Đổi độ phân giải; kiểm tra phiên Wayland riêng | CHƯA CHẠY |
 | Tệp và trình dòng lệnh | Mở Dolphin/Konsole; tệp giữ được trong phiên đang chạy | CHƯA CHẠY |
 | Gói phần mềm | Làm mới APT có xác thực; mở Discover và Flatpak | CHƯA CHẠY |
-| Cài vào đĩa ảo trống | Hoàn tất, khởi động lại không cần ISO | MỘT PHẦN: [42492925690](https://github.com/fx-kitsune/mykos/actions/runs/42492925690) cài xong và đích đạt kiểm tra; boot bị chặn bởi quyền KVM của runner, đang thử fallback TCG |
-| Đăng nhập bản cài | Tài khoản thường; quản trị có cấp quyền rõ ràng | CHƯA ĐĂNG NHẬP: kiểm tra đích xác nhận tài khoản có mật khẩu, nhóm sudo, root khóa và sudoers live đã gỡ |
+| Cài vào đĩa ảo trống | Hoàn tất, khởi động lại không cần ISO | ĐẠT BIOS/QCOW2: [42521038587](https://github.com/fx-kitsune/mykos/actions/runs/42521038587) cài xong, tháo ISO, boot GRUB từ đĩa; console xác nhận root ext4 trên vda1 |
+| Đăng nhập bản cài | Tài khoản thường; quản trị có cấp quyền rõ ràng | MỘT PHẦN: [42521038587](https://github.com/fx-kitsune/mykos/actions/runs/42521038587) đăng nhập console UID 1000 bằng mật khẩu đã nhập trong GUI; GUI và xác thực sudo còn chờ |
 | Cập nhật và khởi động lại | APT cập nhật, khởi động lại và phiên làm việc bình thường | BỊ CHẶN |
 | Phục hồi | Thực hiện hướng dẫn cứu hộ sau cập nhật lỗi | BỊ CHẶN |
 | UEFI / Secure Boot | Kiểm chứng riêng theo phần sụn ảo | CHƯA HỖ TRỢ |
