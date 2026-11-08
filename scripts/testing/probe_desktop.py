@@ -65,7 +65,7 @@ if result['plasma']:
     if shutil.which('qdbus'):
         env['QT_SELECT'] = 'qt5'
         result['containments'] = diagnostic(['qdbus', 'org.kde.plasmashell', '/PlasmaShell',
-            'org.kde.PlasmaShell.evaluateScript', 'JSON.stringify({panels:panels().length,desktops:desktops().length})'], env)
+            'org.kde.PlasmaShell.evaluateScript', 'print(JSON.stringify({panels:panels().length,desktops:desktops().length}))'], env)
     config = os.path.expanduser('~/.config/plasma-org.kde.plasma.desktop-appletsrc')
     if os.path.isfile(config):
         result['desktop_config'] = open(config).read()[-8000:]
