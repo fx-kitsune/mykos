@@ -111,4 +111,4 @@ Nhân Linux riêng, bản phân nhánh toàn bộ Plasma, định dạng gói ri
 
 ## Việc tiếp theo
 
-ISO mới đã đạt cài đặt Calamares BIOS, boot GRUB không ISO, đăng nhập SDDM/Plasma X11, mạng/APT, âm thanh HDA ảo, đổi độ phân giải và tệp/ứng dụng. Tiếp theo xử lý lỗi xác thực Discover, khóa đầu vào tạo ảnh và so sánh bản dựng độc lập để đóng M0. Sau đó tiến tới cập nhật/reboot, phục hồi và ma trận phần cứng trước phát hành công khai. Xem bằng chứng và giới hạn trong [trạng thái triển khai](IMPLEMENTATION_STATUS.md).
+ISO mới đã đạt cài đặt Calamares BIOS, boot GRUB không ISO, đăng nhập SDDM/Plasma X11, mạng/APT, âm thanh HDA ảo, đổi độ phân giải và tệp/ứng dụng. Discover đã mở và hiển thị danh mục không lỗi xác thực sau khi sửa cách mở ứng dụng của công cụ thử. Tiếp theo khóa đầu vào tạo ảnh và so sánh bản dựng độc lập để đóng M0; mở rộng giao dịch gói đồ họa riêng. Sau đó tiến tới cập nhật/reboot, phục hồi và ma trận phần cứng trước phát hành công khai. Xem bằng chứng và giới hạn trong [trạng thái triển khai](IMPLEMENTATION_STATUS.md).

@@ -1,6 +1,6 @@
 # Trình cài đặt MyKOS với Calamares
 
-Calamares cho Ubuntu Noble và BIOS đã hoàn tất cài vào QCOW2 mới, boot GRUB không ISO, đăng nhập tài khoản thường qua SDDM/Plasma X11. [42529928289](https://github.com/fx-kitsune/mykos/actions/runs/42529928289) trên ISO build `42527363919` đạt mạng/HTTPS, sudo, APT, tệp, đổi độ phân giải và âm thanh PipeWire/HDA ảo; ba dịch vụ Plasma dùng deadline mới hoạt động ổn định. Discover còn báo lỗi xác thực, đang kiểm tra riêng. Chưa nghiệm thu cập nhật/recovery hoặc phần cứng thật.
+Calamares cho Ubuntu Noble và BIOS đã hoàn tất cài vào QCOW2 mới, boot GRUB không ISO, đăng nhập tài khoản thường qua SDDM/Plasma X11. [42529928289](https://github.com/fx-kitsune/mykos/actions/runs/42529928289) trên ISO build `42527363919` đạt mạng/HTTPS, sudo, APT, tệp, đổi độ phân giải và âm thanh PipeWire/HDA ảo; ba dịch vụ Plasma dùng deadline mới hoạt động ổn định. [42531078658](https://github.com/fx-kitsune/mykos/actions/runs/42531078658) xác nhận Discover mở/danh mục không còn lỗi xác thực sau khi công cụ thử mở ứng dụng qua user service manager. Chưa nghiệm thu cập nhật/recovery hoặc phần cứng thật.
 
 ## Phạm vi hiện tại
 
@@ -20,7 +20,7 @@ Nếu người dùng chọn đồ họa phần mềm trong phiên live, module g
 
 ## Các bước còn phải kiểm chứng
 
-1. Hoàn tất giao dịch/cấp quyền đồ họa Discover/PackageKit; việc cửa sổ mở chưa đủ.
+1. Mở rộng từ kiểm tra mở/danh mục Discover sang giao dịch cài/gỡ và cấp quyền đồ họa PackageKit.
 2. Cập nhật đầy đủ, boot lại và kiểm tra phiên làm việc.
 3. Thực hành hướng dẫn phục hồi và mở rộng ma trận phần cứng.
 4. UEFI/Secure Boot và cài song song là các phạm vi riêng chưa được hỗ trợ.

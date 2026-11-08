@@ -2,7 +2,7 @@
 
 Cập nhật ngày 09/11/2026 (giờ Việt Nam). **M0 đang thực hiện, chưa nghiệm thu.**
 
-Tình trạng hiện tại: ISO mới đã đạt cài đặt BIOS, boot không ISO, đăng nhập SDDM/Plasma X11, mạng/APT, tệp, độ phân giải và âm thanh ảo. Discover mở nhưng làm mới kho còn báo lỗi xác thực; đang kiểm tra ngữ cảnh phiên của công cụ thử. Các phần lịch sử bên dưới mô tả từng ISO, không phải tất cả là trạng thái bản mới nhất.
+Tình trạng hiện tại: ISO mới đã đạt cài đặt BIOS, boot không ISO, đăng nhập SDDM/Plasma X11, mạng/APT, tệp, độ phân giải và âm thanh ảo. Discover đã mở và hiển thị danh mục không còn lỗi xác thực sau khi sửa ngữ cảnh phiên trong công cụ thử. Các phần lịch sử bên dưới mô tả từng ISO, không phải tất cả là trạng thái bản mới nhất.
 
 ## Bản dựng mới nhất đã kiểm thử
 
@@ -16,6 +16,16 @@ Tình trạng hiện tại: ISO mới đã đạt cài đặt BIOS, boot không 
 - **Quản lý gói còn một phần:** Flatpak CLI chạy, chưa cấu hình remote; Discover mở và hiển thị danh mục nhưng có hộp thoại “Failed to obtain authentication”. Kết quả tự động cũ chỉ yêu cầu tiến trình mở, không nghiệm thu giao dịch PackageKit. Công cụ đã siết điều kiện lỗi này và đổi cách mở Discover qua user service manager để kiểm tra tác động của phiên console nối tiếp.
 - [Bằng chứng JSON/log/ảnh/clip âm thanh](https://github.com/fx-kitsune/mykos/actions/runs/42529928289/artifacts/13637261439). Serial-getty và phần cứng âm thanh ảo chỉ là thiết lập kiểm thử; không xem là nghiệm thu phần cứng thật.
 - Với VGA chuẩn của QEMU, chọn **MyKOS (do hoa phan mem cho may ao)**. Mặc định OpenGL, Wayland, KScreen OSD/KSplash trên TCG chậm, cập nhật/recovery và thiết bị thật còn cần kiểm tra. Plasma tự fallback sang tài nguyên Breeze theo mã nguồn 5.27; chưa có bằng chứng lỗi do thiếu tài nguyên fallback của chủ đề MyKOS.
+
+## Kiểm tra lại Discover trên cùng ISO
+
+[Lượt 42531078658](https://github.com/fx-kitsune/mykos/actions/runs/42531078658), công cụ `49ded1d`, đạt lại toàn bộ bộ thử sau 411,9 giây trên chính SHA-256 ISO ở trên, hai VM đều KVM. Discover được mở bằng user service manager thay vì là tiến trình con của console nối tiếp; PolicyKit xác định phiên theo tiến trình/systemd, không chỉ biến DISPLAY. ControlGroup của Discover nằm trong `user@1000.service/app.slice/mykos-discover-smoke.service`.
+
+Log không còn “Failed to obtain authentication” hoặc lỗi giao dịch PackageKit, ảnh `installed-multimedia.png` đã được rà soát: danh mục hiển thị, không còn hộp thoại lỗi. Không cần thay chính sách cấp quyền hoặc sửa ISO cho vấn đề do công cụ thử này. Điều kiện kiểm thử hiện từ chối lỗi giao dịch kể cả khi tiến trình Discover còn chạy. Cả ba dịch vụ phiên vẫn ổn định sau tác vụ.
+
+[Bằng chứng mới nhất](https://github.com/fx-kitsune/mykos/actions/runs/42531078658/artifacts/13638110433) chứa JSON/log/ảnh và clip 440 Hz SHA-256 `d912922c8ce7743de0d9d2f784522cdee40c53a1191178fe519c85cfee1bcac5`. APT đã thử cài/chạy/gỡ; Discover mới nghiệm thu mở/danh mục/không có lỗi khởi đầu, chưa thử cài/gỡ qua giao diện. Flatpak chưa thêm remote. M0 còn thiếu khóa đầu vào và so sánh bản dựng độc lập; cập nhật/recovery/phần cứng chưa nghiệm thu.
+
+Trang tĩnh đã cập nhật tiến độ ở commit `f576a51`; [kiểm tra 42531247253](https://github.com/fx-kitsune/mykos-static-web/actions/runs/42531247253) và [Pages 42531247148](https://github.com/fx-kitsune/mykos-static-web/actions/runs/42531247148) đều thành công. Các ảnh trên web vẫn có nhãn bản thiết kế M1, không được đổi thành ảnh chứng nhận ISO.
 
 ## Đã triển khai
 
@@ -44,7 +54,7 @@ Máy chạy Debian 13, không có root/sudo hoặc thiết bị KVM; dung lượ
 
 ## Còn thiếu để nghiệm thu M0
 
-- Hoàn tất kiểm tra quản lý gói đồ họa và luồng xác thực PackageKit/PolicyKit.
+- Kiểm tra quản lý gói cơ bản đã có APT và mở Discover; giao dịch cài/gỡ/cập nhật bằng giao diện và nguồn Flatpak đầy đủ thuộc phạm vi ứng dụng còn phải mở rộng.
 - Khóa kho theo thời điểm, khóa bộ công cụ và so sánh bản dựng độc lập; hiện nguồn gói vẫn thay đổi theo thời gian.
 - Chốt phạm vi đồ họa được hỗ trợ và ghi đầy đủ lỗi còn lại; không suy rộng kết quả software/X11 sang OpenGL hoặc Wayland.
 
