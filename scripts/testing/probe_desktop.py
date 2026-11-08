@@ -54,7 +54,11 @@ print('MYKOS_DESKTOP_RESULT=' + json.dumps(result), flush=True)
 
 
 def guest_result(text):
-    for line in reversed(text.splitlines()):
+    # UART có thể chia một dòng JSON thành nhiều lần recv; chỉ parse khi
+    # đã nhận newline, không coi một gói chưa đủ là lỗi của guest.
+    for line in reversed(text.splitlines(keepends=True)):
+        if not line.endswith('\n'):
+            continue
         if line.startswith(MARKER):
             result = json.loads(line[len(MARKER):])
             if not isinstance(result, dict):
@@ -132,7 +136,7 @@ def main():
                     pass
                 if qmp is None and qmp_path.exists():
                     qmp = QMP(qmp_path)
-                if not desktop_captured and qmp is not None and '\nMYKOS_DESKTOP_READY\n' in transcript:
+                if not desktop_captured and qmp is not None and 'MYKOS_DESKTOP_READY\n' in transcript:
                     qmp.command('screendump', {'filename': str(output / 'desktop.ppm')})
                     desktop_captured = True
                 # systemd có thể ghi thêm trạng thái sau lời nhắc getty/shell.

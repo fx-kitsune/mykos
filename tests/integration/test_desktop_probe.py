@@ -29,7 +29,13 @@ class DesktopProbeTests(unittest.TestCase):
 
     def test_non_object_is_rejected(self):
         with self.assertRaises(ValueError):
-            probe.guest_result('MYKOS_DESKTOP_RESULT=[]')
+            probe.guest_result('MYKOS_DESKTOP_RESULT=[]\n')
+
+    def test_serial_packet_can_end_in_the_middle_of_json(self):
+        partial = 'MYKOS_DESKTOP_RESULT={"uid":'
+        self.assertIsNone(probe.guest_result(partial))
+        self.assertIsNone(probe.guest_result(partial + '1000}'))
+        self.assertEqual(probe.guest_result(partial + '1000}\n'), {'uid': 1000})
 
     def test_guest_payload_compiles(self):
         compile(probe.GUEST, 'desktop-guest', 'exec')
