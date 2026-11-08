@@ -5,6 +5,7 @@ import base64
 import hashlib
 import json
 import os
+import re
 import secrets
 from pathlib import Path
 import subprocess
@@ -13,6 +14,72 @@ import time
 from boot_iso import digest, prepare_menu
 from probe_desktop import GUEST, SOFTWARE_PARAMETERS, desktop_ready
 from vm_session import VM, empty_test_disk
+
+
+def installation_state(log):
+    # A failure must override any earlier completion message.
+    if 'Installation failed:' in log or 'completion: failed' in log:
+        return 'failed'
+    if 'completion: succeeded' in log:
+        return 'complete'
+    return 'waiting'
+
+
+def planned_ext4_root(log):
+    return ('CreatePartitionJob' in log
+            and re.search(r'mountPoint: :\s*"/"\s+fs: :\s*"ext4"', log) is not None)
+
+
+INSTALLED_CHECK = r'''
+import json, subprocess
+from pathlib import Path
+def command(args):
+    return subprocess.run(['sudo','-n',*args],capture_output=True,text=True,timeout=30)
+target=Path('/mnt/mykos-installed-check')
+p=command(['install','-d','-m','0755',str(target)])
+if p.returncode: raise RuntimeError(p.stderr)
+p=command(['mount','-o','ro,noload','/dev/vda1',str(target)])
+if p.returncode: raise RuntimeError(p.stderr)
+try:
+    passwd=(target/'etc/passwd').read_text()
+    groups=(target/'etc/group').read_text()
+    shadow=command(['cat',str(target/'etc/shadow')])
+    if shadow.returncode: raise RuntimeError(shadow.stderr)
+    hashes={line.split(':')[0]:line.split(':')[1] for line in shadow.stdout.splitlines()}
+    package_status={}
+    for package in ['casper','calamares']:
+        p=command(['dpkg-query','--admindir='+str(target/'var/lib/dpkg'),'-W','-f=${db:Status-Status}',package])
+        package_status[package]=p.stdout.strip()
+    result={'root_filesystem':command(['blkid','-s','TYPE','-o','value','/dev/vda1']).stdout.strip(),
+            'account_present':any(line.startswith('vmtester:') for line in passwd.splitlines()),
+            'sudo_membership':any(line.startswith('sudo:') and 'vmtester' in line.split(':')[3].split(',') for line in groups.splitlines()),
+            'root_locked':hashes.get('root','').startswith(('!','*')),
+            'user_password_set':bool(hashes.get('vmtester')) and not hashes['vmtester'].startswith(('!','*')),
+            'live_sudoers_removed':not (target/'etc/sudoers.d/casper').exists(),
+            'launcher_removed':not (target/'usr/bin/mykos-install').exists(),
+            'packages':package_status,
+            'kernel_present':bool(list((target/'boot').glob('vmlinuz-*'))),
+            'initrd_present':bool(list((target/'boot').glob('initrd.img-*'))),
+            'grub_core_present':(target/'boot/grub/i386-pc/core.img').is_file(),
+            'grub_config':(target/'boot/grub/grub.cfg').read_text()[-16000:],
+            'fstab':(target/'etc/fstab').read_text(),
+            'hostname':(target/'etc/hostname').read_text().strip()}
+finally:
+    p=command(['umount',str(target)])
+    if p.returncode: raise RuntimeError(p.stderr)
+'''
+
+
+def installed_target_ready(result):
+    return (all(result.get(key) is True for key in ['account_present', 'sudo_membership',
+            'root_locked', 'user_password_set', 'live_sudoers_removed', 'launcher_removed',
+            'kernel_present', 'initrd_present', 'grub_core_present'])
+            and result.get('root_filesystem') == 'ext4'
+            and result.get('hostname') == 'mykos-installed'
+            and all(result.get('packages', {}).get(package) in {'', 'not-installed', 'config-files'}
+                    for package in ['casper', 'calamares'])
+            and 'menuentry ' in result.get('grub_config', '')
+            and 'UUID=' in result.get('fstab', ''))
 
 
 def main():
@@ -25,7 +92,11 @@ def main():
     parser.add_argument('--diagnostic-overlay', type=Path, help='Chỉ chẩn đoán: chép overlay hiện tại vào guest live, không nghiệm thu ISO gốc.')
     parser.add_argument('--prepare-install', action='store_true',
                         help='Chọn đĩa ảo trống và nhập tài khoản thử; dừng ở Summary, chưa ghi phân vùng.')
+    parser.add_argument('--install', action='store_true',
+                        help='Cài thật vào QCOW2 mới đã xác minh; chưa nghiệm thu boot bản cài.')
     args = parser.parse_args()
+    if args.install and not args.prepare_install:
+        parser.error('--install cần --prepare-install để rà soát toàn bộ luồng trước xác nhận.')
     iso, output = args.iso.resolve(), args.output.resolve()
     if not iso.is_file() or output.exists() or ',' in str(output):
         parser.error('Cần ISO có sẵn và thư mục kết quả mới, không chứa dấu phẩy.')
@@ -124,7 +195,7 @@ def main():
                     vm.key('tab')
                 vm.key('ctrl', 'a')
                 vm.type(value)
-            time.sleep(2)
+            time.sleep(5)
             vm.capture('installer-users-filled')
             vm.key('alt', 'n')
             time.sleep(3)
@@ -135,8 +206,44 @@ def main():
             if not empty_test_disk(report['after_preparation']):
                 raise RuntimeError('Đĩa thay đổi trong bước chuẩn bị; chưa được phép coi preview là cài đặt.')
             report['preparation_log'] = vm.guest("from pathlib import Path\nresult={'log':Path('/tmp/mykos-installer-probe.log').read_text(errors='replace')[-24000:]}")
-        # No Install/confirmation input here: disk writes belong to a separate test stage.
         report['status'] = 'installer-diagnostic-preview' if args.diagnostic_direct or args.diagnostic_overlay else 'installer-preview'
+        if args.install:
+            report['status'] = 'failed'
+            report['scope'] = 'Cài vào QCOW2 mới và kiểm tra đích; chưa boot bản cài hoặc nghiệm thu thiết bị.'
+            if not planned_ext4_root(report.get('preparation_log', {}).get('log', '')):
+                raise RuntimeError('Kế hoạch không có phân vùng gốc ext4; dừng trước Install.')
+            # Both Install accelerators are defined in Calamares 3.3.5 ViewManager.
+            vm.key('alt', 'i')
+            time.sleep(2)
+            vm.capture('installer-confirmation')
+            vm.key('alt', 'i')
+            print('Installer test: confirmed installation on disposable vda only', flush=True)
+            deadline = time.monotonic() + 1800
+            while time.monotonic() < deadline:
+                probe_result = vm.guest("from pathlib import Path\nresult={'log':Path('/tmp/mykos-installer-probe.log').read_text(errors='replace')[-40000:]}", timeout=60)
+                log = probe_result['log']
+                (output / 'installer-execution.log').write_text(log)
+                state = installation_state(log)
+                if state == 'failed':
+                    raise RuntimeError('Calamares báo cài đặt thất bại; xem installer-execution.log.')
+                if state == 'complete':
+                    break
+                print('Installer test: waiting; ' + log.splitlines()[-1][:200] if log.splitlines() else 'Installer test: waiting for log', flush=True)
+                vm.capture('installer-progress')
+                time.sleep(10)
+            else:
+                raise TimeoutError('Calamares chưa hoàn tất trong 1800 giây.')
+            vm.capture('installer-complete')
+            report['installed_target'] = vm.guest(INSTALLED_CHECK, timeout=120)
+            if not installed_target_ready(report['installed_target']):
+                raise RuntimeError('Calamares kết thúc nhưng đích chưa đạt kiểm tra kernel/GRUB/tài khoản/chính sách live.')
+            report['status'] = 'installer-diagnostic-complete' if args.diagnostic_direct or args.diagnostic_overlay else 'installer-complete'
+        # Reviewed panel layout: show desktop exposes the actual wallpaper,
+        # instead of treating a config path or an obscured background as proof.
+        vm.click(1266, 777)
+        time.sleep(3)
+        vm.capture('live-wallpaper')
+        vm.click(1266, 777)
     except (OSError, ValueError, RuntimeError, subprocess.CalledProcessError) as error:
         report['error'] = str(error)
     finally:
@@ -149,7 +256,8 @@ def main():
         report['elapsed_seconds'] = round(time.monotonic() - started, 1)
         (output / 'result.json').write_text(json.dumps(report, ensure_ascii=False, indent=2) + '\n')
         print(json.dumps(report, ensure_ascii=False, indent=2))
-    return 0 if report['status'] in {'installer-preview', 'installer-diagnostic-preview'} else 1
+    return 0 if report['status'] in {'installer-preview', 'installer-diagnostic-preview',
+                                    'installer-complete', 'installer-diagnostic-complete'} else 1
 
 
 if __name__ == '__main__':

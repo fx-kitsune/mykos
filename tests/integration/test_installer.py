@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+import sys
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
 OVERLAY = ROOT / 'distribution/installer/overlay'
@@ -11,9 +13,23 @@ CONFIG = OVERLAY / 'etc/calamares'
 spec = importlib.util.spec_from_file_location('installer_target', OVERLAY / 'usr/share/mykos/calamares/modules/mykos-config/main.py')
 target = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(target)
+spec = importlib.util.spec_from_file_location('installer_probe', ROOT / 'scripts/testing/install_iso.py')
+probe = importlib.util.module_from_spec(spec)
+with patch.object(sys, 'path', [str(ROOT / 'scripts/testing'), *sys.path]):
+    spec.loader.exec_module(probe)
 
 
 class InstallerTests(unittest.TestCase):
+    def test_install_failure_overrides_completion_and_process_alone_does_not_pass(self):
+        self.assertEqual(probe.installation_state('Calamares running'), 'waiting')
+        self.assertEqual(probe.installation_state('Notification not sent; completion: succeeded'), 'complete')
+        self.assertEqual(probe.installation_state('completion: succeeded\nInstallation failed: unpack error'), 'failed')
+        self.assertEqual(probe.installation_state('completion: failed\ncompletion: succeeded'), 'failed')
+        self.assertFalse(probe.installed_target_ready({}))
+        self.assertFalse(probe.planned_ext4_root('CreatePartitionTableJob'))
+        self.assertTrue(probe.planned_ext4_root('CreatePartitionJob\n mountPoint: :   "/"\n fs: :   "ext4"'))
+        self.assertFalse(probe.planned_ext4_root('CreatePartitionJob\n mountPoint: :   "/home"\n fs: :   "ext4"'))
+
     def test_erase_layout_has_an_explicit_ext4_root_without_preselecting_erase(self):
         partition = json.loads((CONFIG / 'modules/partition.conf').read_text())
         roots = [entry for entry in partition['partitionLayout'] if entry.get('mountPoint') == '/']

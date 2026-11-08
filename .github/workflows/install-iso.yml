@@ -107,7 +107,7 @@ jobs:
     needs: source
     if: needs.source.outputs.eligible == 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 70
     steps:
       - uses: actions/checkout@v4
         with:
@@ -134,12 +134,12 @@ jobs:
           if [[ -c /dev/kvm ]]; then
             sudo setfacl -m "u:$(id -u):rw" /dev/kvm
           fi
-      - name: Xem Calamares trên đúng một đĩa ảo mới
-        timeout-minutes: 25
+      - name: Cài Calamares trên đúng một đĩa ảo mới
+        timeout-minutes: 50
         env:
           EXPECTED_ISO_SHA: ${{ needs.source.outputs.iso_sha }}
         run: |
-          python3 scripts/testing/install_iso.py artifacts/source-iso/mykos-0.1.0-dev-amd64.iso --expected-sha "$EXPECTED_ISO_SHA" --output artifacts/install-test
+          python3 scripts/testing/install_iso.py artifacts/source-iso/mykos-0.1.0-dev-amd64.iso --expected-sha "$EXPECTED_ISO_SHA" --output artifacts/install-test --prepare-install --install
       - name: Lưu bằng chứng, không tải lên đĩa ảo
         if: always()
         uses: actions/upload-artifact@v4
