@@ -9,6 +9,7 @@ import re
 import socket
 import subprocess
 import time
+import zlib
 
 from boot_iso import QMP, digest, prepare_menu
 
@@ -18,13 +19,20 @@ GUEST = r'''
 import json, os, shutil, subprocess, time
 def running(name):
     return subprocess.run(['pgrep', '-u', str(os.getuid()), '-x', name], capture_output=True, text=True)
+def diagnostic(command, env=None):
+    try:
+        proc = subprocess.run(command, env=env, capture_output=True, text=True, timeout=15)
+        return {'returncode': proc.returncode, 'stdout': proc.stdout[-8000:], 'stderr': proc.stderr[-2000:]}
+    except (OSError, subprocess.TimeoutExpired) as error:
+        return {'error': str(error)}
 deadline = time.monotonic() + 180
 while time.monotonic() < deadline and running('plasmashell').returncode:
     time.sleep(2)
 shell = running('plasmashell')
 result = {'uid': os.getuid(), 'plasma': shell.returncode == 0,
           'kwin': any(running(name).returncode == 0 for name in ['kwin_x11', 'kwin_wayland']),
-          'applications': {}}
+          'applications': {}, 'sessions': diagnostic(['loginctl', 'list-sessions', '--no-legend', '--no-pager']),
+          'processes': diagnostic(['ps', '-u', str(os.getuid()), '-o', 'pid,comm,args'])}
 if result['plasma']:
     print('MYKOS_DESKTOP_READY', flush=True)
     time.sleep(5)
@@ -45,10 +53,21 @@ if result['plasma']:
             subprocess.Popen([executable], env=env, stdout=log, stderr=subprocess.STDOUT)
         time.sleep(5)
         result['applications'][app] = running(os.path.basename(executable)).returncode == 0
+        if not result['applications'][app]:
+            result.setdefault('application_errors', {})[app] = open('/tmp/mykos-probe-' + app + '.log').read()[-2000:]
     if shutil.which('kreadconfig5'):
         result['color_scheme'] = subprocess.run(
             ['kreadconfig5', '--file', 'kdeglobals', '--group', 'General', '--key', 'ColorScheme'],
             capture_output=True, text=True).stdout.strip()
+    time.sleep(30)
+    result['user_journal'] = diagnostic(['journalctl', '--user', '-b', '--no-pager', '-n', '80', '-o', 'cat'], env)
+    if shutil.which('qdbus'):
+        env['QT_SELECT'] = 'qt5'
+        result['containments'] = diagnostic(['qdbus', 'org.kde.plasmashell', '/PlasmaShell',
+            'org.kde.PlasmaShell.evaluateScript', 'JSON.stringify({panels:panels().length,desktops:desktops().length})'], env)
+    config = os.path.expanduser('~/.config/plasma-org.kde.plasma.desktop-appletsrc')
+    if os.path.isfile(config):
+        result['desktop_config'] = open(config).read()[-8000:]
 print('MYKOS_DESKTOP_RESULT=' + json.dumps(result), flush=True)
 '''
 
@@ -70,6 +89,14 @@ def guest_result(text):
 def has_prompt(phase, text):
     pattern = r'mykos-live login:' if phase == 'boot' else r'mykos@mykos-live:[^\n]*[$]'
     return re.search(pattern, text) is not None
+
+
+def guest_command():
+    # N_TTY giới hạn một dòng canonical ở khoảng 4096 byte. Nén payload
+    # để bổ sung chẩn đoán không làm lệnh bị UART/tty cắt giữa chừng.
+    payload = base64.b64encode(zlib.compress(GUEST.encode())).decode()
+    return ('python3 -c "import base64,zlib; exec(zlib.decompress(base64.b64decode(\''
+            + payload + '\')))"\n').encode()
 
 
 def main():
@@ -147,8 +174,7 @@ def main():
                     phase_started = time.monotonic()
                     print('Desktop probe: logging in as live user mykos', flush=True)
                 elif phase == 'login' and has_prompt(phase, transcript):
-                    payload = base64.b64encode(GUEST.encode()).decode()
-                    serial.sendall(('python3 -c "import base64; exec(base64.b64decode(\'' + payload + '\'))"\n').encode())
+                    serial.sendall(guest_command())
                     phase = 'probe'
                     phase_started = time.monotonic()
                     print('Desktop probe: checking Plasma and applications', flush=True)

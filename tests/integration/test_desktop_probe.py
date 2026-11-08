@@ -13,6 +13,10 @@ with patch.object(sys, 'path', [str(SCRIPTS), *sys.path]):
 
 
 class DesktopProbeTests(unittest.TestCase):
+    def test_console_command_fits_canonical_tty_line(self):
+        self.assertLess(len(probe.guest_command()), 4096)
+        compile(probe.guest_command().decode().split('"', 1)[1].rsplit('"', 1)[0], 'guest-command', 'exec')
+
     def test_prompt_is_not_lost_when_systemd_logs_continue(self):
         self.assertTrue(probe.has_prompt('boot', 'mykos-live login: \n[ OK ] Started a service.\n'))
         self.assertTrue(probe.has_prompt('login', 'mykos@mykos-live:~$ \n[ OK ] Started a service.\n'))
