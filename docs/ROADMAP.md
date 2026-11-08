@@ -111,4 +111,4 @@ Nhân Linux riêng, bản phân nhánh toàn bộ Plasma, định dạng gói ri
 
 ## Việc tiếp theo
 
-ISO, Calamares BIOS, cài xuống đĩa ảo, boot GRUB không ISO và đăng nhập console thường đã có bằng chứng. Bản cài đã đạt mạng và vòng APT có xác thực. Trọng tâm tiếp theo là đăng nhập Plasma qua SDDM, âm thanh, đổi độ phân giải, tệp/ứng dụng và điều kiện tái lập ảnh. Xem các lượt kiểm thử và giới hạn hiện tại trong [trạng thái triển khai](IMPLEMENTATION_STATUS.md). Chưa mở rộng phạm vi trước khi hoàn thành các tiêu chí M0.
+ISO mới đã đạt cài đặt Calamares BIOS, boot GRUB không ISO, đăng nhập SDDM/Plasma X11, mạng/APT, âm thanh HDA ảo, đổi độ phân giải và tệp/ứng dụng. Tiếp theo xử lý lỗi xác thực Discover, khóa đầu vào tạo ảnh và so sánh bản dựng độc lập để đóng M0. Sau đó tiến tới cập nhật/reboot, phục hồi và ma trận phần cứng trước phát hành công khai. Xem bằng chứng và giới hạn trong [trạng thái triển khai](IMPLEMENTATION_STATUS.md).

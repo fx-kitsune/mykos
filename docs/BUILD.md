@@ -70,9 +70,9 @@ Các nhãn **Actions**, **Run workflow**, **Artifacts** là tên nút trên GitH
 
 ### Thời gian chạy và lưu trữ
 
-- Chạy thủ công; chỉ tự kích hoạt trên `main` khi chính tệp `build-iso.yml` thay đổi để thử cấu hình tạo ảnh mới. Sửa tài liệu hoặc giao diện không tự tạo ISO.
-- Mỗi nhánh chỉ có một lượt tạo ảnh đang chạy; lượt sau chờ, không tự hủy lượt trước.
-- Job tối đa 180 phút, bước tạo ISO tối đa khoảng 150 phút để còn thời gian thu thập nhật ký.
+- Chạy thủ công hoặc tự kích hoạt trên `main` khi đầu vào ISO trong `distribution/**`, `desktop/workspace/**`, `scripts/build/**` thay đổi (trừ README trình cài đặt). Tài liệu và web mẫu không tự tạo ISO.
+- Mỗi nhánh chỉ có một lượt tạo ảnh đang chạy; lượt mới hủy lượt cũ khi đầu vào đã được thay thế.
+- Job tối đa 180 phút, bước tạo ISO tối đa 155 phút để còn thời gian thu thập nhật ký.
 - ISO, mã SHA-256, danh sách gói và thông tin bản dựng lưu trong một gói tải xuống. Nhật ký chẩn đoán lưu riêng trong `mykos-build-logs-…`, kể cả khi tạo ảnh thất bại.
 - Hai gói có thời hạn lưu 7 ngày và dùng dung lượng Actions của tài khoản. ISO đã nén được tải lên không nén thêm. Không tự đăng lên GitHub Releases.
 
@@ -82,7 +82,7 @@ Workflow dọn các SDK Android, .NET và GHC cài sẵn trên máy tạm do Git
 
 Nếu lỗi, tải nhật ký riêng; xem `preflight.log`, `build.log`, `toolchain.txt` và thông tin đĩa. Thiếu dung lượng, hết thời gian, thiếu đúng phiên bản gói hoặc lỗi tích hợp live-build đều phải được xử lý theo thông báo thực tế. Nếu bị hủy cưỡng bức, runner dừng hoặc hết hạn job, GitHub có thể không thực hiện được bước lưu nhật ký cuối.
 
-Tạo ảnh và xác minh SHA-256 chưa phải kiểm thử khởi động. Workflow build ghi cấu trúc khởi động bằng `xorriso`; sau khi thành công, workflow kiểm thử BIOS chạy QEMU tự động. Chưa xác nhận màn hình Plasma và chưa thử cài đặt. Tiếp tục theo [danh sách nghiệm thu máy ảo](../tests/integration/VM_CHECKLIST.md).
+Tạo ảnh và xác minh SHA-256 chưa phải kiểm thử khởi động. Workflow build ghi cấu trúc khởi động bằng `xorriso`; sau khi thành công, workflow kiểm thử BIOS chạy QEMU tự động. Kết quả Plasma/cài đặt phải gắn với đúng mã ISO; xem các lượt đã đạt và mục còn thiếu theo [danh sách nghiệm thu máy ảo](../tests/integration/VM_CHECKLIST.md).
 
 ## Kiểm thử khởi động bằng Actions
 

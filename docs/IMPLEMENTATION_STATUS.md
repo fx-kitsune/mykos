@@ -2,7 +2,20 @@
 
 Cập nhật ngày 09/11/2026 (giờ Việt Nam). **M0 đang thực hiện, chưa nghiệm thu.**
 
-Tình trạng hiện tại: ISO đã hiển thị đúng hình nền logo; cài đặt/boot không ISO, đăng nhập Plasma X11, mạng và vòng APT đã đạt. Đang kiểm tra âm thanh/màn hình và ISO mới sửa deadline khởi động ba dịch vụ Plasma. Các mục bên dưới lưu lại tiến trình và kết quả theo từng ISO, không phải tất cả đều mô tả bản mới nhất.
+Tình trạng hiện tại: ISO mới đã đạt cài đặt BIOS, boot không ISO, đăng nhập SDDM/Plasma X11, mạng/APT, tệp, độ phân giải và âm thanh ảo. Discover mở nhưng làm mới kho còn báo lỗi xác thực; đang kiểm tra ngữ cảnh phiên của công cụ thử. Các phần lịch sử bên dưới mô tả từng ISO, không phải tất cả là trạng thái bản mới nhất.
+
+## Bản dựng mới nhất đã kiểm thử
+
+- [Build 42527363919](https://github.com/fx-kitsune/mykos/actions/runs/42527363919), nguồn `187042d`; [ISO và thông tin bản dựng](https://github.com/fx-kitsune/mykos/actions/runs/42527363919/artifacts/13635659125), lưu 7 ngày từ 08/11/2026 UTC.
+- SHA-256 ISO: `0de50cbd7cc982d083183786f9d33b83b0b1f9aacb8f39522e8da733d63a5751`.
+- [Boot/live desktop 42528988768](https://github.com/fx-kitsune/mykos/actions/runs/42528988768) đạt trên đúng ISO; desktop phần mềm còn được quan sát trên TCG.
+- [Cài đặt 42529928289](https://github.com/fx-kitsune/mykos/actions/runs/42529928289), công cụ `7147161`, đạt `installed-multimedia-ready` sau khoảng 413,8 giây. Hai VM dùng KVM, RAM 4 GiB, hai CPU; cài vào QCOW2 mới 40 GiB rồi bỏ ISO, boot GRUB và đăng nhập SDDM bằng tài khoản thường.
+- DHCP/DNS/HTTPS, sudo yêu cầu mật khẩu, APT có chữ ký và vòng cài/chạy/gỡ `hello` đạt. Dolphin/Konsole/Thiết lập mở; tệp trong Documents đúng nội dung và chủ sở hữu. XRandR đổi 1280×800 → 1024×768 → 1280×800 thành công.
+- PipeWire/WirePlumber hoạt động, thay/khôi phục âm lượng và phát 440 Hz thành công. PCM từ HDA ảo thực sự chứa tần số yêu cầu ở 44,1 kHz; clip `audio-tone-evidence.wav` có SHA-256 `076135f37d6e6071eeb546591b539ad830c52114d2a07544bd8d4ff2801b71fc`.
+- Ba unit PolicyKit/Powerdevil/KScreen giữ `Type=dbus`, đúng BusName, deadline 60 giây, `active/running`, `NRestarts=0` cả trước và sau tác vụ màn hình/Discover. Đã rà soát ảnh hình nền logo của bản cài và ảnh ứng dụng.
+- **Quản lý gói còn một phần:** Flatpak CLI chạy, chưa cấu hình remote; Discover mở và hiển thị danh mục nhưng có hộp thoại “Failed to obtain authentication”. Kết quả tự động cũ chỉ yêu cầu tiến trình mở, không nghiệm thu giao dịch PackageKit. Công cụ đã siết điều kiện lỗi này và đổi cách mở Discover qua user service manager để kiểm tra tác động của phiên console nối tiếp.
+- [Bằng chứng JSON/log/ảnh/clip âm thanh](https://github.com/fx-kitsune/mykos/actions/runs/42529928289/artifacts/13637261439). Serial-getty và phần cứng âm thanh ảo chỉ là thiết lập kiểm thử; không xem là nghiệm thu phần cứng thật.
+- Với VGA chuẩn của QEMU, chọn **MyKOS (do hoa phan mem cho may ao)**. Mặc định OpenGL, Wayland, KScreen OSD/KSplash trên TCG chậm, cập nhật/recovery và thiết bị thật còn cần kiểm tra. Plasma tự fallback sang tài nguyên Breeze theo mã nguồn 5.27; chưa có bằng chứng lỗi do thiếu tài nguyên fallback của chủ đề MyKOS.
 
 ## Đã triển khai
 
@@ -31,12 +44,11 @@ Máy chạy Debian 13, không có root/sudo hoặc thiết bị KVM; dung lượ
 
 ## Còn thiếu để nghiệm thu M0
 
-- Kiểm tra đăng nhập và tác vụ trong môi trường Plasma; mức khởi động BIOS tới môi trường người dùng đã có bằng chứng với bản sao thêm console.
-- Nghiệm thu Calamares đã tích hợp, kiểm thử cài đặt và lần đăng nhập đầu trên bản cài.
-- Kiểm tra mạng, âm thanh, màn hình, quản lý gói, cập nhật và phục hồi.
-- Khóa kho theo thời điểm, khóa bộ công cụ và so sánh bản dựng độc lập.
-- Xác định, kiểm thử ma trận phần cứng; xem UEFI/Secure Boot là mục tiêu riêng.
+- Hoàn tất kiểm tra quản lý gói đồ họa và luồng xác thực PackageKit/PolicyKit.
+- Khóa kho theo thời điểm, khóa bộ công cụ và so sánh bản dựng độc lập; hiện nguồn gói vẫn thay đổi theo thời gian.
+- Chốt phạm vi đồ họa được hỗ trợ và ghi đầy đủ lỗi còn lại; không suy rộng kết quả software/X11 sang OpenGL hoặc Wayland.
 
+Trước phát hành công khai còn phải kiểm thử cập nhật/reboot, phục hồi, giấy phép và thời gian hỗ trợ nền KDE 5; xác định ma trận phần cứng. UEFI/Secure Boot là phạm vi riêng chưa hỗ trợ.
 Xem [phạm vi Workspace](../desktop/README.md). Chưa có giao diện hệ thống tự viết, dịch vụ root riêng, hoàn tác tự động, lớp tương thích Windows hoặc bản phát hành công khai. Phần tích hợp Fold chưa hoàn thành M1; ưu tiên nghiệm thu M0 trước khi mở rộng.
 
 ## Lỗi Actions đã xác định

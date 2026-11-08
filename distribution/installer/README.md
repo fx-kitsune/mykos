@@ -1,6 +1,6 @@
 # Trình cài đặt MyKOS với Calamares
 
-Calamares cho Ubuntu Noble và BIOS đã hoàn tất cài xuống QCOW2 mới; kernel/initrd/GRUB và tài khoản đích đã đạt kiểm tra. Đã boot GRUB không ISO và đăng nhập tài khoản thường; [42523552134](https://github.com/fx-kitsune/mykos/actions/runs/42523552134) đạt xác thực SDDM/Plasma X11, mạng/HTTPS, sudo và vòng APT. **Âm thanh/màn hình và sửa deadline dịch vụ trong ISO mới còn chờ nghiệm thu.** Không xem cấu hình, kiểm thử đơn vị hay việc mở cửa sổ trình cài đặt là bằng chứng cài đặt thành công.
+Calamares cho Ubuntu Noble và BIOS đã hoàn tất cài vào QCOW2 mới, boot GRUB không ISO, đăng nhập tài khoản thường qua SDDM/Plasma X11. [42529928289](https://github.com/fx-kitsune/mykos/actions/runs/42529928289) trên ISO build `42527363919` đạt mạng/HTTPS, sudo, APT, tệp, đổi độ phân giải và âm thanh PipeWire/HDA ảo; ba dịch vụ Plasma dùng deadline mới hoạt động ổn định. Discover còn báo lỗi xác thực, đang kiểm tra riêng. Chưa nghiệm thu cập nhật/recovery hoặc phần cứng thật.
 
 ## Phạm vi hiện tại
 
@@ -20,11 +20,10 @@ Nếu người dùng chọn đồ họa phần mềm trong phiên live, module g
 
 ## Các bước còn phải kiểm chứng
 
-1. Build ISO chứa các tệp này và kiểm tra mở Calamares trong Plasma; đọc log nạp module và ảnh thật.
-2. Gắn riêng đĩa QCOW2 mới, cài bằng giao diện, ghi kết quả và lỗi nếu có.
-3. Tháo ISO, boot GRUB từ đĩa đã cài và đăng nhập tài khoản thường.
-4. Kiểm tra tài khoản live/installer đã được gỡ, sudo cần mật khẩu, mạng và cập nhật hoạt động.
-5. Thử phục hồi; mở rộng UEFI/Secure Boot và ma trận phần cứng ở mốc riêng.
+1. Hoàn tất giao dịch/cấp quyền đồ họa Discover/PackageKit; việc cửa sổ mở chưa đủ.
+2. Cập nhật đầy đủ, boot lại và kiểm tra phiên làm việc.
+3. Thực hành hướng dẫn phục hồi và mở rộng ma trận phần cứng.
+4. UEFI/Secure Boot và cài song song là các phạm vi riêng chưa được hỗ trợ.
 
 Ghi SHA-256 ISO, cấu hình máy ảo, bố cục đĩa và bằng chứng vào [danh sách nghiệm thu](../../tests/integration/VM_CHECKLIST.md). Không thử trên đĩa có dữ liệu quan trọng khi phạm vi này chưa được nghiệm thu.
 
