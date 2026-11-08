@@ -81,3 +81,13 @@ Chỉ nghiệm thu mức BIOS → nhân → môi trường người dùng ở b�
 - Đã bổ sung kiểm tra console live, tiến trình Plasma/KWin, mở Dolphin/Konsole/Thiết lập và lưu ảnh trước/sau mở ứng dụng. 21 kiểm thử tích hợp cục bộ đã đạt; CI cấu hình/giao diện cũng đã đạt. Đây chưa phải kết quả chạy guest.
 
 Bước tiếp theo: đọc kết quả guest, rà soát ảnh giao diện và giải quyết lỗi nếu có trước khi tích hợp trình cài đặt.
+
+## Chẩn đoán desktop thực tế ngày 08/11/2026
+
+- ISO nguồn từ build `42443779141` có SHA-256 `8e86c37851be57f67c799a514dc0c5c3916987f19affcffbc53b6298e2753033`.
+- [Kiểm thử 42447580050](https://github.com/fx-kitsune/mykos/actions/runs/42447580050) xác nhận BIOS/userspace, đăng nhập tài khoản UID 1000, tiến trình Plasma/KWin, mở Dolphin/Konsole/Thiết lập và đọc bộ màu `MyKOSDark`.
+- Tuy nhiên ảnh QEMU chỉ thấy splash KDE rồi nền đen; journal ghi `Freeze in OpenGL initialization detected` và KWin crash. Gọi D-Bus tới Plasma hết thời gian chờ. Vì vậy kết quả cũ `desktop-services-ready` không được xem là nghiệm thu giao diện.
+- Công cụ kiểm thử mới yêu cầu Plasma trả số panel và desktop hợp lệ, cùng các ứng dụng hoạt động. Profile thử QEMU/TCG thêm `systemd.setenv=KWIN_COMPOSE=N` và `systemd.setenv=QT_QUICK_BACKEND=software` vào bản sao ISO để tránh khởi tạo OpenGL. Đây là cấu hình thử nghiệm cho máy ảo, chưa thay mặc định đồ họa của ISO hoặc chứng minh hỗ trợ phần cứng.
+- 25 kiểm thử tích hợp cục bộ đã đạt. Kết quả máy ảo với profile phần mềm và rà soát ảnh vẫn đang chờ; chưa tích hợp Calamares.
+
+Bằng chứng được đọc qua workflow `inspect-boot-evidence.yml` trong repo riêng; không cần thay chính sách mạng cloud để tải ảnh. Không gắn ổ đĩa cài đặt ở các phép thử desktop này.

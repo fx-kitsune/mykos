@@ -15,7 +15,7 @@ Công cụ dùng KVM khi truy cập được, ngược lại dùng TCG. Lệnh n
 | Kiểm thử | Kết quả mong đợi | Trạng thái |
 |---|---|---|
 | Khởi động trực tiếp bằng BIOS | Qua BIOS và nhân tới môi trường người dùng, trên bản sao thêm console | ĐẠT: [QEMU/TCG 42435820231](https://github.com/fx-kitsune/mykos/actions/runs/42435820231), 08/11/2026 |
-| Đăng nhập và phiên KDE | Plasma, trình mở ứng dụng và điều hướng bàn phím hoạt động | CHƯA CHẠY |
+| Đăng nhập và phiên KDE | Plasma, trình mở ứng dụng và điều hướng bàn phím hoạt động | MỘT PHẦN: đăng nhập/tiến trình/ứng dụng đạt; giao diện đen do KWin OpenGL trên QEMU/TCG, đang xử lý |
 | Mạng | DHCP, DNS và HTTPS qua NetworkManager | CHƯA CHẠY |
 | Âm thanh | Phát âm thanh và điều chỉnh âm lượng bằng PipeWire | CHƯA CHẠY |
 | Màn hình | Đổi độ phân giải; kiểm tra phiên Wayland riêng | CHƯA CHẠY |
