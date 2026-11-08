@@ -26,6 +26,8 @@ result = {'uid': os.getuid(), 'plasma': shell.returncode == 0,
           'kwin': any(running(name).returncode == 0 for name in ['kwin_x11', 'kwin_wayland']),
           'applications': {}}
 if result['plasma']:
+    print('MYKOS_DESKTOP_READY', flush=True)
+    time.sleep(5)
     pid = shell.stdout.split()[0]
     env = os.environ.copy()
     for item in open('/proc/' + pid + '/environ', 'rb').read().split(b'\0'):
@@ -103,6 +105,7 @@ def main():
             serial.connect(str(serial_path))
             serial.settimeout(1)
             phase = 'boot'
+            desktop_captured = False
             while time.monotonic() < deadline:
                 if machine.poll() is not None:
                     raise RuntimeError('QEMU thoát trước khi thu được kết quả.')
@@ -115,6 +118,9 @@ def main():
                     pass
                 if qmp is None and qmp_path.exists():
                     qmp = QMP(qmp_path)
+                if not desktop_captured and qmp is not None and '\nMYKOS_DESKTOP_READY\n' in transcript:
+                    qmp.command('screendump', {'filename': str(output / 'desktop.ppm')})
+                    desktop_captured = True
                 if phase == 'boot' and re.search(r'mykos-live login:\s*$', transcript):
                     serial.sendall(b'mykos\n')
                     phase = 'login'

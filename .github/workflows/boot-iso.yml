@@ -60,7 +60,7 @@ jobs:
           python3 - <<'PYTHON'
           from pathlib import Path
           from PIL import Image
-          for path in Path('artifacts').glob('*-test/screen.ppm'):
+          for path in Path('artifacts').glob('*-test/*.ppm'):
               Image.open(path).save(path.with_suffix('.png'))
           PYTHON
       - name: Lưu kết quả, nhật ký và ảnh màn hình
