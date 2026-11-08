@@ -94,6 +94,7 @@ def configure(destination):
         shutil.copy2(ROOT / "distribution/packages/desktop.list.chroot", config / "package-lists")
         shutil.copytree(ROOT / "distribution/branding/overlay", config / "includes.chroot", dirs_exist_ok=True)
         installed = config / "includes.chroot"
+        shutil.copytree(ROOT / "distribution/installer/overlay", installed, dirs_exist_ok=True)
         shutil.copytree(ROOT / "desktop/workspace", installed / "usr/share/mykos/workspace",
                         ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "requirements-dev.txt"))
         for relative, source in [("usr/bin/mykos-workspace", "mykos-workspace"),
@@ -106,7 +107,7 @@ def configure(destination):
         installed.chmod(0o755)
         for path in installed.rglob("*"):
             if not path.is_symlink():
-                path.chmod(0o755 if path.is_dir() or path == installed / "usr/bin/mykos-workspace" else 0o644)
+                path.chmod(0o755 if path.is_dir() or path in {installed / "usr/bin/mykos-workspace", installed / "usr/bin/mykos-install"} else 0o644)
         hooks = config / "hooks"
         hooks.mkdir(exist_ok=True)
         shutil.copy2(ROOT / "distribution/image-build/010-mykos.chroot", hooks)

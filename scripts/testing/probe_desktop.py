@@ -81,6 +81,23 @@ if result['plasma']:
     config = os.path.expanduser('~/.config/plasma-org.kde.plasma.desktop-appletsrc')
     if os.path.isfile(config):
         result['desktop_config'] = open(config).read()[-8000:]
+    if shutil.which('calamares'):
+        installer_log = '/tmp/mykos-installer-probe.log'
+        installer_env = env.copy()
+        installer_env['MYKOS_INSTALL_DEBUG'] = '1'
+        if shutil.which('mykos-install'):
+            with open(installer_log, 'w') as log:
+                subprocess.Popen(['sudo', '-n', '--preserve-env=DISPLAY,XAUTHORITY,QT_QUICK_BACKEND,KWIN_COMPOSE,MYKOS_INSTALL_DEBUG',
+                                  '/usr/bin/mykos-install'], env=installer_env, stdin=subprocess.DEVNULL,
+                                 stdout=log, stderr=subprocess.STDOUT)
+            time.sleep(45)
+        alive = subprocess.run(['pgrep', '-x', 'calamares'], capture_output=True).returncode == 0
+        result['installer'] = {'running': alive}
+        if os.path.isfile(installer_log):
+            result['installer']['log_tail'] = open(installer_log).read()[-14000:]
+        if alive:
+            print('MYKOS_INSTALLER_READY', flush=True)
+            time.sleep(5)
 print('MYKOS_DESKTOP_RESULT=' + json.dumps(result), flush=True)
 '''
 
@@ -116,6 +133,8 @@ def desktop_ready(result):
     if result.get('uid', 0) == 0 or not result.get('plasma') or not result.get('kwin'):
         return False
     if not all(result.get('applications', {}).get(app) for app in ['dolphin', 'konsole', 'systemsettings']):
+        return False
+    if 'installer' in result and not result['installer'].get('running'):
         return False
     response = result.get('containments', {})
     if response.get('returncode') != 0:
@@ -181,6 +200,7 @@ def main():
             phase_started = time.monotonic()
             last_progress = phase_started
             desktop_captured = False
+            installer_captured = False
             empty_password_sent = False
             print('Desktop probe: waiting for live console', flush=True)
             while time.monotonic() < deadline:
@@ -200,6 +220,9 @@ def main():
                 if not desktop_captured and qmp is not None and 'MYKOS_DESKTOP_READY\n' in transcript:
                     qmp.command('screendump', {'filename': str(output / 'desktop.ppm')})
                     desktop_captured = True
+                if not installer_captured and qmp is not None and 'MYKOS_INSTALLER_READY\n' in transcript:
+                    qmp.command('screendump', {'filename': str(output / 'installer.ppm')})
+                    installer_captured = True
                 # systemd có thể ghi thêm trạng thái sau lời nhắc getty/shell.
                 # Không đòi prompt nằm ở cuối toàn bộ console.
                 if phase == 'boot' and has_prompt(phase, transcript):

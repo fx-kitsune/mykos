@@ -34,5 +34,7 @@ initrd="initrd.img-${kernel#vmlinuz-}"
     printf '  kernel /casper/%s\n  append initrd=/casper/%s %s\n' "$kernel" "$initrd" "$LB_BOOTAPPEND_LIVE"
     printf 'label mykos-safe\n  menu label MyKOS (do hoa an toan)\n'
     printf '  kernel /casper/%s\n  append initrd=/casper/%s %s nomodeset\n' "$kernel" "$initrd" "$LB_BOOTAPPEND_LIVE"
+    printf 'label mykos-software\n  menu label MyKOS (do hoa phan mem cho may ao)\n'
+    printf '  kernel /casper/%s\n  append initrd=/casper/%s %s systemd.setenv=KWIN_COMPOSE=N systemd.setenv=QT_QUICK_BACKEND=software\n' "$kernel" "$initrd" "$LB_BOOTAPPEND_LIVE"
 } > "$target/isolinux.cfg"
 Create_stagefile .build/binary_syslinux

@@ -14,4 +14,4 @@ name=default
 Theme=org.kde.breeze.desktop
 
 [Wallpaper]
-Image=MyKOS
+Image=/usr/share/wallpapers/MyKOS/contents/images/1920x1080.svg

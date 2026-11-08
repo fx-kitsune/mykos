@@ -61,6 +61,7 @@ jobs:
           printf 'run_id=%s\nartifact_name=%s\nsource_sha=%s\n' "$source_run_id" "$source_artifact" "$source_sha" >> "$GITHUB_OUTPUT"
           printf 'ISO source: run %s, commit %s, artifact %s\n' "$source_run_id" "$source_sha" "$source_artifact"
       - name: Tải ISO đã tạo thành công
+        timeout-minutes: 10
         uses: actions/download-artifact@v4
         with:
           github-token: ${{ github.token }}
@@ -70,8 +71,19 @@ jobs:
       - name: Cài QEMU và công cụ đọc ISO
         run: |
           sudo apt-get update
-          sudo apt-get install -y qemu-system-x86 xorriso python3-pil
+          sudo apt-get install -y qemu-system-x86 xorriso python3-pil acl
           qemu-system-x86_64 --version
+      - name: Kiểm tra tăng tốc KVM trên runner dùng riêng
+        run: |
+          set -euo pipefail
+          if [[ -c /dev/kvm ]]; then
+            # Chỉ cấp cho UID hiện tại trên máy tạm, không chmod toàn cục.
+            sudo setfacl -m "u:$(id -u):rw" /dev/kvm
+            test -r /dev/kvm && test -w /dev/kvm
+            echo 'KVM device available to the current runner user'
+          else
+            echo 'No KVM device; probes will use TCG'
+          fi
       - name: Kiểm tra mã SHA-256
         working-directory: artifacts/source-iso
         run: sha256sum -c SHA256SUMS

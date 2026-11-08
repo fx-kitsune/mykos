@@ -40,7 +40,7 @@ Cờ `--smoke-test` thoát sau khi render mẫu giao diện; không xác nhận 
 
 ## Tích hợp KDE
 
-`distribution/branding/overlay` cài bộ màu MyKOS Ink/Paper, chủ đề biểu tượng MyKOSFold có Breeze/hicolor dự phòng và hình nền SVG gốc. Hồ sơ KDE mới kế thừa MyKOSDark/MyKOSFold qua `/etc/xdg/kdeglobals`; cấu hình riêng của người dùng được ưu tiên. Hình nền có thể chọn qua trình chọn KDE và không bị ép áp dụng vào màn hình hiện có. Gói giao diện `org.mykos.desktop` bổ sung bố cục panel dưới cho hồ sơ chưa có panel, không tự mở Workspace; màn hình chờ khởi động và trang trí cửa sổ vẫn dùng Breeze gốc. Cấu hình này chưa được kiểm chứng trên một ISO mới.
+`distribution/branding/overlay` cài bộ màu MyKOS Ink/Paper, chủ đề biểu tượng MyKOSFold có Breeze/hicolor dự phòng và hình nền SVG gốc. Hồ sơ KDE mới kế thừa MyKOSDark/MyKOSFold qua `/etc/xdg/kdeglobals`; cấu hình riêng của người dùng được ưu tiên. Hồ sơ mới được chọn rõ hình nền logo MyKOS trong script khởi tạo; cấu hình này không ép thay hình nền của hồ sơ đang dùng. Gói giao diện `org.mykos.desktop` bổ sung bố cục panel dưới cho hồ sơ chưa có panel, không tự mở Workspace; màn hình chờ khởi động và trang trí cửa sổ vẫn dùng Breeze gốc. Cấu hình này chưa được kiểm chứng trên một ISO mới.
 
 Công cụ tạo ảnh đặt ứng dụng ở `/usr/share/mykos/workspace`, lệnh mở ở `/usr/bin/mykos-workspace` và mục ứng dụng trong menu. Không tự khởi chạy Workspace hoặc đăng ký phiên làm việc thay thế.
 

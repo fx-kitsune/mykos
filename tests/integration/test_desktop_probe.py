@@ -23,6 +23,10 @@ class DesktopProbeTests(unittest.TestCase):
         self.assertFalse(probe.desktop_ready(result))
         result['containments']['stdout'] = '{"panels":1,"desktops":1}'
         self.assertTrue(probe.desktop_ready(result))
+        result['installer'] = {'running': False}
+        self.assertFalse(probe.desktop_ready(result))
+        result['installer']['running'] = True
+        self.assertTrue(probe.desktop_ready(result))
 
     def test_console_command_fits_canonical_tty_line(self):
         self.assertLess(len(probe.guest_command()), 4096)

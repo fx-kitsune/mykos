@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Install MyKOS
+Name[vi]=Cài đặt MyKOS
+Comment=Install the MyKOS development system to a disk
+Comment[vi]=Cài đặt bản phát triển MyKOS vào ổ đĩa
+Exec=/usr/bin/mykos-install
+Icon=start-here-mykos
+Terminal=false
+Categories=System;
+StartupNotify=false

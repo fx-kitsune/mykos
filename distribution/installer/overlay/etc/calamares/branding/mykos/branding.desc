@@ -1,0 +1,34 @@
+{
+  "componentName": "mykos",
+  "welcomeStyleCalamares": false,
+  "welcomeExpandingLogo": false,
+  "windowExpanding": "normal",
+  "windowSize": "960px,640px",
+  "windowPlacement": "center",
+  "sidebar": "widget",
+  "navigation": "widget",
+  "strings": {
+    "productName": "MyKOS Development",
+    "shortProductName": "MyKOS",
+    "version": "0.1.0-dev",
+    "shortVersion": "0.1",
+    "versionedName": "MyKOS 0.1 Development",
+    "shortVersionedName": "MyKOS 0.1-dev",
+    "bootloaderEntryName": "MyKOS",
+    "productUrl": "https://github.com/fx-kitsune/mykos",
+    "supportUrl": "https://github.com/fx-kitsune/mykos/issues",
+    "knownIssuesUrl": "https://github.com/fx-kitsune/mykos/blob/main/docs/IMPLEMENTATION_STATUS.md",
+    "releaseNotesUrl": "https://github.com/fx-kitsune/mykos/blob/main/docs/IMPLEMENTATION_STATUS.md"
+  },
+  "images": {
+    "productIcon": "logo.svg",
+    "productLogo": "logo.svg",
+    "productWelcome": "logo.svg"
+  },
+  "style": {
+    "SidebarBackground": "#171c19",
+    "SidebarText": "#edf0e7",
+    "SidebarTextCurrent": "#20271c",
+    "SidebarBackgroundCurrent": "#d7ef83"
+  }
+}

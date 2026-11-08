@@ -1,0 +1,11 @@
+{
+  "type": "job",
+  "name": "mykos-config",
+  "interface": "python",
+  "script": "main.py",
+  "requiredModules": [
+    "mount",
+    "unpackfs"
+  ],
+  "weight": 1
+}

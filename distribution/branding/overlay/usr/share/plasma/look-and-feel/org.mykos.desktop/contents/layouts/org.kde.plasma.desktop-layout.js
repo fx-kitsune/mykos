@@ -1,5 +1,12 @@
 // Chỉ tạo bố cục khi hồ sơ chưa có panel. Không tạo cửa sổ hay chạy ứng dụng.
 if (panels().length === 0) {
+    var workspaceDesktops = desktopsForActivity(currentActivity());
+    for (var i = 0; i < workspaceDesktops.length; i++) {
+        var desktop = workspaceDesktops[i];
+        desktop.wallpaperPlugin = "org.kde.image";
+        desktop.currentConfigGroup = ["Wallpaper", "org.kde.image", "General"];
+        desktop.writeConfig("Image", "file:///usr/share/wallpapers/MyKOS/contents/images/1920x1080.svg");
+    }
     var panel = new Panel;
     panel.location = 'bottom';
     panel.height = 48;

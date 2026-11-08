@@ -91,3 +91,10 @@ Bước tiếp theo: đọc kết quả guest, rà soát ảnh giao diện và g
 - 25 kiểm thử tích hợp cục bộ đã đạt. Kết quả máy ảo với profile phần mềm và rà soát ảnh vẫn đang chờ; chưa tích hợp Calamares.
 
 Bằng chứng được đọc qua workflow `inspect-boot-evidence.yml` trong repo riêng; không cần thay chính sách mạng cloud để tải ảnh. Không gắn ổ đĩa cài đặt ở các phép thử desktop này.
+
+## Desktop phản hồi và chuẩn bị trình cài đặt
+
+- [Kiểm thử 42481797224](https://github.com/fx-kitsune/mykos/actions/runs/42481797224) trên cùng ISO nguồn đã đạt `desktop-ready` với profile software trong QEMU/TCG. Plasma trả đúng một panel và một desktop; Dolphin, Konsole, Thiết lập mở được. Biến môi trường KWin/Qt Quick đã được xác nhận từ tiến trình guest.
+- Ảnh thật đã hiển thị panel và các cửa sổ; hình nền vẫn đen do chưa ghi rõ Image cho desktop mới. Mã khởi tạo đã được sửa chọn đường dẫn SVG logo, chờ xác nhận trong ISO kế tiếp.
+- Journal TCG vẫn có lần khởi động Powerdevil/polkit-agent hết thời gian chờ; không xem kết quả desktop là nghiệm thu nguồn điện, thao tác quản trị, mạng hoặc phần cứng.
+- Đã bổ sung cấu hình Calamares BIOS, wrapper chỉ chạy live, module tạo bản cài và GRUB. Chưa có kết quả cài xuống đĩa. Bản build kế tiếp sẽ kiểm tra mở Calamares và hình nền đã sửa.

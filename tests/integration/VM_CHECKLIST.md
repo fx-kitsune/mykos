@@ -21,7 +21,7 @@ Công cụ dùng KVM khi truy cập được, ngược lại dùng TCG. Lệnh n
 | Màn hình | Đổi độ phân giải; kiểm tra phiên Wayland riêng | CHƯA CHẠY |
 | Tệp và trình dòng lệnh | Mở Dolphin/Konsole; tệp giữ được trong phiên đang chạy | CHƯA CHẠY |
 | Gói phần mềm | Làm mới APT có xác thực; mở Discover và Flatpak | CHƯA CHẠY |
-| Cài vào đĩa ảo trống | Hoàn tất, khởi động lại không cần ISO | BỊ CHẶN: chưa tích hợp trình cài đặt |
+| Cài vào đĩa ảo trống | Hoàn tất, khởi động lại không cần ISO | CHƯA CHẠY: cấu hình Calamares BIOS đã chuẩn bị, chờ ISO mới |
 | Đăng nhập bản cài | Tài khoản thường; quản trị có cấp quyền rõ ràng | BỊ CHẶN |
 | Cập nhật và khởi động lại | APT cập nhật, khởi động lại và phiên làm việc bình thường | BỊ CHẶN |
 | Phục hồi | Thực hiện hướng dẫn cứu hộ sau cập nhật lỗi | BỊ CHẶN |

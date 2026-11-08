@@ -51,6 +51,9 @@ class ImageToolTests(unittest.TestCase):
             self.assertEqual((installed / "usr/share/mykos/workspace/qml").stat().st_mode & 0o777, 0o755)
             self.assertTrue((installed / "usr/share/applications/mykos-workspace.desktop").exists())
             self.assertTrue((installed / "usr/share/icons/MyKOSFold/index.theme").exists())
+            self.assertEqual((installed / "usr/bin/mykos-install").stat().st_mode & 0o777, 0o755)
+            self.assertEqual((installed / "etc/calamares/settings.conf").stat().st_mode & 0o777, 0o644)
+            self.assertTrue((installed / "usr/share/mykos/calamares/modules/mykos-config/main.py").exists())
 
     def test_toolchain_adapter_sources_library_without_modifying_original(self):
         with tempfile.TemporaryDirectory() as folder:

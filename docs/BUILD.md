@@ -107,3 +107,9 @@ Kết quả `desktop-services-ready` xác nhận tiến trình và thao tác m�
 Khi chỉ sửa workflow khởi động hoặc `scripts/testing/**`, push lên `main` tự kiểm thử lại ISO thành công gần nhất. Bước xác định nguồn đọc metadata Actions, xác nhận build thành công và ghi rõ mã lượt build, commit nguồn, tên artifact trước khi tải. Nếu artifact hết hạn hoặc API lỗi, kiểm thử thất bại thay vì âm thầm chọn ISO khác. Giá trị mặc định chạy thủ công hiện trỏ tới lượt build `42443779141`.
 
 Console có thể nhận log systemd xen vào sau lời nhắc đăng nhập. Công cụ không yêu cầu prompt ở cuối log, giới hạn 60 giây cho shell live và 300 giây cho lệnh kiểm tra desktop; các chuyển bước được ghi trực tiếp ra log Actions. Thiết lập hỗ trợ cả tên chương trình `systemsettings` và `systemsettings5` của Plasma 5.
+
+### Đồ họa máy ảo và trình cài đặt
+
+Menu BIOS có mục **MyKOS (do hoa phan mem cho may ao)**: tắt compositing X11 và dùng Qt Quick software, phù hợp phép thử QEMU/TCG đã quan sát treo OpenGL. Mục khởi động bình thường giữ cấu hình đồ họa gốc. Các tham số này không chứng minh hỗ trợ mọi GPU hoặc phần cứng thật.
+
+Lớp `distribution/installer/overlay` đưa cấu hình Calamares, mục menu và module hoàn tất bản cài vào ảnh. Danh sách gói bổ sung Calamares và GRUB BIOS. Xem [phạm vi installer](../distribution/installer/README.md); cài đặt và boot từ ổ đĩa còn chờ nghiệm thu. Kiểm thử desktop tự mở Calamares nếu gói có mặt, giữ log và ảnh cửa sổ; không gắn hoặc ghi ổ đĩa ở bước đó.

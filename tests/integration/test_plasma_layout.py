@@ -16,6 +16,7 @@ class PlasmaLayoutTests(unittest.TestCase):
         harness = '''
 const fs = require('fs'), vm = require('vm');
 const created = [];
+const desktop = {config:{},writeConfig(key,value){this.config[key]=value;}};
 function Panel() {
   this.widgets = [];
   this.addWidget = function(id) {
@@ -24,15 +25,19 @@ function Panel() {
   };
   created.push(this);
 }
-vm.runInNewContext(fs.readFileSync(process.argv[1],'utf8'), {panels:()=>Array(Number(process.argv[2])).fill({}),Panel});
-console.log(JSON.stringify(created));
+vm.runInNewContext(fs.readFileSync(process.argv[1],'utf8'), {
+  panels:()=>Array(Number(process.argv[2])).fill({}), Panel,
+  desktopsForActivity:()=>[desktop], currentActivity:()=>"test-activity"
+});
+console.log(JSON.stringify({panels:created,desktop}));
 '''
         result = subprocess.run(['node', '-e', harness, str(LAYOUT), str(count)],
                                 capture_output=True, text=True, check=True)
         return json.loads(result.stdout)
 
     def test_new_profile_gets_one_bottom_panel_without_workspace(self):
-        panels = self.evaluate(0)
+        result = self.evaluate(0)
+        panels = result['panels']
         self.assertEqual(len(panels), 1)
         self.assertEqual(panels[0]['location'], 'bottom')
         self.assertEqual(panels[0]['height'], 48)
@@ -42,7 +47,12 @@ console.log(JSON.stringify(created));
             'org.kde.plasma.systemtray', 'org.kde.plasma.digitalclock', 'org.kde.plasma.showdesktop'])
         self.assertEqual(widgets[1]['config']['launchers'], ['applications:org.kde.dolphin.desktop'])
         self.assertEqual(json.loads((PACKAGE / 'metadata.json').read_text())['KPlugin']['Id'], 'org.mykos.desktop')
+        self.assertEqual(result['desktop']['wallpaperPlugin'], 'org.kde.image')
+        self.assertEqual(result['desktop']['config']['Image'],
+                         'file:///usr/share/wallpapers/MyKOS/contents/images/1920x1080.svg')
 
     def test_existing_panels_are_not_replaced_or_duplicated(self):
-        self.assertEqual(self.evaluate(1), [])
-        self.assertEqual(self.evaluate(2), [])
+        for count in [1, 2]:
+            result = self.evaluate(count)
+            self.assertEqual(result['panels'], [])
+            self.assertEqual(result['desktop']['config'], {})

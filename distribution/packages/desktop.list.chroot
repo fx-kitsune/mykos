@@ -54,3 +54,8 @@ gwenview
 python3-pyqt6
 python3-pyqt6.qtquick
 python3-pyqt6.qtsvg
+
+# BIOS installer (development; installation still needs acceptance)
+calamares
+grub-pc-bin
+grub2-common

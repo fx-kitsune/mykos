@@ -68,6 +68,7 @@ Context=Actions
     mark = (ROOT / "design-system/assets/icons/mark.svg").read_text()
     for mode, color in [("dark", "#d7ef83"), ("light", "#526a2b")]:
         result[ROOT / "desktop/workspace/assets" / f"mark-{mode}.svg"] = mark.replace("currentColor", color)
+    result[ROOT / "distribution/installer/overlay/etc/calamares/branding/mykos/logo.svg"] = mark.replace("currentColor", "#d7ef83")
     return result
 
 
