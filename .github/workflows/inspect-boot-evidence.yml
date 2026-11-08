@@ -1,7 +1,7 @@
 name: Đọc bằng chứng kiểm thử máy ảo
 on:
   workflow_run:
-    workflows: [Kiểm thử khởi động ISO, Kiểm thử cài đặt MyKOS]
+    workflows: [Kiểm thử khởi động ISO, Kiểm thử cài đặt MyKOS, Chẩn đoán Calamares]
     types: [completed]
     branches: [main]
 permissions:
@@ -19,7 +19,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           SOURCE_RUN: ${{ github.event.workflow_run.id }}
-          ARTIFACT_NAME: ${{ github.event.workflow_run.name == 'Kiểm thử cài đặt MyKOS' && format('mykos-install-evidence-{0}-{1}', github.event.workflow_run.id, github.event.workflow_run.run_attempt) || format('mykos-boot-evidence-{0}-{1}', github.event.workflow_run.id, github.event.workflow_run.run_attempt) }}
+          ARTIFACT_NAME: ${{ github.event.workflow_run.name != 'Kiểm thử khởi động ISO' && format('mykos-install-evidence-{0}-{1}', github.event.workflow_run.id, github.event.workflow_run.run_attempt) || format('mykos-boot-evidence-{0}-{1}', github.event.workflow_run.id, github.event.workflow_run.run_attempt) }}
         run: |
           set -euo pipefail
           count=$(gh api "repos/$GH_REPO/actions/runs/$SOURCE_RUN/artifacts" | jq --arg name "$ARTIFACT_NAME" '[.artifacts[] | select(.name == $name)] | length')
@@ -35,7 +35,7 @@ jobs:
         with:
           github-token: ${{ github.token }}
           run-id: ${{ github.event.workflow_run.id }}
-          name: ${{ github.event.workflow_run.name == 'Kiểm thử cài đặt MyKOS' && format('mykos-install-evidence-{0}-{1}', github.event.workflow_run.id, github.event.workflow_run.run_attempt) || format('mykos-boot-evidence-{0}-{1}', github.event.workflow_run.id, github.event.workflow_run.run_attempt) }}
+          name: ${{ github.event.workflow_run.name != 'Kiểm thử khởi động ISO' && format('mykos-install-evidence-{0}-{1}', github.event.workflow_run.id, github.event.workflow_run.run_attempt) || format('mykos-boot-evidence-{0}-{1}', github.event.workflow_run.id, github.event.workflow_run.run_attempt) }}
           path: evidence
       - name: Xuất kết quả và ảnh để rà soát qua log
         if: steps.available.outputs.present == 'true'

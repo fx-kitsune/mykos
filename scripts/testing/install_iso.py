@@ -17,6 +17,8 @@ def main():
     parser.add_argument('iso', type=Path)
     parser.add_argument('--expected-sha', required=True)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--diagnostic-direct', action='store_true',
+                        help='Chỉ chẩn đoán Calamares trực tiếp; không nghiệm thu launcher của ISO.')
     args = parser.parse_args()
     iso, output = args.iso.resolve(), args.output.resolve()
     if not iso.is_file() or output.exists() or ',' in str(output):
@@ -26,6 +28,7 @@ def main():
         parser.error('ISO không khớp mã SHA-256 đã nghiệm thu desktop; không tạo hoặc gắn đĩa.')
     output.mkdir(parents=True)
     report = {'status': 'failed', 'iso_sha256': actual_sha,
+              'diagnostic_direct': args.diagnostic_direct,
               'scope': 'Xem installer với đĩa ảo mới; chưa cài đặt hoặc ghi phân vùng.',
               'disk': 'install-disk.qcow2', 'disk_size_bytes': 40 * 1024**3}
     vm = None
@@ -60,7 +63,13 @@ def main():
         if not empty_test_disk(inventory):
             raise RuntimeError('Chỉ chấp nhận đúng một đĩa vda mới, 40 GiB và chưa có phân vùng.')
         print('Installer preview: verified fresh vda; opening Calamares', flush=True)
-        result = vm.guest(GUEST, timeout=600)
+        payload = GUEST
+        if args.diagnostic_direct:
+            needle = "'/usr/bin/mykos-install'"
+            if payload.count(needle) != 1:
+                raise RuntimeError('Cấu trúc lệnh chẩn đoán đã thay đổi; không tự đoán lệnh chạy.')
+            payload = payload.replace(needle, "'/usr/bin/calamares', '--debug'")
+        result = vm.guest(payload, timeout=600)
         report['guest'] = result
         if not desktop_ready(result) or not result.get('installer', {}).get('running'):
             raise RuntimeError('Desktop hoặc Calamares chưa sẵn sàng.')
@@ -70,7 +79,7 @@ def main():
             time.sleep(3)
             vm.capture('installer-' + name)
         # Không chọn xóa đĩa hoặc bấm Install trong phép thử preview.
-        report['status'] = 'installer-preview'
+        report['status'] = 'installer-diagnostic-preview' if args.diagnostic_direct else 'installer-preview'
     except (OSError, ValueError, RuntimeError, subprocess.CalledProcessError) as error:
         report['error'] = str(error)
     finally:
@@ -83,7 +92,7 @@ def main():
         report['elapsed_seconds'] = round(time.monotonic() - started, 1)
         (output / 'result.json').write_text(json.dumps(report, ensure_ascii=False, indent=2) + '\n')
         print(json.dumps(report, ensure_ascii=False, indent=2))
-    return 0 if report['status'] == 'installer-preview' else 1
+    return 0 if report['status'] in {'installer-preview', 'installer-diagnostic-preview'} else 1
 
 
 if __name__ == '__main__':
