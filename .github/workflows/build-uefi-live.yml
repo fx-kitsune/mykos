@@ -1,0 +1,192 @@
+name: ISO UEFI va kiem thu truc tiep
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: [.github/workflows/build-uefi-live.yml]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mykos-uefi-live-${{ github.ref }}
+  # Không giữ lượt build của đầu vào đã bị thay bằng bản sửa mới.
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Tạo ảnh Ubuntu Noble amd64
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    defaults:
+      run:
+        shell: bash
+    env:
+      BUILD_DIRECTORY: build/actions
+      ARTIFACT_DIRECTORY: artifacts/iso
+      DIAGNOSTIC_DIRECTORY: artifacts/diagnostics
+    steps:
+      - name: Lấy mã nguồn
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Chuẩn bị tài nguyên máy tạo ảnh
+        run: |
+          set -euo pipefail
+          mkdir -p "$DIAGNOSTIC_DIRECTORY"
+          df -h . | tee "$DIAGNOSTIC_DIRECTORY/disk-before.txt"
+          free -h | tee "$DIAGNOSTIC_DIRECTORY/memory.txt"
+          # Chỉ dọn SDK cài sẵn trên máy tạm do GitHub cấp; không đụng mã nguồn.
+          if [[ "$RUNNER_ENVIRONMENT" == github-hosted && "$RUNNER_OS" == Linux ]]; then
+            sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc
+          fi
+          df -h . | tee "$DIAGNOSTIC_DIRECTORY/disk-after.txt"
+
+      - name: Cài bộ công cụ Ubuntu đã chốt
+        run: |
+          set -euo pipefail
+          version=$(python3 -c 'import json; print(json.load(open("distribution/base/build.json"))["live_build_version"])')
+          sudo apt-get update
+          sudo apt-get install -y "live-build=$version" debootstrap ubuntu-keyring \
+            squashfs-tools xorriso genisoimage isolinux syslinux syslinux-common \
+            syslinux-utils dosfstools mtools grub-efi-amd64-bin grub-common cpio rsync python3 git qemu-system-x86 ovmf python3-pil acl p7zip-full
+          dpkg-query -W live-build debootstrap squashfs-tools xorriso genisoimage \
+            isolinux syslinux syslinux-common syslinux-utils ubuntu-keyring grub-common grub-efi-amd64-bin mtools \
+            > "$DIAGNOSTIC_DIRECTORY/toolchain.txt"
+
+      - name: Kiểm tra cấu hình và tài nguyên
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s tests/integration -v
+          python3 scripts/build/export-design.py --check
+          # Kiểm tra gói cung cấp isohybrid trên host; adapter cài cùng gói trong chroot.
+          dpkg-query -L syslinux-utils | grep -Fx /usr/bin/isohybrid
+          # Menu BIOS lấy đúng tệp của Syslinux 6 trên Noble.
+          test -r /usr/lib/ISOLINUX/isolinux.bin
+          for module in menu.c32 ldlinux.c32 libcom32.c32 libutil.c32; do
+            test -r "/usr/lib/syslinux/modules/bios/$module"
+          done
+          sudo python3 scripts/build/mykos.py check 2>&1 | tee "$DIAGNOSTIC_DIRECTORY/preflight.log"
+
+      - name: Tạo ISO
+        id: build
+        timeout-minutes: 155
+        run: |
+          set -euo pipefail
+          # Giữ thời gian cho bước lấy nhật ký trước khi job hết hạn.
+          timeout --signal=TERM --kill-after=120s 150m \
+            sudo python3 scripts/build/mykos.py build "$BUILD_DIRECTORY" --artifacts "$ARTIFACT_DIRECTORY"
+
+      - name: Kiểm tra sản phẩm
+        run: |
+          set -euo pipefail
+          sudo chmod -R a+rX "$ARTIFACT_DIRECTORY"
+          (cd "$ARTIFACT_DIRECTORY" && sha256sum -c SHA256SUMS)
+          mapfile -t images < <(find "$ARTIFACT_DIRECTORY" -maxdepth 1 -name '*.iso' -type f)
+          [[ ${#images[@]} -eq 1 ]]
+          xorriso -indev "${images[0]}" -report_el_torito plain \
+            > "$DIAGNOSTIC_DIRECTORY/iso-boot-layout.txt" 2>&1
+
+      - name: Kiem thu UEFI USB, UEFI CD-ROM va BIOS truoc khi luu ISO
+        id: live_checks
+        timeout-minutes: 65
+        run: |
+          set -euo pipefail
+          python3 scripts/testing/probe_desktop.py artifacts/iso/mykos-0.1.0-dev-amd64.iso --output artifacts/uefi-usb-test --timeout 1200 --software-rendering --firmware uefi --media usb
+          python3 scripts/testing/probe_desktop.py artifacts/iso/mykos-0.1.0-dev-amd64.iso --output artifacts/uefi-cdrom-test --timeout 1200 --software-rendering --firmware uefi --media cdrom
+          python3 scripts/testing/boot_iso.py artifacts/iso/mykos-0.1.0-dev-amd64.iso --output artifacts/boot-test --timeout 1200
+
+      - name: Xuat bang chung vao log ke ca khi het han muc Artifacts
+        if: always()
+        run: |
+          python3 - <<'PYTHON'
+          import base64, hashlib, textwrap
+          from pathlib import Path
+          from PIL import Image
+          for path in sorted(Path('artifacts').glob('*-test/result.json')):
+              print('MYKOS_RESULT_BEGIN', str(path), flush=True)
+              print(path.read_text(), flush=True)
+              print('MYKOS_RESULT_END', flush=True)
+          for path in sorted(Path('artifacts').glob('*-test/*.ppm')):
+              target = path.with_suffix('.png')
+              Image.open(path).save(target)
+              data = target.read_bytes()
+              print('MYKOS_PNG_BEGIN', str(target), hashlib.sha256(data).hexdigest(), flush=True)
+              for chunk in textwrap.wrap(base64.b64encode(data).decode(), 4000):
+                  print('MYKOS_PNG_DATA ' + chunk, flush=True)
+              print('MYKOS_PNG_END', flush=True)
+          PYTHON
+
+      - name: Thu thập nhật ký kể cả khi thất bại
+        if: always()
+        env:
+          BUILD_RESULT: ${{ steps.build.outcome }}
+        run: bash scripts/ci/collect-build-logs.sh
+
+      - name: Lưu ISO và mã kiểm tra
+        id: iso_upload
+        continue-on-error: true
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mykos-iso-amd64-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/iso/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
+
+      - name: Lưu nhật ký chẩn đoán
+        continue-on-error: true
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mykos-build-logs-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/diagnostics/
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Tao goi tai trong release nhap neu Artifacts bi chan
+        id: draft_delivery
+        if: steps.build.outcome == 'success' && steps.live_checks.outcome == 'success' && steps.iso_upload.outcome == 'failure'
+        timeout-minutes: 25
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          # Release assets have a 2 GiB per-file limit. Two 7-Zip volumes preserve
+          # the complete ISO without requiring Actions artifact storage.
+          (cd "$ARTIFACT_DIRECTORY" && 7z a -t7z -mx=0 -v1900m "$RUNNER_TEMP/mykos-0.1.0-dev-amd64.7z" .)
+          (cd "$RUNNER_TEMP" && sha256sum mykos-0.1.0-dev-amd64.7z.* > MYKOS-UEFI-PARTS-SHA256SUMS)
+          python3 - <<'PYTHON'
+          import json, os
+          from pathlib import Path
+          info = json.loads(Path('artifacts/iso/build.json').read_text())
+          text = """Bản phát triển live UEFI amd64, chưa phải bản ổn định.
+
+          Đã kiểm thử OVMF từ USB GPT và CD-ROM tới Plasma với đồ họa phần mềm; kiểm tra BIOS tới môi trường người dùng đạt. Secure Boot chưa hỗ trợ. Trình cài đặt vẫn chỉ hỗ trợ BIOS, chưa cài xuống ổ trong ở chế độ UEFI.
+
+          Tải cả hai tệp .7z.001 và .7z.002 vào cùng thư mục. Dùng 7-Zip mở tệp .001 rồi Extract để lấy ISO; không đổi tên phần tệp. Kiểm tra SHA256SUMS sau giải nén. Ghi USB dùng riêng bằng Rufus DD Image mode, rồi chọn UEFI USB trong Boot Menu.
+
+          Hai phần được dùng vì tài khoản đã hết hạn mức Actions Artifacts và mỗi release asset có giới hạn 2 GiB. Bản phát hành này được tạo ở trạng thái nháp, chưa công bố.
+          """
+          text += '\nISO SHA-256: `' + info['iso_sha256'] + '`\n'
+          text += '\nNguồn: `' + info['git_revision'] + '`\n'
+          text += '\nBuild/kiểm thử: https://github.com/' + os.environ['GITHUB_REPOSITORY'] + '/actions/runs/' + os.environ['GITHUB_RUN_ID'] + '\n'
+          Path(os.environ['RUNNER_TEMP'], 'mykos-release-notes.md').write_text(text)
+          PYTHON
+          tag="v0.1.0-dev-uefi-build-$GITHUB_RUN_ID"
+          gh release create "$tag" --draft --prerelease --target "$GITHUB_SHA" \
+            --title "MyKOS 0.1.0-dev UEFI (build $GITHUB_RUN_ID, nhap)" \
+            --notes-file "$RUNNER_TEMP/mykos-release-notes.md" \
+            "$RUNNER_TEMP"/mykos-0.1.0-dev-amd64.7z.* "$RUNNER_TEMP/MYKOS-UEFI-PARTS-SHA256SUMS"
+          gh release view "$tag" --json url,isDraft,isPrerelease,assets
+          gh release view "$tag" --json url --jq .url >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Xac nhan da co duong tai ISO sau kiem thu
+        if: steps.build.outcome == 'success' && steps.live_checks.outcome == 'success'
+        env:
+          ARTIFACT_RESULT: ${{ steps.iso_upload.outcome }}
+          DRAFT_RESULT: ${{ steps.draft_delivery.outcome }}
+        run: test "$ARTIFACT_RESULT" = success || test "$DRAFT_RESULT" = success
