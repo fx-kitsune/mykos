@@ -8,10 +8,12 @@ from pathlib import Path
 import re
 import socket
 import subprocess
+import shutil
 import time
 import zlib
 
-from boot_iso import QMP, digest, prepare_menu
+from boot_iso import QMP, digest, prepare_menu, instrument_grub
+from vm_session import refresh_kvm_access
 
 MARKER = 'MYKOS_DESKTOP_RESULT='
 SOFTWARE_PARAMETERS = ' systemd.setenv=KWIN_COMPOSE=N systemd.setenv=QT_QUICK_BACKEND=software'
@@ -30,7 +32,7 @@ deadline = time.monotonic() + 180
 while time.monotonic() < deadline and running('plasmashell').returncode:
     time.sleep(2)
 shell = running('plasmashell')
-result = {'uid': os.getuid(), 'plasma': shell.returncode == 0,
+result = {'uid': os.getuid(), 'firmware_uefi': os.path.isdir('/sys/firmware/efi'), 'plasma': shell.returncode == 0,
           'kwin': any(running(name).returncode == 0 for name in ['kwin_x11', 'kwin_wayland']),
           'applications': {}, 'sessions': diagnostic(['loginctl', 'list-sessions', '--no-legend', '--no-pager']),
           'processes': diagnostic(['ps', '-u', str(os.getuid()), '-o', 'pid,comm,args'])}
@@ -81,7 +83,7 @@ if result['plasma']:
     config = os.path.expanduser('~/.config/plasma-org.kde.plasma.desktop-appletsrc')
     if os.path.isfile(config):
         result['desktop_config'] = open(config).read()[-8000:]
-    if shutil.which('calamares'):
+    if shutil.which('calamares') and not result['firmware_uefi']:
         installer_log = '/tmp/mykos-installer-probe.log'
         installer_env = env.copy()
         installer_env['MYKOS_INSTALL_DEBUG'] = '1'
@@ -161,6 +163,10 @@ def main():
     parser.add_argument('iso', type=Path)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--timeout', type=int, default=1200)
+    parser.add_argument('--firmware', choices=['bios', 'uefi'], default='bios')
+    parser.add_argument('--media', choices=['cdrom', 'usb'], default='cdrom')
+    parser.add_argument('--ovmf-code', type=Path, default=Path('/usr/share/OVMF/OVMF_CODE_4M.fd'))
+    parser.add_argument('--ovmf-vars', type=Path, default=Path('/usr/share/OVMF/OVMF_VARS_4M.fd'))
     parser.add_argument('--software-rendering', action='store_true',
                         help='Bản sao dùng Qt Quick software và tắt compositor X11 cho QEMU/TCG.')
     args = parser.parse_args()
@@ -170,31 +176,52 @@ def main():
     output.mkdir(parents=True)
     report = {'iso_sha256': digest(iso), 'status': 'failed',
               'rendering_profile': 'software' if args.software_rendering else 'default',
+              'firmware': args.firmware, 'media': args.media,
               'scope': 'Tiến trình Plasma/KWin và mở ứng dụng; ảnh cần rà soát trực quan. Chưa nghiệm thu cài đặt hoặc thiết bị.',
               'instrumentation': 'Bản sao chỉ thêm console nối tiếp; không gắn đĩa cài đặt.'}
     machine = serial = qmp = None
     started = time.monotonic()
     transcript = ''
     try:
-        menu = output / 'isolinux.cfg'
+        menu = output / ('grub.cfg' if args.firmware == 'uefi' else 'isolinux.cfg')
+        menu_path = '/boot/grub/grub.cfg' if args.firmware == 'uefi' else '/isolinux/isolinux.cfg'
         subprocess.run(['xorriso', '-osirrox', 'on', '-indev', str(iso), '-extract',
-                        '/isolinux/isolinux.cfg', str(menu)], check=True)
-        prepare_menu(menu)
-        if args.software_rendering:
+                        menu_path, str(menu)], check=True)
+        if args.firmware == 'uefi':
+            menu.chmod(0o600)
+            menu.write_text(instrument_grub(menu.read_text(), args.software_rendering))
+        else:
+            prepare_menu(menu)
+        if args.software_rendering and args.firmware == 'bios':
             menu.write_text('\n'.join(line + SOFTWARE_PARAMETERS if line.lstrip().startswith('append ')
                                       else line for line in menu.read_text().splitlines()) + '\n')
         probe_iso = output / 'desktop-probe.iso'
         subprocess.run(['xorriso', '-indev', str(iso), '-outdev', str(probe_iso),
                         '-boot_image', 'any', 'replay', '-map', str(menu),
-                        '/isolinux/isolinux.cfg', '-commit'], check=True)
+                        menu_path, '-commit'], check=True)
         report['probe_iso_sha256'] = digest(probe_iso)
+        report['kvm_access'] = refresh_kvm_access()
         accel = 'kvm' if os.access('/dev/kvm', os.R_OK | os.W_OK) else 'tcg'
         serial_path, qmp_path = output / 'serial.sock', output / 'qmp.sock'
         command = ['qemu-system-x86_64', '-accel', accel, '-m', '4096', '-smp', '2',
-                   '-boot', 'order=d', '-cdrom', str(probe_iso), '-display', 'none',
+                   '-display', 'none',
                    '-vga', 'std', '-nic', 'user,model=virtio-net-pci',
                    '-serial', 'unix:' + str(serial_path) + ',server=on,wait=on',
                    '-qmp', 'unix:' + str(qmp_path) + ',server=on,wait=off', '-no-reboot']
+        if args.firmware == 'uefi':
+            if not args.ovmf_code.is_file() or not args.ovmf_vars.is_file():
+                raise ValueError('Missing OVMF firmware')
+            variables = output / 'OVMF_VARS.fd'
+            shutil.copyfile(args.ovmf_vars, variables)
+            report['ovmf_code_sha256'] = digest(args.ovmf_code)
+            report['ovmf_vars_template_sha256'] = digest(args.ovmf_vars)
+            command += ['-machine', 'q35', '-drive', 'if=pflash,format=raw,readonly=on,file=' + str(args.ovmf_code),
+                        '-drive', 'if=pflash,format=raw,file=' + str(variables)]
+        if args.media == 'usb':
+            command += ['-device', 'qemu-xhci', '-drive', 'if=none,id=liveusb,format=raw,readonly=on,file=' + str(probe_iso),
+                        '-device', 'usb-storage,drive=liveusb,bootindex=1']
+        else:
+            command += ['-boot', 'order=d', '-cdrom', str(probe_iso)]
         report['command'] = command
         with (output / 'qemu.log').open('w') as log:
             machine = subprocess.Popen(command, stdout=log, stderr=subprocess.STDOUT)
@@ -269,7 +296,7 @@ def main():
                 result = guest_result(transcript)
                 if result is not None:
                     report['guest'] = result
-                    if desktop_ready(result):
+                    if desktop_ready(result) and result.get('firmware_uefi') == (args.firmware == 'uefi'):
                         report['status'] = 'desktop-ready'
                     else:
                         report['error'] = 'Desktop chưa phản hồi hoặc thiếu panel/màn hình/ứng dụng; xem kết quả guest.'

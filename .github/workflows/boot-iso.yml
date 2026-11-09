@@ -29,9 +29,9 @@ concurrency:
 jobs:
   boot:
     if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
-    name: BIOS và môi trường chạy trực tiếp
+    name: UEFI USB/CD-ROM, BIOS và môi trường chạy trực tiếp
     runs-on: ubuntu-24.04
-    timeout-minutes: 70
+    timeout-minutes: 110
     steps:
       - name: Lấy công cụ kiểm thử
         uses: actions/checkout@v4
@@ -71,7 +71,7 @@ jobs:
       - name: Cài QEMU và công cụ đọc ISO
         run: |
           sudo apt-get update
-          sudo apt-get install -y qemu-system-x86 xorriso python3-pil acl
+          sudo apt-get install -y qemu-system-x86 xorriso python3-pil acl ovmf
           qemu-system-x86_64 --version
       - name: Kiểm tra tăng tốc KVM trên runner dùng riêng
         run: |
@@ -91,6 +91,14 @@ jobs:
         timeout-minutes: 25
         run: |
           python3 scripts/testing/boot_iso.py artifacts/source-iso/mykos-0.1.0-dev-amd64.iso --output artifacts/boot-test --timeout 1200
+      - name: Kiểm tra UEFI từ USB GPT và phiên Plasma
+        timeout-minutes: 25
+        run: |
+          python3 scripts/testing/probe_desktop.py artifacts/source-iso/mykos-0.1.0-dev-amd64.iso --output artifacts/uefi-usb-test --timeout 1200 --software-rendering --firmware uefi --media usb
+      - name: Kiểm tra UEFI từ CD-ROM và phiên Plasma
+        timeout-minutes: 25
+        run: |
+          python3 scripts/testing/probe_desktop.py artifacts/source-iso/mykos-0.1.0-dev-amd64.iso --output artifacts/uefi-cdrom-test --timeout 1200 --software-rendering --firmware uefi --media cdrom
       - name: Kiểm tra phiên Plasma và mở ứng dụng
         timeout-minutes: 25
         run: |
@@ -129,5 +137,10 @@ jobs:
             artifacts/desktop-test/*.cfg
             artifacts/desktop-test/*.png
             artifacts/desktop-test/*.ppm
+            artifacts/uefi-*-test/*.json
+            artifacts/uefi-*-test/*.log
+            artifacts/uefi-*-test/*.cfg
+            artifacts/uefi-*-test/*.png
+            artifacts/uefi-*-test/*.ppm
           if-no-files-found: warn
           retention-days: 7

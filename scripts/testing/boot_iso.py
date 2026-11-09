@@ -44,6 +44,22 @@ def prepare_menu(path):
     path.write_text(instrument_menu(path.read_text()))
 
 
+def instrument_grub(text, software=False):
+    """Change kernel arguments only; keep the tested EFI loader and payload."""
+    count = 0
+    lines = []
+    for line in text.splitlines():
+        if line.lstrip().startswith('linux '):
+            count += 1
+            line += ' console=ttyS0,115200n8 systemd.show_status=1'
+            if software:
+                line += ' systemd.setenv=KWIN_COMPOSE=N systemd.setenv=QT_QUICK_BACKEND=software'
+        lines.append(line)
+    if count != 3:
+        raise ValueError('Expected three EFI live kernel entries')
+    return '\n'.join(lines) + '\n'
+
+
 class QMP:
     def __init__(self, path):
         self.sock = socket.socket(socket.AF_UNIX)

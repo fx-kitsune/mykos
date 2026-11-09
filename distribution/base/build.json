@@ -9,6 +9,7 @@
   "mirror": "https://archive.ubuntu.com/ubuntu/",
   "security_mirror": "https://security.ubuntu.com/ubuntu/",
   "bootloader": "syslinux",
-  "boot_mode": "legacy-bios",
+  "boot_mode": "bios-and-uefi-amd64-live",
+  "uefi_secure_boot": false,
   "minimum_free_gib": 25
 }

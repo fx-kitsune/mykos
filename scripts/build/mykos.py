@@ -128,7 +128,8 @@ def preflight():
     problems = []
     if os.geteuid() != 0:
         problems.append("ISO creation requires root on a disposable build VM (chroot and mounts).")
-    for tool in ["lb", "debootstrap", "mksquashfs", "xorriso", "genisoimage", "chroot", "mount", "isohybrid"]:
+    for tool in ["lb", "debootstrap", "mksquashfs", "xorriso", "genisoimage", "chroot", "mount", "isohybrid",
+                 "grub-mkstandalone", "mformat", "mmd", "mcopy"]:
         if not shutil.which(tool):
             problems.append(f"Missing build tool: {tool}")
     if shutil.which("dpkg-query"):
@@ -219,7 +220,11 @@ def main():
         images = list(directory.glob("*.iso"))
         if len(images) != 1:
             raise ValueError("Expected exactly one ISO in completed build")
-        metadata(images[0], args.artifacts, directory / "chroot.packages.live")
+        # Add UEFI after the legacy live-build BIOS stage, before checksumming.
+        run([sys.executable, str(ROOT / 'scripts/build/uefi.py'), str(images[0]),
+             str(directory / 'binary'), str(directory / 'mykos-hybrid.iso')])
+        metadata(directory / 'mykos-hybrid.iso', args.artifacts, directory / "chroot.packages.live")
+        shutil.copy2(directory / 'mykos-hybrid.boot-layout.txt', args.artifacts)
         shutil.copy2(directory / "build.log", args.artifacts)
         for name in ["bootstrap", "chroot", "binary", "common"]:
             shutil.copy2(directory / "config" / name, args.artifacts / f"live-build-{name}.conf")

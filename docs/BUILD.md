@@ -1,5 +1,11 @@
 # Tạo ảnh ISO phát triển M0
 
+## Khởi động UEFI/GPT đang được bổ sung
+
+Chuỗi tạo ảnh mới giữ BIOS/Syslinux và thêm GRUB amd64 UEFI, phân vùng EFI trong GPT cho USB, cùng mục El Torito UEFI cho đĩa quang. Có cả `/EFI/BOOT/BOOTX64.EFI` để công cụ ghi USB theo chế độ trích xuất tìm thấy bộ nạp. ISO cũ build `42527363919` vẫn chỉ boot BIOS; không thể chuyển nó thành UEFI bằng cách chọn GPT trong Rufus.
+
+Bộ nạp mới chưa ký Secure Boot. Phạm vi trước mắt là phiên live UEFI với Secure Boot tắt; trình cài đặt hiện vẫn từ chối UEFI vì bố cục ESP/GRUB đích chưa được nghiệm thu. Chưa xem việc cấu trúc GPT/EFI tồn tại là bằng chứng boot tới Plasma. Workflow sẽ kiểm tra bằng OVMF từ cả USB ảo và CD-ROM, đồng thời kiểm tra lại BIOS.
+
 ## Máy tạo ảnh được hỗ trợ
 
 Dùng **máy ảo Ubuntu 24.04 amd64 riêng cho việc tạo ảnh**, có quyền root, tối thiểu 4 lõi CPU, 8 GiB RAM và 25 GiB đĩa trống. Quá trình tạo ảnh dùng `chroot` và gắn hệ thống tệp; container thông thường không đặc quyền chưa đủ điều kiện. Tránh thực hiện trên máy cá nhân có dữ liệu quan trọng đang được gắn.
@@ -10,7 +16,7 @@ Cài phụ thuộc từ kho Ubuntu đã xác thực:
 sudo apt-get update
 sudo apt-get install live-build=3.0~a57-1ubuntu49.1 debootstrap ubuntu-keyring \
   squashfs-tools xorriso genisoimage isolinux syslinux syslinux-common \
-  syslinux-utils dosfstools mtools cpio rsync python3 git
+  syslinux-utils dosfstools mtools grub-efi-amd64-bin grub-common cpio rsync python3 git
 ```
 
 Nếu không có đúng phiên bản đã chốt, dừng và xem lại [quyết định bộ công cụ](ADR/0001-m0-build-baseline.md). Không tự thay bằng Debian live-build vì cách tích hợp Ubuntu/casper khác nhau. APT xác thực gói bằng khóa kho Ubuntu. Cấu hình hiện không thêm kho riêng, khóa bên thứ ba, nguồn Flatpak, thông tin xác thực hoặc PPA.
