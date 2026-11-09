@@ -1,10 +1,10 @@
 # Tạo ảnh ISO phát triển M0
 
-## Khởi động UEFI/GPT đang được bổ sung
+## Khởi động live UEFI/GPT
 
 Chuỗi tạo ảnh mới giữ BIOS/Syslinux và thêm GRUB amd64 UEFI, phân vùng EFI trong GPT cho USB, cùng mục El Torito UEFI cho đĩa quang. Có cả `/EFI/BOOT/BOOTX64.EFI` để công cụ ghi USB theo chế độ trích xuất tìm thấy bộ nạp. ISO cũ build `42527363919` vẫn chỉ boot BIOS; không thể chuyển nó thành UEFI bằng cách chọn GPT trong Rufus.
 
-Bộ nạp mới chưa ký Secure Boot. Phạm vi trước mắt là phiên live UEFI với Secure Boot tắt; trình cài đặt hiện vẫn từ chối UEFI vì bố cục ESP/GRUB đích chưa được nghiệm thu. Chưa xem việc cấu trúc GPT/EFI tồn tại là bằng chứng boot tới Plasma. Workflow sẽ kiểm tra bằng OVMF từ cả USB ảo và CD-ROM, đồng thời kiểm tra lại BIOS.
+Bộ nạp mới chưa ký Secure Boot. Phạm vi trước mắt là phiên live UEFI với Secure Boot tắt; trình cài đặt hiện vẫn từ chối UEFI vì bố cục ESP/GRUB đích chưa được nghiệm thu. [42641747422](https://github.com/fx-kitsune/mykos/actions/runs/42641747422) đã kiểm thử OVMF từ USB GPT và CD-ROM tới Plasma với đồ họa phần mềm, đồng thời kiểm tra lại BIOS tới môi trường người dùng. Xem phạm vi và gói tải nháp ở hướng dẫn UEFI bên dưới.
 
 Hướng dẫn cho người thử: [chạy live trên máy UEFI](UEFI_LIVE.md).
 

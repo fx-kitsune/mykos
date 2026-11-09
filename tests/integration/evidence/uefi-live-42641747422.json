@@ -1,0 +1,112 @@
+{
+  "source_run": "https://github.com/fx-kitsune/mykos/actions/runs/42641747422",
+  "source_commit": "48d2b750cb44cc9530eea64ec8b8b87a9e406c01",
+  "iso_sha256": "136f409837a959f725a0e478fb451a0c8a2a221f83100f183853ef3fda9cb3ba",
+  "release": {
+    "id": 439306645,
+    "url": "https://github.com/fx-kitsune/mykos/releases/tag/untagged-427026dd49e9e2f8ac7b",
+    "draft": true,
+    "prerelease": true,
+    "assets": [
+      {
+        "name": "mykos-0.1.0-dev-amd64.7z.001",
+        "size": 1992294400,
+        "state": "uploaded",
+        "url": "https://github.com/fx-kitsune/mykos/releases/download/untagged-427026dd49e9e2f8ac7b/mykos-0.1.0-dev-amd64.7z.001",
+        "digest": "sha256:49c003110fd083f332af2a2a6d9e19b6401c86da9f6b87c31f1c8e293220bc53"
+      },
+      {
+        "name": "mykos-0.1.0-dev-amd64.7z.002",
+        "size": 395266904,
+        "state": "uploaded",
+        "url": "https://github.com/fx-kitsune/mykos/releases/download/untagged-427026dd49e9e2f8ac7b/mykos-0.1.0-dev-amd64.7z.002",
+        "digest": "sha256:b30a37fe9f00efecebeffdb17e0eed583ec52f3df42eb679c581809e59baedaa"
+      },
+      {
+        "name": "MYKOS-UEFI-PARTS-SHA256SUMS",
+        "size": 190,
+        "state": "uploaded",
+        "url": "https://github.com/fx-kitsune/mykos/releases/download/untagged-427026dd49e9e2f8ac7b/MYKOS-UEFI-PARTS-SHA256SUMS",
+        "digest": "sha256:93f72f37f0107bdbe2b666b9b73614e922c9180b469c86c4972ebfa157d04963"
+      }
+    ]
+  },
+  "scope": "UEFI amd64 live session with software rendering; BIOS userspace. UEFI installation, Secure Boot and physical devices not validated.",
+  "tests": [
+    {
+      "source_result": "artifacts/boot-test/result.json",
+      "status": "userspace-ready",
+      "iso_sha256": "136f409837a959f725a0e478fb451a0c8a2a221f83100f183853ef3fda9cb3ba",
+      "firmware": "bios",
+      "media": "cdrom",
+      "acceleration": "tcg",
+      "elapsed_seconds": 221.3
+    },
+    {
+      "source_result": "artifacts/uefi-cdrom-test/result.json",
+      "status": "desktop-ready",
+      "iso_sha256": "136f409837a959f725a0e478fb451a0c8a2a221f83100f183853ef3fda9cb3ba",
+      "firmware": "uefi",
+      "media": "cdrom",
+      "acceleration": "kvm",
+      "elapsed_seconds": 115,
+      "rendering_profile": "software",
+      "ovmf_code_sha256": "ad23261d43116abc3747d59a7837fbf578c9586a8993f4eeba064cd07eccb083",
+      "guest": {
+        "uid": 1000,
+        "firmware_uefi": true,
+        "plasma": true,
+        "kwin": true,
+        "applications": {
+          "dolphin": true,
+          "konsole": true,
+          "systemsettings": true
+        },
+        "containments": {
+          "returncode": 0,
+          "stdout": "{\"panels\":1,\"desktops\":1}\n",
+          "stderr": ""
+        },
+        "color_scheme": "MyKOSDark"
+      }
+    },
+    {
+      "source_result": "artifacts/uefi-usb-test/result.json",
+      "status": "desktop-ready",
+      "iso_sha256": "136f409837a959f725a0e478fb451a0c8a2a221f83100f183853ef3fda9cb3ba",
+      "firmware": "uefi",
+      "media": "usb",
+      "acceleration": "kvm",
+      "elapsed_seconds": 111.5,
+      "rendering_profile": "software",
+      "ovmf_code_sha256": "ad23261d43116abc3747d59a7837fbf578c9586a8993f4eeba064cd07eccb083",
+      "guest": {
+        "uid": 1000,
+        "firmware_uefi": true,
+        "plasma": true,
+        "kwin": true,
+        "applications": {
+          "dolphin": true,
+          "konsole": true,
+          "systemsettings": true
+        },
+        "containments": {
+          "returncode": 0,
+          "stdout": "{\"panels\":1,\"desktops\":1}\n",
+          "stderr": ""
+        },
+        "color_scheme": "MyKOSDark"
+      }
+    }
+  ],
+  "reviewed_images": [
+    {
+      "path": "artifacts/uefi-cdrom-test/screen.png",
+      "sha256": "bf6b7571abb5c8b660b3ef399bd0b44ff3d99e8b9bccce35ca92b30265f53ed3"
+    },
+    {
+      "path": "artifacts/uefi-usb-test/screen.png",
+      "sha256": "0c21e41aab33b662df333b1bead7b2f527d2f13c3f736fc35d41a3b23a1c342a"
+    }
+  ]
+}

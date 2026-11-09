@@ -2,6 +2,8 @@
 
 Calamares cho Ubuntu Noble và BIOS đã hoàn tất cài vào QCOW2 mới, boot GRUB không ISO, đăng nhập tài khoản thường qua SDDM/Plasma X11. [42529928289](https://github.com/fx-kitsune/mykos/actions/runs/42529928289) trên ISO build `42527363919` đạt mạng/HTTPS, sudo, APT, tệp, đổi độ phân giải và âm thanh PipeWire/HDA ảo; ba dịch vụ Plasma dùng deadline mới hoạt động ổn định. [42531078658](https://github.com/fx-kitsune/mykos/actions/runs/42531078658) xác nhận Discover mở/danh mục không còn lỗi xác thực sau khi công cụ thử mở ứng dụng qua user service manager. Chưa nghiệm thu cập nhật/recovery hoặc phần cứng thật.
 
+Live UEFI đã vào Plasma trong [42641747422](https://github.com/fx-kitsune/mykos/actions/runs/42641747422); điều này chưa bổ sung khả năng cài UEFI. Launcher vẫn từ chối UEFI cho tới khi ESP/GRUB đích và boot sau cài được kiểm thử riêng.
+
 ## Phạm vi hiện tại
 
 - Chuỗi chọn ngôn ngữ, bàn phím, phân vùng, tài khoản, xác nhận; sau đó gắn đích, giải nén `/cdrom/casper/filesystem.squashfs`, tạo tài khoản, thiết lập SDDM/mạng, loại bỏ gói live, tạo initramfs và cài GRUB BIOS.

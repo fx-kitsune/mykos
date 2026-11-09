@@ -2,11 +2,11 @@
 
 Cập nhật ngày 09/11/2026 (giờ Việt Nam). **M0 đang thực hiện, chưa nghiệm thu.**
 
-Đang bổ sung live UEFI/GPT cho máy không có Legacy/CSM. [Build 42638222263](https://github.com/fx-kitsune/mykos/actions/runs/42638222263) đã tạo/kiểm tra ảnh nhưng bị chặn upload bởi hạn mức Artifacts. [42641747422](https://github.com/fx-kitsune/mykos/actions/runs/42641747422) đang tạo lại và kiểm thử trực tiếp trước bước lưu; chưa nghiệm thu UEFI đầy đủ. Xem [phạm vi và hướng dẫn UEFI](UEFI_LIVE.md). ISO BIOS ở các bằng chứng cũ bên dưới không tự có UEFI.
+Live UEFI/GPT đã đạt trên máy ảo ở [42641747422](https://github.com/fx-kitsune/mykos/actions/runs/42641747422); [gói ISO nháp](https://github.com/fx-kitsune/mykos/releases/tag/untagged-427026dd49e9e2f8ac7b) đã có đủ hai volume 7-Zip. USB GPT và CD-ROM đều vào Plasma bằng đồ họa phần mềm; BIOS tới môi trường người dùng cũng đạt. Secure Boot, cài đặt UEFI và phần cứng thật chưa hỗ trợ/nghiệm thu. [Phạm vi, checksum và cách ghi USB](UEFI_LIVE.md). Các bằng chứng cài đặt BIOS bên dưới thuộc ISO cũ, không được suy rộng sang cài UEFI.
 
 Tình trạng hiện tại: ISO mới đã đạt cài đặt BIOS, boot không ISO, đăng nhập SDDM/Plasma X11, mạng/APT, tệp, độ phân giải và âm thanh ảo. Discover đã mở và hiển thị danh mục không còn lỗi xác thực sau khi sửa ngữ cảnh phiên trong công cụ thử. Các phần lịch sử bên dưới mô tả từng ISO, không phải tất cả là trạng thái bản mới nhất.
 
-## Bản dựng mới nhất đã kiểm thử
+## Bản dựng đã kiểm thử cài đặt BIOS
 
 - [Build 42527363919](https://github.com/fx-kitsune/mykos/actions/runs/42527363919), nguồn `187042d`; [ISO và thông tin bản dựng](https://github.com/fx-kitsune/mykos/actions/runs/42527363919/artifacts/13635659125), lưu 7 ngày từ 08/11/2026 UTC.
 - SHA-256 ISO: `0de50cbd7cc982d083183786f9d33b83b0b1f9aacb8f39522e8da733d63a5751`.
@@ -160,3 +160,9 @@ SDDM và greeter hoạt động; ảnh sau các kiểm tra CLI đã hiện màn 
 - Journal vẫn ghi PolicyKit agent/Powerdevil lặp khởi động và KScreen không trả lời. [Chẩn đoán 42525892264](https://github.com/fx-kitsune/mykos/actions/runs/42525892264) xác nhận D-Bus của phiên live có tăng tốc là thống nhất, ba unit hoạt động với deadline mặc định 5 giây.
 - [So sánh TCG 42526372487](https://github.com/fx-kitsune/mykos/actions/runs/42526372487) tái hiện hai unit restart 17 lần và KScreen `failed`. Thử override người dùng `TimeoutStartSec=60s` rồi khởi động lại unit: cả ba chuyển sang `active/running`, D-Bus đăng ký đúng tên và `NRestarts=0`.
 - Commit `187042d` đưa deadline 60 giây vào drop-in toàn hệ thống cho đúng ba user unit. [Build 42527363919](https://github.com/fx-kitsune/mykos/actions/runs/42527363919) đang tạo ISO chứa sửa đổi. Phép thử bản cài tiếp theo yêu cầu unit vẫn là `Type=dbus`, đúng BusName, hoạt động và không restart, kể cả sau đổi độ phân giải/mở Discover. Chưa nghiệm thu sửa đổi trong ISO trước kết quả khởi động lạnh.
+
+## Bằng chứng live UEFI ngày 09/11/2026
+
+Nguồn `48d2b75`, ISO SHA-256 `136f409837a959f725a0e478fb451a0c8a2a221f83100f183853ef3fda9cb3ba`. [42641747422](https://github.com/fx-kitsune/mykos/actions/runs/42641747422) hoàn tất build, checksum, cấu trúc boot, kiểm thử trực tiếp và tải release nháp. USB/KVM đạt `desktop-ready` sau 111,5 giây; CD-ROM/KVM sau 115 giây, guest đều xác nhận `/sys/firmware/efi`, UID 1000, Plasma/KWin, một desktop/một panel, ba ứng dụng và MyKOSDark. BIOS/TCG đạt `userspace-ready` sau 221,3 giây. Đã xem ảnh ứng dụng UEFI cuối; ảnh chụp sớm vẫn ở splash nên không dùng để nghiệm thu render desktop.
+
+[Bản ghi có cấu trúc](../tests/integration/evidence/uefi-live-42641747422.json) giữ nguồn, mã ISO, tài nguyên, trạng thái và mã ảnh đã xem. Hạn mức Actions Artifacts vẫn chưa được giải quyết; đường tải lần này là release nháp với hai phần archive dưới 2 GiB mỗi tệp. Không tự công bố bản ổn định. Các phép thử mạng/âm thanh/cài đặt trong UEFI và giao diện mặc định OpenGL chưa được thực hiện ở lượt này.

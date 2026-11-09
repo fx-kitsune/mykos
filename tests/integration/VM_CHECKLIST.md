@@ -26,7 +26,9 @@ Công cụ dùng KVM khi truy cập được, ngược lại dùng TCG. Lệnh n
 | Đăng nhập bản cài | Tài khoản thường; quản trị có cấp quyền rõ ràng | ĐẠT console/SDDM/sudo: [42529928289](https://github.com/fx-kitsune/mykos/actions/runs/42529928289), UID 1000, xác thực mật khẩu. Cấp quyền giao dịch cài/gỡ PackageKit GUI còn kiểm tra riêng |
 | Cập nhật và khởi động lại | APT cập nhật, khởi động lại và phiên làm việc bình thường | BỊ CHẶN |
 | Phục hồi | Thực hiện hướng dẫn cứu hộ sau cập nhật lỗi | BỊ CHẶN |
-| UEFI / Secure Boot | Kiểm chứng riêng theo phần sụn ảo | CHƯA HỖ TRỢ |
+| Live UEFI | USB GPT và CD-ROM vào Plasma | ĐẠT software/OVMF: [42641747422](https://github.com/fx-kitsune/mykos/actions/runs/42641747422), guest xác nhận UEFI; chưa phần cứng thật |
+| Cài đặt UEFI | Tạo ESP, cài GRUB EFI và boot bản cài | CHƯA HỖ TRỢ: launcher vẫn từ chối UEFI |
+| Secure Boot | Chuỗi boot được ký và xác thực | CHƯA HỖ TRỢ: bộ nạp live chưa ký |
 
 Không thử gián đoạn cập nhật trên dữ liệu quan trọng. Chưa cấu hình ảnh chụp trạng thái hoặc hoàn tác; sao lưu là yêu cầu riêng, không phụ thuộc cơ chế hoàn tác tương lai.
 
@@ -36,8 +38,12 @@ Workflow `.github/workflows/boot-iso.yml` sử dụng lại ISO đã build và k
 
 Mỗi kết quả ghi SHA-256 của ISO nguồn và bản sao chẩn đoán. Không xem ảnh chụp màn hình đơn lẻ hoặc thông báo nhân Linux là bằng chứng toàn bộ M0 đã đạt. Nếu kiểm thử hết thời gian chờ, xem `serial.log`, `qemu.log` và `screen.png` trước khi chạy lại.
 
-## ISO của lượt kiểm thử mới nhất
+## ISO đã kiểm thử cài đặt BIOS
 
 Build `42527363919`, SHA-256 `0de50cbd7cc982d083183786f9d33b83b0b1f9aacb8f39522e8da733d63a5751`. Lượt cài `42529928289` dùng KVM, RAM 4 GiB, hai CPU, software rendering; hoàn tất khoảng 413,8 giây. [Bằng chứng](https://github.com/fx-kitsune/mykos/actions/runs/42529928289/artifacts/13637261439) gồm JSON, log, ảnh và clip âm thanh, lưu 7 ngày. Không có đĩa ảo hoặc dữ liệu thử tải lên.
 
 Kiểm tra lại [42531078658](https://github.com/fx-kitsune/mykos/actions/runs/42531078658) trên cùng ISO đạt sau 411,9 giây. [Bằng chứng mới nhất](https://github.com/fx-kitsune/mykos/actions/runs/42531078658/artifacts/13638110433): Discover trong user service manager không còn lỗi xác thực; đã rà soát ảnh danh mục không có hộp thoại lỗi, PCM tiếp tục đạt 440 Hz và ba dịch vụ phiên không restart.
+
+## ISO live UEFI mới nhất
+
+[42641747422](https://github.com/fx-kitsune/mykos/actions/runs/42641747422), SHA-256 `136f409837a959f725a0e478fb451a0c8a2a221f83100f183853ef3fda9cb3ba`, đạt boot live UEFI USB/CD-ROM tới Plasma và BIOS tới môi trường người dùng. [Bản ghi nghiệm thu](evidence/uefi-live-42641747422.json) và [hướng dẫn tải/ghi USB](../../docs/UEFI_LIVE.md). Không kế thừa kết quả cài đặt/mạng/âm thanh của ISO cũ thành kết quả UEFI.
