@@ -255,7 +255,9 @@ def main():
                     pass
                 if qmp is None and qmp_path.exists():
                     qmp = QMP(qmp_path)
-                if qmp is not None and time.monotonic() - last_input > 30:
+                # A key during slow EFI/GRUB startup can cancel its boot timeout.
+                # Only keep the desktop awake after Linux has exposed its login.
+                if phase != 'boot' and qmp is not None and time.monotonic() - last_input > 30:
                     qmp.command('send-key', {'keys': [{'type': 'qcode', 'data': 'shift'}], 'hold-time': 60})
                     last_input = time.monotonic()
                 if not desktop_captured and qmp is not None and 'MYKOS_DESKTOP_READY\n' in transcript:
