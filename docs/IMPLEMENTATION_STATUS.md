@@ -2,6 +2,8 @@
 
 Cập nhật ngày 09/11/2026 (giờ Việt Nam). **M0 đang thực hiện, chưa nghiệm thu.**
 
+Đang bổ sung live UEFI/GPT cho máy không có Legacy/CSM. [Build 42638222263](https://github.com/fx-kitsune/mykos/actions/runs/42638222263) đã tạo/kiểm tra ảnh nhưng bị chặn upload bởi hạn mức Artifacts. [42641747422](https://github.com/fx-kitsune/mykos/actions/runs/42641747422) đang tạo lại và kiểm thử trực tiếp trước bước lưu; chưa nghiệm thu UEFI đầy đủ. Xem [phạm vi và hướng dẫn UEFI](UEFI_LIVE.md). ISO BIOS ở các bằng chứng cũ bên dưới không tự có UEFI.
+
 Tình trạng hiện tại: ISO mới đã đạt cài đặt BIOS, boot không ISO, đăng nhập SDDM/Plasma X11, mạng/APT, tệp, độ phân giải và âm thanh ảo. Discover đã mở và hiển thị danh mục không còn lỗi xác thực sau khi sửa ngữ cảnh phiên trong công cụ thử. Các phần lịch sử bên dưới mô tả từng ISO, không phải tất cả là trạng thái bản mới nhất.
 
 ## Bản dựng mới nhất đã kiểm thử
