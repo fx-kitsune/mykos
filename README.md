@@ -43,3 +43,13 @@ Toàn bộ hướng dẫn dự án được viết bằng tiếng Việt. Tên c
 ## Hướng độc lập nền
 
 Xem [ADR 0003](docs/ADR/0003-independent-linux-platform.md). Loại bỏ nguồn Ubuntu là bước đầu; hiện vẫn cần userspace, APT, systemd, Qt/KDE và công cụ Debian. Mục tiêu chỉ dựa vào Linux kernel chưa hoàn tất.
+
+## Cài từ USB cứu hộ khác bằng terminal
+
+Đã có trình cài thử nghiệm từ repo bằng `debootstrap`, không cần ISO MyKOS. Bắt đầu bằng kế hoạch không ghi dữ liệu:
+
+```sh
+python3 scripts/install/mykos-install.py plan --target /mnt/mykos --mode uefi
+```
+
+Hỗ trợ phân vùng ext4 đã chuẩn bị/mount, BIOS hoặc UEFI với ESP rỗng. Bước ghi cần xác nhận UUID và đặt mật khẩu mới. Xem [hướng dẫn cài từ rescue](docs/INSTALL_FROM_RESCUE.md); chưa nghiệm thu cài đĩa/reboot bằng trình cài terminal này.
