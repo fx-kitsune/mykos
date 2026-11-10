@@ -47,6 +47,15 @@ class AutoDiskTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             disks.assess([rescue,target,loop], [{'target':'/','maj:min':'7:0'}], [], backing_file=lambda _:None)
 
+    def test_persistent_overlay_protects_internal_cow_partition(self):
+        persistence=drive('/dev/nvme0n1','259:0',children=[partition('/dev/nvme0n1p1','259:1')])
+        target=drive('/dev/nvme1n1','259:2')
+        mount={'target':'/','maj:min':'0:44','fstype':'overlay',
+               'options':'rw,lowerdir=/rofs,upperdir=/cow/upper,workdir=/cow/work'}
+        choices,*_=disks.assess([persistence,target],[mount],[],
+            source_for_path=lambda path:'259:1')
+        self.assertEqual([row['path'] for row in choices],['/dev/nvme1n1'])
+
     def test_repository_disk_and_usb_are_not_erasable_candidates(self):
         source = drive('/dev/nvme0n1','259:0',children=[partition('/dev/nvme0n1p1','259:1')])
         usb = drive('/dev/sda','8:0'); usb['tran']='usb'

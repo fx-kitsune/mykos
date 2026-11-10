@@ -16,7 +16,7 @@ BIOS_TYPE = '21686148-6449-6e6f-744e-656564454649'
 ROOT_TYPE = '0fc63daf-8483-4772-8e79-3d69d8477de4'
 CONFIRMATION = 'XOA VA CAI MYKOS'
 COLUMNS = 'NAME,PATH,MAJ:MIN,TYPE,SIZE,MODEL,SERIAL,WWN,TRAN,RM,RO,FSTYPE,MOUNTPOINTS,PKNAME,LOG-SEC'
-CRITICAL = {'/', '/boot', '/boot/efi', '/usr', '/var', '/home', '/run', '/cdrom', '/isodevice'}
+CRITICAL = {'/', '/boot', '/boot/efi', '/usr', '/var', '/home', '/run', '/cdrom', '/isodevice', '/cow', '/rofs'}
 LIVE_PREFIXES = ('/run/live', '/lib/live/mount', '/run/archiso', '/run/miso', '/run/initramfs')
 
 
@@ -83,6 +83,18 @@ def protected_disks(nodes, owners, mounts, paths, backing_file=None, source_for_
     for row in flatten(mounts):
         if is_critical_mount(row['target'], paths):
             protected.update(resolve(row['maj:min'], set()))
+            # Persistent live systems can keep overlay writes on an internal
+            # disk even when / itself has an anonymous 0:* filesystem ID.
+            if row.get('fstype') == 'overlay':
+                backing_paths = []
+                for option in row.get('options', '').split(','):
+                    key, _, value = option.partition('=')
+                    if key in {'upperdir', 'workdir', 'lowerdir'}:
+                        backing_paths.extend(value.split(':'))
+                if not backing_paths:
+                    raise ValueError('Không xác định được filesystem nền của hệ thống live overlay.')
+                for path in backing_paths:
+                    protected.update(resolve(source_for_path(path), {row['maj:min']}))
     # Also guard critical mountpoints listed by lsblk if mount inventory is incomplete.
     for identifier, node in nodes.items():
         for mount in node.get('mountpoints') or []:
@@ -127,7 +139,7 @@ def assess(rows, mounts, paths, backing_file=None, source_for_path=None):
 
 def scan(paths):
     disks = json.loads(output(['lsblk', '--json', '--bytes', '--paths', '--output', COLUMNS]))['blockdevices']
-    mounts = json.loads(output(['findmnt', '--json', '--output', 'TARGET,SOURCE,MAJ:MIN']))['filesystems']
+    mounts = json.loads(output(['findmnt', '--json', '--output', 'TARGET,SOURCE,MAJ:MIN,FSTYPE,OPTIONS']))['filesystems']
     candidates, excluded, nodes, owners = assess(disks, mounts, paths)
     return {'candidates': candidates, 'excluded': excluded, 'nodes': nodes, 'owners': owners, 'mounts': mounts}
 
