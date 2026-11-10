@@ -49,7 +49,9 @@ def config_args(cfg):
 def prepare_toolchain(destination):
     """Relocate Debian live-build without modifying its maintained scripts."""
     prefix = Path(os.environ.get("MYKOS_LIVE_BUILD_PREFIX", "/usr"))
-    shutil.copytree(prefix / "share/live/build", destination, symlinks=True)
+    destination.mkdir(parents=True)
+    shutil.copytree(prefix / "share/live/build", destination / "share", symlinks=True)
+    shutil.copytree(prefix / "share/live/build/functions", destination / "functions", symlinks=True)
     (destination / "scripts").mkdir(exist_ok=True)
     shutil.copy2(prefix / "lib/live/build.sh", destination / "scripts/build.sh")
     shutil.copytree(prefix / "lib/live/build", destination / "scripts/build")
@@ -187,6 +189,19 @@ def metadata(image, destination, package_manifest):
     (destination / "SHA256SUMS").write_text("".join(f"{sha256(p)}  {p.name}\n" for p in files))
 
 
+def run_logged(args, log, **kwargs):
+    """Keep full diagnostics while streaming build stages to Actions."""
+    with subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                          text=True, **kwargs) as process:
+        for line in process.stdout:
+            log.write(line)
+            if line.startswith(("[20", "P:", "E:", "W:")):
+                print(line.rstrip(), flush=True)
+        code = process.wait()
+        if code:
+            raise subprocess.CalledProcessError(code, args)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
@@ -220,7 +235,7 @@ def main():
             env = os.environ.copy()
             env["LIVE_BUILD"] = str(directory / "toolchain")
             env["PATH"] = str(directory / "toolchain/bin") + ":" + env.get("PATH", "")
-            run(["lb", "build"], cwd=directory, env=env, stdout=log, stderr=subprocess.STDOUT)
+            run_logged(["lb", "build"], log, cwd=directory, env=env)
         images = list(directory.glob("*.iso"))
         if len(images) != 1:
             raise ValueError("Expected exactly one ISO in completed build")

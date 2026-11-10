@@ -65,6 +65,29 @@ class ImageToolTests(unittest.TestCase):
             self.assertEqual((installed / "etc/calamares/settings.conf").stat().st_mode & 0o777, 0o644)
             self.assertTrue((installed / "usr/share/mykos/calamares/modules/mykos-config/main.py").exists())
 
+    def test_relocated_debian_toolchain_preserves_source_layout_and_templates(self):
+        with tempfile.TemporaryDirectory() as folder:
+            base = Path(folder)
+            prefix = base / "usr"
+            for relative, content in {
+                "share/live/build/functions/common.sh": "# original library\n",
+                "share/live/build/bootloaders/grub-pc/grub.cfg": "# original template\n",
+                "share/live/build/bootloaders/isolinux/isolinux.cfg": "# BIOS template\n",
+                "lib/live/build.sh": "# bootstrap\n",
+                "lib/live/build/binary_grub_cfg": "# original stage\n",
+                "bin/lb": "#!/bin/sh\n"}.items():
+                path = prefix / relative
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(content)
+            target = base / "toolchain"
+            with patch.dict(mykos.os.environ, {"MYKOS_LIVE_BUILD_PREFIX": str(prefix)}):
+                mykos.prepare_toolchain(target)
+            self.assertEqual((target / "share/bootloaders/grub-pc/grub.cfg").read_text(), "# original template\n")
+            self.assertTrue((target / "share/bootloaders/isolinux/isolinux.cfg").is_file())
+            self.assertEqual((target / "functions/common.sh").read_bytes(),
+                             (prefix / "share/live/build/functions/common.sh").read_bytes())
+            self.assertEqual((target / "scripts/build/binary_grub_cfg").read_text(), "# original stage\n")
+
     def test_no_ubuntu_packages_or_archives_are_selected(self):
         self.assertTrue({"live-boot", "live-config", "live-config-systemd", "debian-archive-keyring"} <= set(mykos.packages()))
         self.assertFalse({"casper", "linux-generic", "ubuntu-keyring"} & set(mykos.packages()))

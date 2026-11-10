@@ -52,6 +52,7 @@ jobs:
           df -h . | tee "$DIAGNOSTIC_DIRECTORY/disk-after.txt"
 
       - name: Khởi tạo máy build Debian
+        id: builder
         shell: bash
         run: |
           set -euo pipefail
@@ -118,8 +119,7 @@ jobs:
           python3 scripts/testing/boot_iso.py artifacts/iso/mykos-0.1.0-dev-amd64.iso --output artifacts/boot-test --timeout 1200
 
       - name: Xuat bang chung vao log ke ca khi het han muc Artifacts
-        if: always()
-        shell: bash
+        if: always() && steps.builder.outcome == 'success'
         run: |
           python3 - <<'PYTHON'
           import base64, hashlib, textwrap
