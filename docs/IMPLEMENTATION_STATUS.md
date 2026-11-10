@@ -1,3 +1,13 @@
+## ISO Debian + MyKOS Desktop đã build/boot (2026-11-10)
+
+[Build 42836804675](https://github.com/fx-kitsune/mykos/actions/runs/42836804675), nguồn `904e61d60549d00a3d5b0642e7d436e70a40d705`, ISO SHA-256 `dd6df477d885b180231708aff16acde049c461338cbbe61adc411a6f436d2b13`, đã qua build, checksum và cấu trúc BIOS/UEFI. OVMF USB đạt `desktop-ready` sau 56,1 giây, CD-ROM sau 55,6 giây; guest UID 1000, MyKOS Shell/Openbox, Thunar và xfce4-terminal hoạt động, shell IPC trả panel/ticks. BIOS đạt `userspace-ready` sau 60 giây. Đã xem ảnh UEFI USB cuối, thấy panel/taskbar MyKOS, nền desktop và hai ứng dụng. Không dùng các kết quả này để nghiệm thu cài xuống đĩa.
+
+Artifacts vẫn bị chặn bởi quota; [release nháp](https://github.com/fx-kitsune/mykos/releases/tag/untagged-7f6bdfd6a5f5479a1c65) có một archive `.7z.001` 1.568.963.045 byte và checksum. Không có phần `.002` ở build này. Bằng chứng có cấu trúc: `tests/integration/evidence/debian-own-de-42836804675.json`. Profile boot phần mềm đã được chọn nhưng `QT_QUICK_BACKEND` trong môi trường guest là null; chưa xác nhận override đã truyền tới shell.
+
+## Trình cài terminal từ repo
+
+Đã có `scripts/install/mykos-install.py`: wizard tương tác, plan không ghi, debootstrap xác thực kho, root ext4 đã mount, kiểm tra ESP/bios_grub, xác nhận UUID và mật khẩu mới. Không tự phân vùng/format, không cài gói live/Calamares vào đích. Bản repo có 62 integration tests và 8 native desktop tests đã qua CI; cài đĩa/reboot bằng trình cài terminal vẫn chưa được nghiệm thu. Xem `docs/INSTALL_FROM_RESCUE.md`.
+
 ## MyKOS Desktop riêng (2026-11-10)
 
 Đã bỏ gói và overlay Plasma/KWin khỏi ảnh mặc định; shell, panel, launcher, desktop và session manager là mã MyKOS. Openbox quản lý cửa sổ X11 tạm thời, SDDM chọn phiên MyKOS; Calamares đã chuyển session mặc định và dọn live autologin/sudoers. Qt/PyQt6 đã cài trong venv để chạy kiểm thử trong lần này.

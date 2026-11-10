@@ -1,3 +1,5 @@
+> Bản hiện hành (2026-11-10): Debian 13 + MyKOS Desktop riêng, build [42836804675](https://github.com/fx-kitsune/mykos/actions/runs/42836804675), nguồn `904e61d`. [Release nháp mới](https://github.com/fx-kitsune/mykos/releases/tag/untagged-7f6bdfd6a5f5479a1c65) chỉ có một tệp `mykos-0.1.0-dev-amd64.7z.001` (~1.57 GB); không có `.002`. Giải nén bằng 7-Zip để lấy ISO. UEFI USB/CD-ROM đã vào MyKOS Desktop; BIOS đã tới userspace. Secure Boot và cài đĩa chưa nghiệm thu. Tài khoản live mới `mykos`, mật khẩu `live`. Nội dung Ubuntu/Plasma và hai phần archive ở bên dưới là lịch sử của build cũ, không áp dụng cho archive mới.
+
 # Chạy MyKOS live trên máy chỉ có UEFI
 
 ISO BIOS cũ ở build `42527363919` không có bộ nạp UEFI. Chọn GPT trong công cụ ghi USB không bổ sung bộ nạp còn thiếu. Chuỗi tạo ảnh từ commit `06a84f5` đã thêm GRUB amd64 UEFI, GPT/EFI cho USB và mục boot UEFI từ CD-ROM.

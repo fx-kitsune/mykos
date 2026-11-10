@@ -1,0 +1,86 @@
+{
+  "run_id": 42836804675,
+  "url": "https://github.com/fx-kitsune/mykos/actions/runs/42836804675",
+  "source_commit": "904e61d60549d00a3d5b0642e7d436e70a40d705",
+  "base": "Debian 13 trixie amd64",
+  "iso_sha256": "dd6df477d885b180231708aff16acde049c461338cbbe61adc411a6f436d2b13",
+  "delivery": {
+    "draft": true,
+    "url": "https://github.com/fx-kitsune/mykos/releases/tag/untagged-7f6bdfd6a5f5479a1c65",
+    "archive": "mykos-0.1.0-dev-amd64.7z.001",
+    "archive_bytes": 1568963045,
+    "parts": 1,
+    "artifact_quota_exhausted": true
+  },
+  "results": [
+    {
+      "path": "artifacts/boot-test/result.json",
+      "status": "userspace-ready",
+      "elapsed_seconds": 60
+    },
+    {
+      "path": "artifacts/uefi-cdrom-test/result.json",
+      "status": "desktop-ready",
+      "elapsed_seconds": 55.6,
+      "firmware": "uefi",
+      "media": "cdrom",
+      "guest": {
+        "uid": 1000,
+        "firmware_uefi": true,
+        "shell": true,
+        "window_manager": true,
+        "applications": {
+          "thunar": true,
+          "xfce4-terminal": true
+        },
+        "shell_reply": {
+          "returncode": 0,
+          "stdout": "{\"desktop\": \"MyKOS\", \"panel\": true, \"ticks\": 2}\n",
+          "stderr": ""
+        },
+        "rendering_environment": {
+          "QT_QUICK_BACKEND": null,
+          "XDG_CURRENT_DESKTOP": "MyKOS"
+        }
+      }
+    },
+    {
+      "path": "artifacts/uefi-usb-test/result.json",
+      "status": "desktop-ready",
+      "elapsed_seconds": 56.1,
+      "firmware": "uefi",
+      "media": "usb",
+      "guest": {
+        "uid": 1000,
+        "firmware_uefi": true,
+        "shell": true,
+        "window_manager": true,
+        "applications": {
+          "thunar": true,
+          "xfce4-terminal": true
+        },
+        "shell_reply": {
+          "returncode": 0,
+          "stdout": "{\"desktop\": \"MyKOS\", \"panel\": true, \"ticks\": 1}\n",
+          "stderr": ""
+        },
+        "rendering_environment": {
+          "QT_QUICK_BACKEND": null,
+          "XDG_CURRENT_DESKTOP": "MyKOS"
+        }
+      }
+    }
+  ],
+  "visual_review": {
+    "image": "artifacts/uefi-usb-test/screen.png",
+    "sha256": "a613afe1532192958e70cc49dea63bb6ee92e839486bf14847026428fce0d944",
+    "reviewed": true,
+    "observed": "Own MyKOS bottom panel/taskbar, desktop background, Thunar and terminal visible; no Plasma shell."
+  },
+  "limitations": [
+    "Live boot only; no installed-disk acceptance for this ISO",
+    "Terminal debootstrap installer is newer repo code and has not completed a disk-install/reboot acceptance test",
+    "No Secure Boot, own Wayland compositor or hardware acceptance",
+    "Software-rendering profile requested; QT_QUICK_BACKEND was null in guest environment; backend override propagation not established"
+  ]
+}

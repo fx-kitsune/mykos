@@ -34,3 +34,7 @@ Chưa tạo ISO hoặc boot/cài Debian trong lần refactor: workspace chỉ c�
 Cập nhật 2026-11-10: đã cài PyQt6 trong venv và chạy 8 bài desktop, gồm phiên Xvfb/Openbox thật. Chưa nghiệm thu ISO.
 
 Ảnh mặc định cài shell/session MyKOS và XSession `mykos.desktop`, không cài Plasma/KWin. Xem [ADR 0004](ADR/0004-own-desktop-environment.md).
+
+## Kết quả build thực tế mới
+
+Build 42836804675 trên GitHub Actions đã tạo ISO từ `904e61d`, qua checksum/boot layout, UEFI USB/CD-ROM tới MyKOS Desktop và BIOS tới userspace. Máy GitHub dọn SDK tạm để có khoảng 30 GiB trống rồi chạy live-build trong Debian container. Lớp sao chép công cụ giữ đúng `share/bootloaders` và `functions`; các stage được stream ra log để theo dõi. Xem IMPLEMENTATION_STATUS.md và bằng chứng JSON. Các đoạn “chưa build” trước đây là trạng thái trước lượt nghiệm thu này; cài xuống đĩa và phần cứng vẫn chưa nghiệm thu.

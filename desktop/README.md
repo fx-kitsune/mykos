@@ -45,7 +45,7 @@ Thiết lập MyKOS đổi màu của shell/Workspace và mở nm-connection-edi
 
 ## Giới hạn hiện tại
 
-Đây là DE thử nghiệm X11 trên một màn hình chính, chưa phải bản ổn định. Đã render Qt và chạy phiên Openbox/Xvfb; chưa tạo, boot hoặc cài ISO mới. Chưa có compositor/Wayland riêng, khóa màn hình, chính sách idle/power, system tray, danh mục mọi ứng dụng `.desktop`, thông báo tự phát triển, khả năng tiếp cận hoàn chỉnh hoặc quản lý nhiều màn hình/hotplug. Các cửa sổ shell theo dõi thay đổi độ phân giải màn hình chính.
+Đây là DE thử nghiệm X11 trên một màn hình chính, chưa phải bản ổn định. Đã render Qt, chạy phiên Openbox/Xvfb và boot ISO Debian/MyKOS Desktop qua UEFI USB/CD-ROM ở build 42836804675; BIOS đã tới userspace. Chưa nghiệm thu cài xuống đĩa hoặc phần cứng thật. Chưa có compositor/Wayland riêng, khóa màn hình, chính sách idle/power, system tray, danh mục mọi ứng dụng `.desktop`, thông báo tự phát triển, khả năng tiếp cận hoàn chỉnh hoặc quản lý nhiều màn hình/hotplug. Các cửa sổ shell theo dõi thay đổi độ phân giải màn hình chính.
 
 Trình quản lý phiên dọn các process group nó khởi tạo; ứng dụng tự daemon hóa hoặc chuyển sang dịch vụ D-Bus cần tích hợp vòng đời bổ sung. Workspace chạy độc lập vẫn cho ứng dụng được mở tiếp tục tồn tại khi đóng Workspace.
 
