@@ -45,6 +45,8 @@ class ImageToolTests(unittest.TestCase):
             with patch.object(mykos, "prepare_toolchain", return_value={}), \
                     patch.object(mykos, "run", side_effect=fake_config):
                 mykos.configure(destination)
+            prerequisite = destination / "config/hooks/normal/005-mykos-prerequisites.hook.chroot"
+            self.assertTrue(prerequisite.stat().st_mode & 0o111)
             hooks = destination / "config/hooks/live"
             self.assertTrue((hooks / "010-mykos.hook.chroot").is_file())
             self.assertTrue((hooks / "090-mykos-menu.hook.binary").stat().st_mode & 0o111)

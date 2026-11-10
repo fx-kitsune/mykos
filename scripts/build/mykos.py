@@ -96,6 +96,18 @@ def configure(destination):
         for path in installed.rglob("*"):
             if not path.is_symlink():
                 path.chmod(0o755 if path.is_dir() or path in {installed / "usr/bin/mykos-workspace", installed / "usr/bin/mykos-install", installed / "usr/bin/mykos-session", installed / "usr/bin/mykos-shell", installed / "usr/lib/live/config/0099-mykos-session"} else 0o644)
+        # Debian 13 live-build enters chroot_hooks only when both normal and
+        # live hook directories contain chroot hooks. Use the normal stage for
+        # a real prerequisite check rather than patching the upstream tool.
+        normal_hooks = config / "hooks/normal"
+        normal_hooks.mkdir(parents=True, exist_ok=True)
+        prerequisite = normal_hooks / "005-mykos-prerequisites.hook.chroot"
+        prerequisite.write_text("#!/bin/sh\nset -eu\n"
+                                "test -x /usr/bin/mykos-session\n"
+                                "test -x /usr/bin/mykos-shell\n"
+                                "test -f /usr/share/xsessions/mykos.desktop\n"
+                                "test -x /usr/lib/live/config/0099-mykos-session\n")
+        prerequisite.chmod(0o755)
         hooks = config / "hooks/live"
         hooks.mkdir(parents=True, exist_ok=True)
         shutil.copy2(ROOT / "distribution/image-build/010-mykos.chroot", hooks / "010-mykos.hook.chroot")
