@@ -12,7 +12,7 @@ jobs:
       options: --privileged
     steps:
       - name: Chuẩn bị môi trường Debian
-        run: apt-get update && apt-get install -y sudo python3 git ca-certificates procps
+        run: apt-get update && apt-get install -y sudo python3 git ca-certificates procps gpgv fdisk
       - uses: actions/checkout@v4
       - name: Tin cậy đúng checkout trong container
         run: git config --system --add safe.directory "$GITHUB_WORKSPACE"

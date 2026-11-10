@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-"""Install MyKOS from another Linux rescue system onto prepared, mounted partitions.
+"""MyKOS installer: select an internal disk, confirm erase, and install automatically.
 
-Never partitions or formats disks. `plan` is read-only. `install` requires an
-empty, independently mounted ext4 target, exact UUID confirmation and a password
-entered interactively. BIOS writes the explicitly selected parent disk's boot
-area; UEFI writes only an empty ESP, without changing firmware NVRAM.
+The default wizard creates GPT partitions, formats and mounts them, bootstraps
+the OS, installs the desktop and bootloader, and unmounts its filesystems.
+Explicit --target retains the advanced prepared-partition installation mode.
 """
 import argparse
 import fcntl
@@ -17,7 +16,12 @@ import shutil
 import stat
 import subprocess
 import sys
+import tempfile
 from contextlib import contextmanager
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import disk_layout
+import bootstrap_tools
 
 ROOT = Path(__file__).resolve().parents[2]
 LIVE_ONLY = {'live-boot', 'live-config', 'live-config-systemd', 'calamares', 'grub-pc-bin', 'grub2-common'}
@@ -52,15 +56,19 @@ def validate_options(args):
         raise ValueError('Mount the empty target below /mnt, /media or /run/media (for example /mnt/mykos).')
     if ROOT.is_relative_to(target) or target.is_relative_to(ROOT):
         raise ValueError('The installation target must not overlap this repository.')
-    if not re.fullmatch(r'[a-z_][a-z0-9_-]{0,31}', args.username) or args.username == 'root':
-        raise ValueError('Choose a regular lowercase username, not root.')
-    if not re.fullmatch(r'[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?', args.hostname):
-        raise ValueError('Hostname must be a single lowercase DNS label, at most 63 characters.')
+    validate_identity(args)
     if args.mode == 'bios' and not args.boot_disk:
         raise ValueError('BIOS installation requires an explicit --boot-disk /dev/whole-disk.')
     if args.boot_disk and not re.fullmatch(r'/dev/[A-Za-z0-9_.+/-]+', args.boot_disk):
         raise ValueError('Boot disk must be a local /dev block device.')
     return target
+
+
+def validate_identity(args):
+    if not re.fullmatch(r'[a-z_][a-z0-9_-]{0,31}', args.username) or args.username == 'root':
+        raise ValueError('Choose a regular lowercase username, not root.')
+    if not re.fullmatch(r'[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?', args.hostname):
+        raise ValueError('Hostname must be a single lowercase DNS label, at most 63 characters.')
 
 
 def plan(args):
@@ -221,40 +229,25 @@ def deploy_desktop(target):
     release.symlink_to('../usr/lib/os-release')
 
 
-def install(args):
-    if os.geteuid() != 0:
-        raise ValueError('Installation requires root; run plan first, then sudo install.')
-    for tool in ['debootstrap', 'gpgv', 'findmnt', 'lsblk', 'mount', 'umount', 'chroot']:
-        if not shutil.which(tool):
-            raise ValueError('Missing host tool: ' + tool + '. Install it using the rescue system package manager.')
-    if os.uname().machine != 'x86_64':
-        raise ValueError('The first installer supports an amd64 host and target only.')
-    if not Path(args.keyring).is_file():
-        raise ValueError('A trusted Debian archive keyring is required; signature verification will not be disabled.')
-    target, root, esp, disk = inspect_target(args)
-    summary = plan(args)
-    summary.update(root_device=root['source'], root_uuid=root['uuid'], parent_disk=disk,
-                   esp_device=esp['source'] if esp else None)
-    print(json.dumps(summary, ensure_ascii=False, indent=2), flush=True)
-    if args.action == 'wizard':
-        args.confirm_uuid = input('Confirm the exact root UUID shown above (Enter cancels): ').strip()
-    if args.confirm_uuid != root['uuid']:
-        raise ValueError('Review this exact target, then rerun with --confirm-uuid ' + root['uuid'])
-    password = getpass.getpass('New installed-user password (at least 12 characters): ')
+def read_password():
+    password = getpass.getpass('Mật khẩu mới (ít nhất 12 ký tự) / Password: ')
     if len(password) < 12 or len(password) > 1024 or any(c in password for c in '\n\r\x00'):
-        raise ValueError('Password must be 12–1024 characters without line breaks or NUL.')
-    if password != getpass.getpass('Repeat password: '):
-        raise ValueError('Passwords did not match; no installation was started.')
-    # Recheck mounts/emptiness after interactive review before any write.
-    inspect_target(args)
+        raise ValueError('Mật khẩu phải có 12–1024 ký tự, không có xuống dòng hoặc NUL.')
+    if password != getpass.getpass('Nhập lại / Repeat password: '):
+        raise ValueError('Hai mật khẩu không khớp; chưa bắt đầu ghi ổ.')
+    return password
+
+
+def install_system(args, password, summary, bootstrap=None):
+    target, root, esp, disk = inspect_target(args)
     with (target / '.mykos-install.lock').open('x') as lock:
         os.chmod(lock.name, 0o600)
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         cfg = settings()
         print('Bootstrapping signed Debian base...', flush=True)
-        run(['debootstrap', '--arch=' + cfg['architecture'], '--variant=minbase',
+        run([str(bootstrap[0]) if bootstrap else 'debootstrap', '--arch=' + cfg['architecture'], '--variant=minbase',
              '--include=ca-certificates', '--force-check-gpg', '--keyring=' + str(Path(args.keyring).resolve()),
-             cfg['suite'], str(target), cfg['mirror']])
+             cfg['suite'], str(target), cfg['mirror']], env=bootstrap[2] if bootstrap else None)
         areas = ' '.join(cfg['archive_areas'])
         sources = ''.join('deb ' + mirror + ' ' + suite + ' ' + areas + '\n' for mirror, suite in [
             (cfg['mirror'], cfg['suite']), (cfg['mirror'], cfg['suite'] + '-updates'),
@@ -302,30 +295,170 @@ def install(args):
             resolv.symlink_to('../run/NetworkManager/resolv.conf')
             write(target, 'etc/mykos-install.json', json.dumps(summary, indent=2) + '\n')
     (target / '.mykos-install.lock').unlink()
-    print('Installation commands completed. Target and ESP remain mounted for inspection. Reboot acceptance is still required.')
+    print('Đã cài xong hệ thống và bootloader.', flush=True)
+
+
+
+def install_prepared(args):
+    if os.geteuid() != 0:
+        raise ValueError('Installation requires root; run plan first, then sudo install.')
+    for tool in ['debootstrap', 'gpgv', 'findmnt', 'lsblk', 'mount', 'umount', 'chroot']:
+        if not shutil.which(tool):
+            raise ValueError('Missing host tool: ' + tool)
+    if not Path(args.keyring).is_file():
+        raise ValueError('A trusted Debian archive keyring is required.')
+    target, root, esp, disk = inspect_target(args)
+    summary = plan(args)
+    summary.update(root_device=root['source'], root_uuid=root['uuid'], parent_disk=disk,
+                   esp_device=esp['source'] if esp else None)
+    print(json.dumps(summary, ensure_ascii=False, indent=2), flush=True)
+    if args.confirm_uuid != root['uuid']:
+        raise ValueError('Advanced prepared-partition mode requires --confirm-uuid ' + root['uuid'])
+    password = read_password()
+    inspect_target(args)
+    install_system(args, password, summary)
+
+
+def install(args):
+    if getattr(args, 'disk', None) or not args.target:
+        return install_automatic(args)
+    return install_prepared(args)
+
+
+def protected_paths(extra=()):
+    return [ROOT.resolve(), Path.cwd().resolve(), Path(sys.executable).resolve(), *map(Path, extra)]
+
+
+def show_disk(disk, mode):
+    info = disk_layout.describe(disk, mode)
+    print('\nỔ cài MyKOS: ' + (info['model'] or 'Internal disk'), flush=True)
+    print(f"  {info['disk']} — {info['size_gib']} GiB — Serial: {info['serial']}")
+    print('  Toàn bộ phân vùng và dữ liệu trên ổ này sẽ bị XÓA.')
+    for part in info['current_partitions']:
+        print(f"  Đang có: {part['path']} — {part['size_gib']} GiB — {part['fstype'] or 'chưa có filesystem'}")
+    print('  Sẽ tạo: ' + ' + '.join(info['new_layout']))
+    print('  Cài MyKOS Desktop và bootloader tự động.', flush=True)
+    return info
 
 
 def wizard_options(args):
     if not sys.stdin.isatty():
-        raise ValueError('The wizard requires an interactive terminal; use plan with explicit arguments instead.')
-    print('MyKOS / Install from rescue\nUse prepared, mounted partitions. This wizard never formats disks.\n')
-    args.target = input('Mounted empty root [/mnt/mykos]: ').strip() or '/mnt/mykos'
-    default = 'uefi' if Path('/sys/firmware/efi').exists() else 'bios'
-    args.mode = input('Target boot mode [bios/uefi; default ' + default + ']: ').strip().lower() or default
-    if args.mode not in {'bios', 'uefi'}:
-        raise ValueError('Boot mode must be bios or uefi.')
-    if args.mode == 'bios':
-        args.boot_disk = input('Whole parent disk for GRUB (for example /dev/sda): ').strip()
-    args.username = input('Installed username [mykos]: ').strip() or 'mykos'
-    args.hostname = input('Hostname [mykos]: ').strip() or 'mykos'
-    validate_options(args)
+        raise ValueError('Cần terminal tương tác để chọn và xác nhận ổ cài.')
+    print('MyKOS / Cài đặt tự động\n')
+    args.mode = args.mode or ('uefi' if Path('/sys/firmware/efi').exists() else 'bios')
+    snapshot = disk_layout.scan(protected_paths())
+    choices = snapshot['candidates']
+    if not choices:
+        raise ValueError('Không có ổ trong đủ điều kiện để cài. ' + '; '.join(x['path'] + ': ' + x['reason'] for x in snapshot['excluded']))
+    if not args.disk:
+        for index, disk in enumerate(choices, 1):
+            print(f"  {index}. {(disk.get('model') or 'Ổ trong').strip()} — {int(disk['size']) / 1024**3:.1f} GiB ({disk['path']})")
+        answer = input('Chọn ổ cài' + (' [1]' if len(choices) == 1 else '') + ': ').strip()
+        if not answer and len(choices) == 1:
+            answer = '1'
+        if not answer.isdigit() or not 1 <= int(answer) <= len(choices):
+            raise ValueError('Chưa chọn ổ hợp lệ; đã hủy.')
+        args.disk = choices[int(answer) - 1]['path']
+    disk = next((d for d in choices if d['path'] == str(Path(args.disk).resolve())), None)
+    if disk is None:
+        raise ValueError('Ổ chỉ định không nằm trong danh sách có thể cài an toàn.')
+    args.disk_identity = disk_layout.identity(disk)
+    args.username = input('Tên tài khoản [' + args.username + ']: ').strip() or args.username
+    validate_identity(args)
     return args
+
+
+@contextmanager
+def mounted_new_system(root_device, esp_device):
+    # Never use rmtree/TemporaryDirectory around a filesystem mount: if unmount
+    # fails that could delete the new OS. Only remove an empty, unmounted dir.
+    target = Path(tempfile.mkdtemp(prefix='mykos-install-', dir='/mnt'))
+    created = []
+    try:
+        run(['mount', root_device, str(target)])
+        created.append(target)
+        if esp_device:
+            (target / 'boot/efi').mkdir(parents=True)
+            run(['mount', esp_device, str(target / 'boot/efi')])
+            created.append(target / 'boot/efi')
+        yield target
+    finally:
+        for path in reversed(created):
+            try:
+                run(['umount', str(path)])
+            except BaseException as error:
+                raise RuntimeError('Không tháo được mount; giữ nguyên dữ liệu tại ' + str(target)) from error
+        target.rmdir()
+
+
+def check_firmware(mode):
+    if mode != 'uefi' or not Path('/sys/firmware/efi').exists():
+        return
+    variables = list(Path('/sys/firmware/efi/efivars').glob('SecureBoot-*'))
+    if len(variables) != 1:
+        raise ValueError('Không đọc được trạng thái Secure Boot; chưa xóa ổ.')
+    data = variables[0].read_bytes()
+    if len(data) < 5 or data[4] != 0:
+        raise ValueError('Secure Boot đang bật hoặc không xác định. MyKOS chưa có bootloader ký; chưa xóa ổ.')
+
+
+def install_automatic(args):
+    if os.geteuid() != 0:
+        raise ValueError('Cần quyền root để cài hệ thống.')
+    if not sys.stdin.isatty():
+        raise ValueError('Cần terminal tương tác để xác nhận xóa ổ.')
+    if os.uname().machine != 'x86_64':
+        raise ValueError('Hiện hỗ trợ máy amd64/x86_64.')
+    bootstrap_tools.ensure_host_tools()
+    args.mode = args.mode or ('uefi' if Path('/sys/firmware/efi').exists() else 'bios')
+    validate_identity(args)
+    check_firmware(args.mode)
+    paths = protected_paths()
+    disk, _ = disk_layout.selected(args.disk, paths, getattr(args, 'disk_identity', None))
+    with tempfile.TemporaryDirectory(prefix='mykos-bootstrap-') as tools:
+        paths = protected_paths([tools])
+        bootstrap = bootstrap_tools.prepare(tools, settings()['suite'])
+        disk, _ = disk_layout.selected(args.disk, paths, disk_layout.identity(disk))
+        summary = show_disk(disk, args.mode)
+        print('  Tài khoản mới: ' + args.username + ' | Tên máy: ' + args.hostname)
+        print('\nGõ ' + disk_layout.CONFIRMATION + ' để xóa ĐÚNG ổ trên và cài MyKOS. Enter để hủy.', flush=True)
+        if input('Confirm: ').strip() != disk_layout.CONFIRMATION:
+            print('Đã hủy. Chưa xóa hoặc ghi ổ đĩa.')
+            return
+        password = read_password()
+        # Confirmation binds to disk identity, not a guessed /dev/nvme name.
+        with disk_lock(disk):
+            root_device, esp_device = disk_layout.prepare(disk, args.mode, paths)
+            with mounted_new_system(root_device, esp_device) as target:
+                args.target, args.boot_disk, args.keyring = str(target), disk['path'], str(bootstrap[1])
+                root = mount_record(target)
+                args.confirm_uuid = root['uuid']  # Internal check; never ask the user to copy it.
+                summary.update(root_uuid=root['uuid'], root_device=root_device, esp_device=esp_device)
+                install_system(args, password, summary, bootstrap)
+        print('\nMYKOS_INSTALL_COMPLETE')
+        print('Cài đặt hoàn tất. Bạn có thể tắt máy, tháo USB cứu hộ và khởi động MyKOS.', flush=True)
+
+
+@contextmanager
+def disk_lock(disk):
+    directory = Path('/run/lock/mykos-installer')
+    directory.mkdir(mode=0o700, parents=True, exist_ok=True)
+    if directory.is_symlink() or directory.stat().st_uid != 0 or directory.stat().st_mode & 0o077:
+        raise ValueError('Thư mục khóa trình cài không an toàn.')
+    filename = directory / (disk['maj:min'].replace(':', '-') + '.lock')
+    descriptor = os.open(filename, os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o600)
+    try:
+        fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        yield
+    finally:
+        os.close(descriptor)
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('action', nargs='?', default='wizard', choices=['wizard', 'plan', 'install'])
-    parser.add_argument('--target')
+    parser.add_argument('--disk', help='Whole internal disk to erase and install automatically')
+    parser.add_argument('--target', help='Advanced mode: existing mounted root partition')
     parser.add_argument('--mode', choices=['bios', 'uefi'])
     parser.add_argument('--boot-disk', help='Explicit parent disk for BIOS (for example /dev/sda); writes its boot area')
     parser.add_argument('--username', default='mykos')
@@ -334,13 +467,32 @@ def main():
     parser.add_argument('--confirm-uuid', help='Exact UUID of the empty mounted root partition; required to write')
     args = parser.parse_args()
     try:
+        if args.action == 'wizard' and args.target:
+            parser.error('Advanced prepared --target requires explicit plan or install action')
+        if args.disk and args.target:
+            parser.error('Choose automatic --disk or advanced --target, not both')
+        if args.action != 'plan' and os.geteuid() != 0:
+            if not shutil.which('sudo') or not sys.stdin.isatty():
+                raise ValueError('Chạy ./install từ terminal có quyền sudo/root.')
+            os.execvp('sudo', ['sudo', '--', sys.executable, str(Path(__file__).resolve()), *sys.argv[1:]])
         if args.action == 'wizard':
+            bootstrap_tools.ensure_host_tools()
             wizard_options(args)
-        elif not args.target or not args.mode:
-            parser.error('plan and install require --target and --mode')
-        if args.action == 'plan':
+        if args.action == 'plan' and not args.target:
+            snapshot = disk_layout.scan(protected_paths())
+            args.mode = args.mode or ('uefi' if Path('/sys/firmware/efi').exists() else 'bios')
+            disks = snapshot['candidates']
+            if args.disk:
+                disks = [d for d in disks if d['path'] == str(Path(args.disk).resolve())]
+                if not disks:
+                    raise ValueError('Ổ không đủ điều kiện an toàn để cài.')
+            print(json.dumps({'disks': [disk_layout.describe(d, args.mode) for d in disks],
+                              'excluded': snapshot['excluded']}, ensure_ascii=False, indent=2))
+        elif args.action == 'plan':
             print(json.dumps(plan(args), ensure_ascii=False, indent=2))
         else:
+            if args.target and not args.mode:
+                parser.error('Advanced --target requires --mode')
             install(args)
     except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as error:
         print('mykos-install: ' + str(error), file=sys.stderr)

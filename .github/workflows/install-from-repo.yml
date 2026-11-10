@@ -1,0 +1,74 @@
+name: Cài tự động từ repo lên NVMe ảo
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/install-from-repo.yml
+      - install
+      - scripts/install/**
+      - scripts/testing/install_repo.py
+permissions:
+  # Existing rescue ISO is a private draft release; this token is used only to read it.
+  contents: write
+concurrency:
+  group: mykos-terminal-install-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  nvme:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 85
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Chuẩn bị máy kiểm thử riêng
+        run: |
+          set -euo pipefail
+          if [[ "$RUNNER_ENVIRONMENT" == github-hosted && "$RUNNER_OS" == Linux ]]; then
+            sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc
+          fi
+          sudo apt-get update
+          sudo apt-get install -y qemu-system-x86 qemu-utils ovmf xorriso python3-pil p7zip-full acl
+          if [[ -c /dev/kvm ]]; then sudo setfacl -m "u:$(id -u):rw" /dev/kvm; fi
+          df -h .
+      - name: Tải đúng ISO cứu hộ đã boot đạt
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/rescue
+          gh release download v0.1.0-dev-uefi-build-42836804675 --pattern 'mykos-0.1.0-dev-amd64.7z.001' --dir artifacts/rescue
+          7z x artifacts/rescue/mykos-0.1.0-dev-amd64.7z.001 -oartifacts/rescue -y
+          echo 'dd6df477d885b180231708aff16acde049c461338cbbe61adc411a6f436d2b13  artifacts/rescue/mykos-0.1.0-dev-amd64.iso' | sha256sum -c -
+          rm artifacts/rescue/mykos-0.1.0-dev-amd64.7z.001
+      - name: Chạy wizard, tự chia NVMe và boot đĩa không ISO
+        timeout-minutes: 65
+        run: /usr/bin/python3 scripts/testing/install_repo.py artifacts/rescue/mykos-0.1.0-dev-amd64.iso --output artifacts/nvme-install
+      - name: Xuất bằng chứng kể cả khi quota Artifacts đầy
+        if: always()
+        run: |
+          /usr/bin/python3 - <<'PY'
+          from pathlib import Path
+          import base64,hashlib,textwrap
+          for p in Path('artifacts/nvme-install').glob('result.json'):
+              print('MYKOS_INSTALL_RESULT_BEGIN\n'+p.read_text()+'\nMYKOS_INSTALL_RESULT_END')
+          for p in Path('artifacts/nvme-install').glob('*/*.png'):
+              data=p.read_bytes()
+              print('MYKOS_INSTALL_PNG_BEGIN',str(p),hashlib.sha256(data).hexdigest())
+              for line in textwrap.wrap(base64.b64encode(data).decode(),4000):print('MYKOS_INSTALL_PNG_DATA '+line)
+              print('MYKOS_INSTALL_PNG_END')
+          for p in Path('artifacts/nvme-install').glob('*/*.log'):
+              print('MYKOS_LOG_TAIL',str(p))
+              print(p.read_text(errors='replace')[-20000:])
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        continue-on-error: true
+        with:
+          name: mykos-nvme-install-${{ github.run_id }}
+          path: |
+            artifacts/nvme-install/result.json
+            artifacts/nvme-install/*/*.png
+            artifacts/nvme-install/*/*.log
+          retention-days: 7

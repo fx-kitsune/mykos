@@ -1,0 +1,12 @@
+{
+  "debootstrap": {
+    "filename": "pool/main/d/debootstrap/debootstrap_1.0.141_all.deb",
+    "sha256": "8c02cb8ad712eb67afb0d23fab175c562804cc97eda70b70cb0f3bc2a21732d7",
+    "version": "1.0.141"
+  },
+  "debian-archive-keyring": {
+    "filename": "pool/main/d/debian-archive-keyring/debian-archive-keyring_2025.1_all.deb",
+    "sha256": "9ea7778e443144ca490668737a8ab22dd3e748bb99e805e22ec055abeb3c7fac",
+    "version": "2025.1"
+  }
+}

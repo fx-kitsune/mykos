@@ -15,21 +15,25 @@ spec.loader.exec_module(installer)
 
 def options(**updates):
     values = dict(action='install', target='/mnt/mykos', mode='uefi', boot_disk=None, username='alice', hostname='mykos',
-                  keyring='/usr/share/keyrings/debian-archive-keyring.gpg', confirm_uuid=None)
+                  keyring='/usr/share/keyrings/debian-archive-keyring.gpg', confirm_uuid=None, disk=None)
     values.update(updates)
     return argparse.Namespace(**values)
 
 
 class TerminalInstallerTests(unittest.TestCase):
-    def test_wizard_collects_target_options_without_running_commands(self):
-        args = options(action='wizard')
+    def test_wizard_selects_nvme_without_asking_for_mount_or_uuid(self):
+        args = options(action='wizard', target=None)
+        disk = {'path':'/dev/nvme0n1', 'maj:min':'259:0', 'type':'disk',
+                'size':500 * 1024**3, 'serial':'NVME-TEST', 'model':'Demo NVMe', 'tran':'nvme'}
         with patch.object(installer.sys.stdin, 'isatty', return_value=True), \
-             patch('builtins.input', side_effect=['/mnt/new-system', 'uefi', 'alice', 'new-system']), \
+             patch('builtins.input', side_effect=['1', 'alice']) as prompt, \
+             patch.object(installer.disk_layout, 'scan', return_value={'candidates':[disk], 'excluded':[]}), \
              patch.object(installer, 'run') as run:
             installer.wizard_options(args)
-        self.assertEqual(args.target, '/mnt/new-system')
-        self.assertEqual(args.mode, 'uefi')
+        self.assertEqual(args.disk, '/dev/nvme0n1')
+        self.assertIsNone(args.target)
         self.assertEqual(args.username, 'alice')
+        self.assertEqual(prompt.call_count, 2)
         run.assert_not_called()
 
     def test_plan_is_read_only_and_excludes_live_credentials_and_live_packages(self):

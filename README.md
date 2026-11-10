@@ -46,12 +46,16 @@ Toàn bộ hướng dẫn dự án được viết bằng tiếng Việt. Tên c
 
 Xem [ADR 0003](docs/ADR/0003-independent-linux-platform.md). Loại bỏ nguồn Ubuntu là bước đầu; hiện vẫn cần userspace, APT, systemd, Qt/KDE và công cụ Debian. Mục tiêu chỉ dựa vào Linux kernel chưa hoàn tất.
 
-## Cài từ USB cứu hộ khác bằng terminal
+## Cài tự động lên NVMe từ USB cứu hộ
 
-Đã có trình cài thử nghiệm từ repo bằng `debootstrap`, không cần ISO MyKOS. Bắt đầu bằng kế hoạch không ghi dữ liệu:
+Boot bằng USB cứu hộ Linux có Internet, clone repo rồi chạy:
 
 ```sh
-python3 scripts/install/mykos-install.py plan --target /mnt/mykos --mode uefi
+git clone https://github.com/fx-kitsune/mykos.git
+cd mykos
+./install
 ```
 
-Hỗ trợ phân vùng ext4 đã chuẩn bị/mount, BIOS hoặc UEFI với ESP rỗng. Bước ghi cần xác nhận UUID và đặt mật khẩu mới. Xem [hướng dẫn cài từ rescue](docs/INSTALL_FROM_RESCUE.md); chưa nghiệm thu cài đĩa/reboot bằng trình cài terminal này.
+Chọn ổ theo model/dung lượng và đặt tài khoản. Wizard tự chuẩn bị công cụ, tạo phân vùng, format, mount, debootstrap và cài bootloader. Không cần GParted, mountpoint hoặc nhập UUID. Một bước xác nhận rõ ổ sẽ bị xóa vẫn bắt buộc; cài tự động dùng toàn bộ ổ được chọn, không giữ dữ liệu/dual boot.
+
+Xem [hướng dẫn](docs/INSTALL_FROM_RESCUE.md). Kiểm thử cài–reboot NVMe ảo đang được bổ sung; chưa tuyên bố nghiệm thu phần cứng thật.

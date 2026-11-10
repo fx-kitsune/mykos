@@ -1,0 +1,4 @@
+#!/bin/sh
+# One terminal entrypoint; Python handles selection, elevation and installation.
+set -eu
+exec python3 "$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)/scripts/install/mykos-install.py" "$@"
