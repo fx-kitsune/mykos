@@ -30,6 +30,26 @@ def partition(path, identifier, mounts=None):
 
 
 class AutoDiskTests(unittest.TestCase):
+    def test_initramfs_loop_filename_need_not_exist_in_live_namespace(self):
+        rescue = drive('/dev/nvme0n1','259:0',children=[partition('/dev/nvme0n1p1','259:1')])
+        target = drive('/dev/nvme1n1','259:2')
+        loop = dict(path='/dev/loop0', type='loop', **{'maj:min':'7:0'})
+        with patch.object(disks, 'loop_backing_device', return_value='259:1'), \
+             patch.object(disks, 'output', side_effect=AssertionError('must not resolve /filesystem.squashfs')):
+            choices, *_ = disks.assess([rescue,target,loop], [{'target':'/rofs','maj:min':'7:0'}], [])
+        self.assertEqual([row['path'] for row in choices], ['/dev/nvme1n1'])
+
+    def test_loop_kernel_device_number_decoding_and_fd_cleanup(self):
+        import struct
+        def ioctl(fd, request, info, mutate):
+            self.assertEqual(request, 0x4C05)
+            struct.pack_into('=Q', info, 0, (259 << 8) | 1 | ((513 & ~255) << 12))
+        with patch.object(disks.os, 'open', return_value=42), \
+             patch.object(disks.fcntl, 'ioctl', side_effect=ioctl), \
+             patch.object(disks.os, 'close') as close:
+            self.assertEqual(disks.loop_backing_device('/dev/loop0'), '259:513')
+        close.assert_called_once_with(42)
+
     def test_running_disk_excluded_and_nvme_target_selected(self):
         host = drive('/dev/nvme0n1', '259:0', children=[partition('/dev/nvme0n1p1','259:1',['/'])])
         target = drive('/dev/nvme1n1', '259:2')

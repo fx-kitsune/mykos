@@ -4,10 +4,12 @@ No commands that write a disk run during discovery, plan generation or selection
 Disk preparation is callable only with a revalidated, explicitly confirmed disk.
 """
 import json
+import fcntl
 import os
 from pathlib import Path
 import stat
 import subprocess
+import struct
 import time
 
 MINIMUM_BYTES = 25 * 1024**3
@@ -18,6 +20,19 @@ CONFIRMATION = 'XOA VA CAI MYKOS'
 COLUMNS = 'NAME,PATH,MAJ:MIN,TYPE,SIZE,MODEL,SERIAL,WWN,TRAN,RM,RO,FSTYPE,MOUNTPOINTS,PKNAME,LOG-SEC'
 CRITICAL = {'/', '/boot', '/boot/efi', '/usr', '/var', '/home', '/run', '/cdrom', '/isodevice', '/cow', '/rofs'}
 LIVE_PREFIXES = ('/run/live', '/lib/live/mount', '/run/archiso', '/run/miso', '/run/initramfs')
+
+
+def loop_backing_device(path):
+    """Ask the kernel: backing_file paths may belong to the initramfs namespace."""
+    fd = os.open(path, os.O_RDONLY | os.O_CLOEXEC)
+    try:
+        info = bytearray(232)  # struct loop_info64
+        fcntl.ioctl(fd, 0x4C05, info, True)  # LOOP_GET_STATUS64, read-only
+        device = struct.unpack_from('=Q', info)[0]
+        # lo_device uses the kernel's new_encode_dev, not libc's dev_t layout.
+        return f'{(device >> 8) & 0xfff}:{(device & 0xff) | ((device >> 12) & 0xfff00)}'
+    finally:
+        os.close(fd)
 
 
 def run(argv, **kwargs):
@@ -59,6 +74,7 @@ def protected_disks(nodes, owners, mounts, paths, backing_file=None, source_for_
     def loop_backing(identifier):
         path = Path('/sys/dev/block') / identifier / 'loop/backing_file'
         return path.read_text().strip() if path.is_file() else None
+    kernel_backing = backing_file is None
     backing_file = backing_file or loop_backing
     def filesystem_for(path):
         data = json.loads(output(['findmnt', '--json', '--target', path, '--output', 'MAJ:MIN']))
@@ -70,6 +86,14 @@ def protected_disks(nodes, owners, mounts, paths, backing_file=None, source_for_
         if owners.get(identifier):
             return owners[identifier]
         node = nodes.get(identifier, {})
+        if node.get('type') == 'loop' and kernel_backing:
+            try:
+                device = loop_backing_device(node.get('path') or '/dev/block/' + identifier)
+            except OSError:
+                pass  # Older/restricted rescue hosts can still expose a usable file path.
+            else:
+                if not device.startswith('0:'):
+                    return resolve(device, seen | {identifier})
         backing = backing_file(identifier)
         if backing:
             path = backing if backing.startswith('/') else '/' + backing
