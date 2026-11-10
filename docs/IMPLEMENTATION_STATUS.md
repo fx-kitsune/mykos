@@ -1,3 +1,15 @@
+## MyKOS Desktop riêng (2026-11-10)
+
+Đã bỏ gói và overlay Plasma/KWin khỏi ảnh mặc định; shell, panel, launcher, desktop và session manager là mã MyKOS. Openbox quản lý cửa sổ X11 tạm thời, SDDM chọn phiên MyKOS; Calamares đã chuyển session mặc định và dọn live autologin/sudoers. Qt/PyQt6 đã cài trong venv để chạy kiểm thử trong lần này.
+
+Đã chạy 50 bài integration và 8 bài desktop, trong đó có phiên Xvfb/Openbox thật: loại cửa sổ, strut 56 px, IPC launcher/settings, cửa sổ ứng dụng, desktop ảo và dừng phiên. Chưa tạo hoặc nghiệm thu ISO mới, compositor Wayland/locking/tray/power management riêng chưa hoàn tất. Các bài chẩn đoán dùng tọa độ và ISO Ubuntu cũ không chứng minh DE mới. Xem ADR 0004 và desktop/README.md.
+
+## Refactor nền mới (2026-11-09)
+
+Đã chuyển cấu hình nguồn, kernel, live initramfs, menu boot, đường dẫn installer và CI tạo ISO sang Debian 13; đặt ID MyKOS. Đã kiểm tra 48 bài integration, xuất thiết kế và tên gói Debian main. `lb config` được thử với gói Debian giải nén. Kiểm thử giao diện desktop chưa chạy được vì thiếu PyQt6 trong môi trường; bốn bài state thuần Python đã qua. Chưa build/boot ISO Debian; userspace Debian và KDE còn là phụ thuộc tạm thời.
+
+> Cấu hình hiện hành đã chuyển sang Debian 13; xem [ADR 0003](ADR/0003-independent-linux-platform.md). Nội dung Ubuntu và kết quả ISO bên dưới là lịch sử, không nghiệm thu nền mới. Mục tiêu nền riêng chỉ dùng Linux kernel còn đang triển khai.
+
 # Trạng thái triển khai
 
 Cập nhật ngày 09/11/2026 (giờ Việt Nam). **M0 đang thực hiện, chưa nghiệm thu.**

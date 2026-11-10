@@ -1,61 +1,62 @@
-# Boot and live session
-linux-generic
-casper
+# Debian is the temporary kernel and userspace provider.
+linux-image-amd64
+live-boot
+live-config
+live-config-systemd
 initramfs-tools
 systemd-sysv
-ubuntu-keyring
+debian-archive-keyring
 sudo
 locales
-# Upstream KDE; Noble supplies Plasma 5.27, not Plasma 6
-plasma-desktop
-plasma-workspace-wayland
+# MyKOS owns shell and session; Openbox is the temporary X11 window manager.
+xserver-xorg
+openbox
+wmctrl
+x11-utils
+dbus-x11
 sddm
-breeze
-breeze-icon-theme
+sddm-theme-debian-maui
+adwaita-icon-theme
 fonts-noto-core
 fonts-noto-color-emoji
-# Core desktop tasks
-konsole
-dolphin
-kate
-ark
-okular
+# Standalone applications; no Plasma/KWin or complete upstream DE.
+thunar
+xfce4-terminal
+mousepad
+ristretto
+file-roller
+evince
 network-manager
-plasma-nm
+network-manager-gnome
 bluez
-bluedevil
 pipewire-audio
 wireplumber
-plasma-pa
-powerdevil
+pavucontrol
+arandr
 udisks2
-polkit-kde-agent-1
-xdg-desktop-portal-kde
-# Application management (no third-party remotes enabled)
-plasma-discover
-plasma-discover-backend-flatpak
+lxpolkit
+dunst
+xdg-desktop-portal
+xdg-desktop-portal-gtk
 flatpak
-# Maintenance and baseline developer tools
+# Maintenance tools
 fwupd
 ca-certificates
 curl
 git
 less
 nano
-
-# Native Qt 6 Workspace (alongside the upstream Plasma 5 desktop)
+# MyKOS native shell and Workspace
 python3
 qml6-module-qtquick
 qml6-module-qtquick-controls
 qml6-module-qtquick-layouts
 qml6-module-qtquick-window
 qml6-module-qtqml-workerscript
-gwenview
 python3-pyqt6
 python3-pyqt6.qtquick
 python3-pyqt6.qtsvg
-
-# BIOS installer (development; installation still needs acceptance)
+# BIOS installer (development; installation needs renewed acceptance)
 calamares
 grub-pc-bin
 grub2-common

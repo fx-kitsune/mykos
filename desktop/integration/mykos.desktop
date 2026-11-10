@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=MyKOS Desktop
+Comment=MyKOS desktop session
+Exec=/usr/bin/mykos-session
+TryExec=/usr/bin/mykos-session
+Type=Application
+DesktopNames=MyKOS

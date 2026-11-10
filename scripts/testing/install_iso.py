@@ -60,7 +60,7 @@ try:
     if shadow.returncode: raise RuntimeError(shadow.stderr)
     hashes={line.split(':')[0]:line.split(':')[1] for line in shadow.stdout.splitlines()}
     package_status={}
-    for package in ['casper','calamares']:
+    for package in ['live-boot','live-config','live-config-systemd','calamares']:
         p=command(['dpkg-query','--admindir='+str(target/'var/lib/dpkg'),'-W','-f=${db:Status-Status}',package])
         package_status[package]=p.stdout.strip()
     result={'previous_calamares_mounts':previous,
@@ -69,7 +69,7 @@ try:
             'sudo_membership':any(line.startswith('sudo:') and 'vmtester' in line.split(':')[3].split(',') for line in groups.splitlines()),
             'root_locked':hashes.get('root','').startswith(('!','*')),
             'user_password_set':bool(hashes.get('vmtester')) and not hashes['vmtester'].startswith(('!','*')),
-            'live_sudoers_removed':not (target/'etc/sudoers.d/casper').exists(),
+            'live_sudoers_removed':not any((target / ('etc/sudoers.d/' + name)).exists() for name in ['live', 'live-config', 'casper']),
             'launcher_removed':not (target/'usr/bin/mykos-install').exists(),
             'packages':package_status,
             'kernel_present':bool(list((target/'boot').glob('vmlinuz-*'))),
@@ -91,7 +91,7 @@ def installed_target_ready(result):
             and result.get('root_filesystem') == 'ext4'
             and result.get('hostname') == 'mykos-installed'
             and all(result.get('packages', {}).get(package) in {'', 'not-installed', 'config-files'}
-                    for package in ['casper', 'calamares'])
+                    for package in ['live-boot', 'live-config', 'live-config-systemd', 'calamares'])
             and 'menuentry ' in result.get('grub_config', '')
             and 'UUID=' in result.get('fstab', ''))
 
@@ -327,7 +327,7 @@ def main():
             filesystem = json.loads(installed['root'])['filesystems'][0]
             if (installed['uid'] == 0 or installed['hostname'] != 'mykos-installed'
                     or filesystem['source'] != '/dev/vda1' or filesystem['fstype'] != 'ext4'
-                    or 'boot=casper' in installed['cmdline']):
+                    or 'boot=live' in installed['cmdline']):
                 raise RuntimeError('Bản cài chưa đạt kiểm tra tài khoản thường và root trên đĩa sau tháo ISO.')
             report['scope'] = 'Cài QCOW2, boot GRUB không ISO, đăng nhập console tài khoản thường. Chưa nghiệm thu đăng nhập GUI hoặc thiết bị.'
             report['status'] = 'installed-diagnostic-userspace-ready' if args.diagnostic_direct or args.diagnostic_overlay else 'installed-userspace-ready'
@@ -366,29 +366,27 @@ def main():
             vm.key('ret')
             report['installed_desktop'] = vm.guest(GUEST, timeout=900)
             if not desktop_ready(report['installed_desktop']):
-                raise RuntimeError('Plasma hoặc ứng dụng của bản cài chưa phản hồi sau đăng nhập SDDM.')
+                raise RuntimeError('MyKOS Shell hoặc ứng dụng của bản cài chưa phản hồi sau đăng nhập SDDM.')
             report['installed_graphical_session'] = vm.guest(GRAPHICAL_SESSION, timeout=60)
             graphical = report['installed_graphical_session']['graphical']
             if (graphical.get('Name') != 'vmtester' or graphical.get('Type') != 'x11'
                     or graphical.get('State') != 'active' or graphical.get('Class') != 'user'
                     or graphical.get('Remote') != 'no'):
                 raise RuntimeError('Chưa xác nhận được phiên X11 hoạt động của tài khoản thường trên seat0.')
-            if report['installed_desktop'].get('color_scheme') != 'MyKOSDark':
-                raise RuntimeError('Bản cài chưa dùng bộ màu MyKOSDark mặc định.')
             deadline = time.monotonic() + 120
             while True:
                 report['installed_session_services'] = vm.guest(SESSION_SERVICES, timeout=240)
                 if session_services_ready(report['installed_session_services']):
                     break
                 if time.monotonic() >= deadline:
-                    raise RuntimeError('PolicyKit/Powerdevil/KScreen chưa ổn định hoặc còn lặp khởi động; xem installed_session_services.')
+                    raise RuntimeError('MyKOS Shell/PolicyKit/thông báo chưa ổn định hoặc còn lặp khởi động; xem installed_session_services.')
                 time.sleep(5)
             vm.capture('installed-applications')
             vm.click(1266, 777)
             time.sleep(3)
             vm.capture('installed-wallpaper')
             vm.click(1266, 777)
-            report['scope'] = 'Cài và boot BIOS không ISO, xác thực SDDM/Plasma X11 tài khoản thường, ứng dụng KDE, mạng/HTTPS, sudo và APT. Chưa nghiệm thu âm thanh, cập nhật/recovery hoặc phần cứng.'
+            report['scope'] = 'Cài và boot BIOS không ISO, xác thực SDDM/MyKOS X11 tài khoản thường, ứng dụng desktop, mạng/HTTPS, sudo và APT. Chưa nghiệm thu âm thanh, cập nhật/recovery hoặc phần cứng.'
             report['status'] = 'installed-diagnostic-desktop-ready' if args.diagnostic_direct or args.diagnostic_overlay else 'installed-desktop-ready'
         if args.multimedia_installed:
             report['status'] = 'failed'

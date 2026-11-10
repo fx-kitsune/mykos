@@ -1,8 +1,9 @@
 """Hoàn tất riêng bản cài; không sửa môi trường live hoặc dữ liệu người dùng."""
+import configparser
 from pathlib import Path
 import shutil
 
-SOFTWARE_FLAGS = ('systemd.setenv=KWIN_COMPOSE=N', 'systemd.setenv=QT_QUICK_BACKEND=software')
+SOFTWARE_FLAGS = ('systemd.setenv=QT_QUICK_BACKEND=software',)
 
 
 def target_path(root, relative):
@@ -18,8 +19,18 @@ def configure_target(root, software=False):
         raise ValueError('Cần thư mục đích cài đặt đã gắn, khác thư mục gốc của môi trường live.')
     root = root.resolve()
     for relative in ('usr/bin/mykos-install', 'usr/share/applications/mykos-install.desktop',
-                     'etc/sudoers.d/casper', 'etc/sudoers.d/99-casper'):
+                     'etc/sudoers.d/casper', 'etc/sudoers.d/99-casper',
+                     'etc/sudoers.d/live', 'etc/sudoers.d/live-config',
+                     'usr/lib/live/config/0099-mykos-session'):
         target_path(root, relative).unlink(missing_ok=True)
+    sddm = target_path(root, 'etc/sddm.conf')
+    if sddm.is_file():
+        config = configparser.ConfigParser(interpolation=None)
+        config.optionxform = str
+        config.read(sddm)
+        config.remove_section('Autologin')
+        with sddm.open('w') as stream:
+            config.write(stream)
     installer_config = target_path(root, 'etc/calamares')
     if installer_config.exists():
         shutil.rmtree(installer_config)

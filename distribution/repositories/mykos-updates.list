@@ -1,1 +1,1 @@
-deb https://archive.ubuntu.com/ubuntu/ noble-updates main restricted universe multiverse
+# Updates and security are managed by Debian live-build; no additional archive.

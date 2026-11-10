@@ -3,7 +3,13 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths: [.github/workflows/build-uefi-live.yml]
+    paths:
+      - .github/workflows/build-uefi-live.yml
+      - distribution/**
+      - '!distribution/installer/README.md'
+      - desktop/**
+      - scripts/build/**
+      - scripts/testing/probe_desktop.py
 
 permissions:
   contents: write
@@ -15,8 +21,11 @@ concurrency:
 
 jobs:
   build:
-    name: Tạo ảnh Ubuntu Noble amd64
+    name: Tạo ảnh MyKOS / Debian 13 amd64
     runs-on: ubuntu-24.04
+    container:
+      image: debian:13
+      options: --privileged
     timeout-minutes: 240
     defaults:
       run:
@@ -26,6 +35,8 @@ jobs:
       ARTIFACT_DIRECTORY: artifacts/iso
       DIAGNOSTIC_DIRECTORY: artifacts/diagnostics
     steps:
+      - name: Chuẩn bị môi trường Debian
+        run: apt-get update && apt-get install -y sudo python3 git ca-certificates
       - name: Lấy mã nguồn
         uses: actions/checkout@v4
         with:
@@ -37,22 +48,17 @@ jobs:
           mkdir -p "$DIAGNOSTIC_DIRECTORY"
           df -h . | tee "$DIAGNOSTIC_DIRECTORY/disk-before.txt"
           free -h | tee "$DIAGNOSTIC_DIRECTORY/memory.txt"
-          # Chỉ dọn SDK cài sẵn trên máy tạm do GitHub cấp; không đụng mã nguồn.
-          if [[ "$RUNNER_ENVIRONMENT" == github-hosted && "$RUNNER_OS" == Linux ]]; then
-            sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc
-          fi
           df -h . | tee "$DIAGNOSTIC_DIRECTORY/disk-after.txt"
 
-      - name: Cài bộ công cụ Ubuntu đã chốt
+      - name: Cài bộ công cụ Debian
         run: |
           set -euo pipefail
-          version=$(python3 -c 'import json; print(json.load(open("distribution/base/build.json"))["live_build_version"])')
           sudo apt-get update
-          sudo apt-get install -y "live-build=$version" debootstrap ubuntu-keyring \
+          sudo apt-get install -y live-build debootstrap debian-archive-keyring \
             squashfs-tools xorriso genisoimage isolinux syslinux syslinux-common \
-            syslinux-utils dosfstools mtools grub-efi-amd64-bin grub-common cpio rsync python3 git qemu-system-x86 ovmf python3-pil acl p7zip-full
+            syslinux-utils dosfstools mtools grub-efi-amd64-bin grub-common cpio rsync python3 git qemu-system-x86 ovmf python3-pil acl p7zip-full gh
           dpkg-query -W live-build debootstrap squashfs-tools xorriso genisoimage \
-            isolinux syslinux syslinux-common syslinux-utils ubuntu-keyring grub-common grub-efi-amd64-bin mtools \
+            isolinux syslinux syslinux-common syslinux-utils debian-archive-keyring grub-common grub-efi-amd64-bin mtools \
             > "$DIAGNOSTIC_DIRECTORY/toolchain.txt"
 
       - name: Kiểm tra cấu hình và tài nguyên
@@ -60,9 +66,9 @@ jobs:
           set -euo pipefail
           python3 -m unittest discover -s tests/integration -v
           python3 scripts/build/export-design.py --check
-          # Kiểm tra gói cung cấp isohybrid trên host; adapter cài cùng gói trong chroot.
+          # Kiểm tra isohybrid của bộ công cụ Debian.
           dpkg-query -L syslinux-utils | grep -Fx /usr/bin/isohybrid
-          # Menu BIOS lấy đúng tệp của Syslinux 6 trên Noble.
+          # Menu BIOS lấy tệp Syslinux từ Debian.
           test -r /usr/lib/ISOLINUX/isolinux.bin
           for module in menu.c32 ldlinux.c32 libcom32.c32 libutil.c32; do
             test -r "/usr/lib/syslinux/modules/bios/$module"
@@ -165,11 +171,11 @@ jobs:
           info = json.loads(Path('artifacts/iso/build.json').read_text())
           text = """Bản phát triển live UEFI amd64, chưa phải bản ổn định.
 
-          Đã kiểm thử OVMF từ USB GPT và CD-ROM tới Plasma với đồ họa phần mềm; kiểm tra BIOS tới môi trường người dùng đạt. Secure Boot chưa hỗ trợ. Trình cài đặt vẫn chỉ hỗ trợ BIOS, chưa cài xuống ổ trong ở chế độ UEFI.
+          Đã kiểm thử OVMF từ USB GPT và CD-ROM tới MyKOS Desktop với đồ họa phần mềm; kiểm tra BIOS tới môi trường người dùng đạt. Secure Boot chưa hỗ trợ. Trình cài đặt vẫn chỉ hỗ trợ BIOS, chưa cài xuống ổ trong ở chế độ UEFI.
 
-          Tải cả hai tệp .7z.001 và .7z.002 vào cùng thư mục. Dùng 7-Zip mở tệp .001 rồi Extract để lấy ISO; không đổi tên phần tệp. Kiểm tra SHA256SUMS sau giải nén. Ghi USB dùng riêng bằng Rufus DD Image mode, rồi chọn UEFI USB trong Boot Menu.
+          Tải toàn bộ các phần .7z.001, .7z.002 (và các phần tiếp theo nếu có) vào cùng thư mục. Dùng 7-Zip mở tệp .001 rồi Extract để lấy ISO; không đổi tên phần tệp. Kiểm tra SHA256SUMS sau giải nén. Ghi USB dùng riêng bằng Rufus DD Image mode, rồi chọn UEFI USB trong Boot Menu.
 
-          Hai phần được dùng vì tài khoản đã hết hạn mức Actions Artifacts và mỗi release asset có giới hạn 2 GiB. Bản phát hành này được tạo ở trạng thái nháp, chưa công bố.
+          Các phần được dùng khi tài khoản đã hết hạn mức Actions Artifacts và mỗi release asset có giới hạn 2 GiB. Bản phát hành này được tạo ở trạng thái nháp, chưa công bố.
           """
           text += '\nISO SHA-256: `' + info['iso_sha256'] + '`\n'
           text += '\nNguồn: `' + info['git_revision'] + '`\n'

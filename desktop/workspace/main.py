@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Native, unprivileged MyKOS Workspace companion for KDE."""
+"""Native, unprivileged MyKOS Workspace application for MyKOS Desktop."""
 import os
 from pathlib import Path
 import shutil
@@ -19,9 +19,11 @@ class Workspace(QObject):
     changed = Signal()
     notice = Signal(str)
     # Fixed argv, never a shell or commands supplied by QML/user text.
-    COMMANDS = {"files": ["dolphin"], "terminal": ["konsole"],
-                "settings": ["systemsettings"], "apps": ["plasma-discover"],
-                "notes": ["kate"], "photos": ["gwenview"]}
+    COMMANDS = {"files": ["thunar"], "terminal": ["x-terminal-emulator"],
+                "settings": ["mykos-shell", "--show-settings"],
+                "apps": ["mykos-shell", "--show-launcher"],
+                "workspace": ["mykos-workspace"], "install": ["mykos-install"],
+                "notes": ["mousepad"], "photos": ["ristretto"]}
 
     def __init__(self, store):
         super().__init__()
@@ -79,14 +81,15 @@ class Workspace(QObject):
             self.notice.emit("Ứng dụng không được hỗ trợ.")
             return
         executable = shutil.which(command[0])
-        if not executable and name == "settings":
-            executable = shutil.which("systemsettings5")
         if not executable:
             self.notice.emit("Ứng dụng chưa được cài đặt trên máy này.")
             return
-        started, _ = QProcess.startDetached(executable, command[1:])
+        started = self.startCommand(executable, command[1:])
         if not started:
-            self.notice.emit("Không mở được ứng dụng. Vui lòng thử từ menu KDE.")
+            self.notice.emit("Không mở được ứng dụng. Vui lòng thử lại từ launcher.")
+
+    def startCommand(self, executable, arguments):
+        return QProcess.startDetached(executable, arguments)[0]
 
 
 def main():

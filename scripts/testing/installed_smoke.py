@@ -18,11 +18,11 @@ result={'uid':os.getuid(),
         'routes':check(['ip','-j','route']),
         'sudo_without_password':check(['sudo','-n','true'])}
 try:
-    result['dns']={'addresses':sorted({entry[4][0] for entry in socket.getaddrinfo('archive.ubuntu.com',443)})}
+    result['dns']={'addresses':sorted({entry[4][0] for entry in socket.getaddrinfo('deb.debian.org',443)})}
 except OSError as error:
     result['dns']={'error':str(error)}
 try:
-    with urllib.request.urlopen('https://archive.ubuntu.com/ubuntu/dists/noble/InRelease',timeout=30) as response:
+    with urllib.request.urlopen('https://deb.debian.org/debian/dists/trixie/InRelease',timeout=30) as response:
         result['https']={'status':response.status,'signed_release_header':response.read(64).startswith(b'-----BEGIN PGP SIGNED MESSAGE-----')}
 except (OSError,ValueError) as error:
     result['https']={'error':str(error)}
@@ -85,50 +85,28 @@ for line in sessions.splitlines():
 
 
 SESSION_SERVICES = r'''
-import os, subprocess
+import json, os, subprocess
 from pathlib import Path
 def check(args,env=None):
     try:
-        p=subprocess.run(args,env=env,capture_output=True,text=True,timeout=30)
-        return {'returncode':p.returncode,'stdout':p.stdout[-16000:],'stderr':p.stderr[-2000:]}
+        p=subprocess.run(args,env=env,capture_output=True,text=True,timeout=15)
+        return {'returncode':p.returncode,'stdout':p.stdout[-8000:],'stderr':p.stderr[-2000:]}
     except (OSError,subprocess.TimeoutExpired) as error:
         return {'error':str(error)}
-keys=['DBUS_SESSION_BUS_ADDRESS','XDG_RUNTIME_DIR','DISPLAY','XAUTHORITY','XDG_SESSION_ID','XDG_CURRENT_DESKTOP','KWIN_COMPOSE','QT_QUICK_BACKEND']
-result={'serial_environment':{key:os.environ.get(key) for key in keys},'processes':[],
-        'units':check(['systemctl','--user','show','dbus.service','plasma-polkit-agent.service','plasma-powerdevil.service','plasma-kscreen.service','-p','Id,Type,BusName,MainPID,ActiveState,SubState,Result,NRestarts,TimeoutStartUSec']),
-        'unit_definitions':check(['systemctl','--user','cat','dbus.service','plasma-polkit-agent.service','plasma-powerdevil.service']),
-        'manager_environment':check(['systemctl','--user','show-environment']),
-        'packages':check(['dpkg-query','-W','-f=${binary:Package} ${db:Status-Status} ${Version}\n','dbus-user-session','dbus-x11','dbus-daemon']),
-        'session_list':check(['loginctl','list-sessions','--no-legend','--no-pager'])}
-# Keep only session/graphics keys; never return the complete process or manager environment.
-if 'stdout' in result['manager_environment']:
-    result['manager_environment']['stdout']='\n'.join(line for line in result['manager_environment']['stdout'].splitlines() if line.split('=',1)[0] in keys)
-for line in subprocess.check_output(['ps','-u',str(os.getuid()),'-o','pid=,ppid=,comm=,args='],text=True).splitlines():
-    parts=line.split(None,3)
-    if len(parts)<4 or parts[2] not in ['dbus-daemon','plasmashell','systemd','polkit-kde-auth','org_kde_powerde']:
-        continue
-    pid=parts[0]
-    item={'pid':pid,'ppid':parts[1],'command':parts[3]}
-    try:
-        process_env={}
-        for entry in Path('/proc/'+pid+'/environ').read_bytes().split(b'\0'):
-            if b'=' in entry:
-                key,value=entry.split(b'=',1)
-                process_env[key.decode()]=value.decode(errors='replace')
-        item['environment']={key:process_env.get(key) for key in keys}
-        env=os.environ.copy()
-        env.update(process_env)
-        if parts[2]=='plasmashell' and process_env.get('DBUS_SESSION_BUS_ADDRESS'):
-            item['bus_id']=check(['dbus-send','--session','--print-reply','--dest=org.freedesktop.DBus','/org/freedesktop/DBus','org.freedesktop.DBus.GetId'],env)
-            item['bus_names']=check(['dbus-send','--session','--print-reply','--dest=org.freedesktop.DBus','/org/freedesktop/DBus','org.freedesktop.DBus.ListNames'],env)
-    except OSError as error:
-        item['error']=str(error)
-    result['processes'].append(item)
-if os.environ.get('DBUS_SESSION_BUS_ADDRESS'):
-    result['serial_bus_id']=check(['dbus-send','--session','--print-reply','--dest=org.freedesktop.DBus','/org/freedesktop/DBus','org.freedesktop.DBus.GetId'])
-runtime_env=os.environ.copy()
-runtime_env['DBUS_SESSION_BUS_ADDRESS']='unix:path=/run/user/'+str(os.getuid())+'/bus'
-result['runtime_bus_id']=check(['dbus-send','--session','--print-reply','--dest=org.freedesktop.DBus','/org/freedesktop/DBus','org.freedesktop.DBus.GetId'],runtime_env)
+result={'agents':{}}
+for name in ['openbox','lxpolkit','dunst']:
+    result['agents'][name]=check(['pgrep','-u',str(os.getuid()),'-x',name])
+shell=check(['pgrep','-u',str(os.getuid()),'-x','mykos-shell'])
+if shell.get('returncode')==0:
+    pid=shell['stdout'].split()[0]
+    env=os.environ.copy()
+    for item in Path('/proc/'+pid+'/environ').read_bytes().split(b'\0'):
+        if b'=' in item:
+            key,value=item.split(b'=',1)
+            env[key.decode()]=value.decode(errors='replace')
+    result['shell_reply']=check(['mykos-shell','--check'],env)
+    result['bus']=check(['dbus-send','--session','--print-reply','--dest=org.freedesktop.DBus',
+                         '/org/freedesktop/DBus','org.freedesktop.DBus.GetId'],env)
 '''
 
 
@@ -153,22 +131,14 @@ def apt_ready(result):
 
 
 def session_services_ready(result):
-    response = result.get('units', {})
-    if response.get('returncode') != 0:
+    if not all(result.get('agents', {}).get(name, {}).get('returncode') == 0
+               for name in ['openbox', 'lxpolkit', 'dunst']):
         return False
-    units = {}
-    for block in response.get('stdout', '').strip().split('\n\n'):
-        values = dict(line.split('=', 1) for line in block.splitlines() if '=' in line)
-        if values.get('Id'):
-            units[values['Id']] = values
-    expected = {'plasma-polkit-agent.service': 'org.kde.polkit-kde-authentication-agent-1',
-                'plasma-powerdevil.service': 'org.kde.Solid.PowerManagement',
-                'plasma-kscreen.service': 'org.kde.KScreen'}
-    for name, bus in expected.items():
-        unit = units.get(name, {})
-        if (unit.get('ActiveState') != 'active' or unit.get('SubState') != 'running'
-                or unit.get('Type') != 'dbus' or unit.get('BusName') != bus
-                or unit.get('Result') != 'success' or unit.get('NRestarts') != '0'
-                or unit.get('TimeoutStartUSec') not in {'1min', '60s'}):
-            return False
-    return True
+    response = result.get('shell_reply', {})
+    if response.get('returncode') != 0 or result.get('bus', {}).get('returncode') != 0:
+        return False
+    try:
+        reply = json.loads(response.get('stdout', ''))
+        return reply.get('desktop') == 'MyKOS' and reply.get('panel') is True and reply.get('ticks', 0) > 0
+    except (ValueError, TypeError, AttributeError):
+        return False

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Thu bằng chứng Plasma qua console của bản sao ISO; không gắn đĩa cài đặt."""
+"""Thu bằng chứng MyKOS Desktop qua console của bản sao ISO; không gắn đĩa cài đặt."""
 import argparse
 import base64
 import json
@@ -16,7 +16,7 @@ from boot_iso import QMP, digest, prepare_menu, instrument_grub
 from vm_session import refresh_kvm_access
 
 MARKER = 'MYKOS_DESKTOP_RESULT='
-SOFTWARE_PARAMETERS = ' systemd.setenv=KWIN_COMPOSE=N systemd.setenv=QT_QUICK_BACKEND=software'
+SOFTWARE_PARAMETERS = ' systemd.setenv=QT_QUICK_BACKEND=software'
 # Chạy bằng tài khoản live thông thường, không dùng sudo hoặc thay cấu hình guest.
 GUEST = r'''
 import json, os, shutil, subprocess, time
@@ -29,67 +29,49 @@ def diagnostic(command, env=None):
     except (OSError, subprocess.TimeoutExpired) as error:
         return {'error': str(error)}
 deadline = time.monotonic() + 180
-while time.monotonic() < deadline and running('plasmashell').returncode:
+while time.monotonic() < deadline and running('mykos-shell').returncode:
     time.sleep(2)
-shell = running('plasmashell')
-result = {'uid': os.getuid(), 'firmware_uefi': os.path.isdir('/sys/firmware/efi'), 'plasma': shell.returncode == 0,
-          'kwin': any(running(name).returncode == 0 for name in ['kwin_x11', 'kwin_wayland']),
-          'applications': {}, 'sessions': diagnostic(['loginctl', 'list-sessions', '--no-legend', '--no-pager']),
+shell = running('mykos-shell')
+result = {'uid': os.getuid(), 'firmware_uefi': os.path.isdir('/sys/firmware/efi'), 'shell': shell.returncode == 0,
+          'window_manager': running('openbox').returncode == 0, 'applications': {},
           'processes': diagnostic(['ps', '-u', str(os.getuid()), '-o', 'pid,comm,args'])}
-if result['plasma']:
+if result['shell']:
     pid = shell.stdout.split()[0]
     env = os.environ.copy()
     for item in open('/proc/' + pid + '/environ', 'rb').read().split(b'\0'):
         if b'=' in item:
             key, value = item.split(b'=', 1)
             env[key.decode()] = value.decode(errors='replace')
-    result['rendering_environment'] = {key: env.get(key) for key in ['KWIN_COMPOSE', 'QT_QUICK_BACKEND']}
-    env['QT_SELECT'] = 'qt5'
-    if shutil.which('qdbus'):
-        deadline = time.monotonic() + 180
-        while time.monotonic() < deadline:
-            response = diagnostic(['qdbus', 'org.kde.plasmashell', '/PlasmaShell',
-                'org.kde.PlasmaShell.evaluateScript', 'print(JSON.stringify({panels:panels().length,desktops:desktops().length}))'], env)
-            result['containments'] = response
-            try:
-                counts = json.loads(response.get('stdout', ''))
-            except ValueError:
-                counts = {}
-            if response.get('returncode') == 0 and counts.get('panels', 0) > 0 and counts.get('desktops', 0) > 0:
-                print('MYKOS_DESKTOP_READY', flush=True)
-                time.sleep(5)
-                break
-            print('MYKOS_PLASMA_WAIT=' + json.dumps(response), flush=True)
-            time.sleep(3)
-    for app in ['dolphin', 'konsole', 'systemsettings']:
+    result['rendering_environment'] = {key: env.get(key) for key in ['QT_QUICK_BACKEND', 'XDG_CURRENT_DESKTOP']}
+    deadline = time.monotonic() + 60
+    while time.monotonic() < deadline:
+        result['shell_reply'] = diagnostic(['mykos-shell', '--check'], env)
+        try:
+            reply = json.loads(result['shell_reply'].get('stdout', ''))
+        except ValueError:
+            reply = {}
+        if reply.get('desktop') == 'MyKOS' and reply.get('panel') and reply.get('ticks', 0) > 0:
+            print('MYKOS_DESKTOP_READY', flush=True)
+            break
+        time.sleep(2)
+    result['window_properties'] = diagnostic(['wmctrl', '-l'], env)
+    for app in ['thunar', 'xfce4-terminal']:
         executable = shutil.which(app)
-        if app == 'systemsettings' and not executable:
-            executable = shutil.which('systemsettings5')
         if not executable:
             result['applications'][app] = False
             continue
         with open('/tmp/mykos-probe-' + app + '.log', 'w') as log:
             subprocess.Popen([executable], env=env, stdout=log, stderr=subprocess.STDOUT)
         time.sleep(5)
-        result['applications'][app] = running(os.path.basename(executable)).returncode == 0
-        if not result['applications'][app]:
-            result.setdefault('application_errors', {})[app] = open('/tmp/mykos-probe-' + app + '.log').read()[-2000:]
-    if shutil.which('kreadconfig5'):
-        result['color_scheme'] = subprocess.run(
-            ['kreadconfig5', '--file', 'kdeglobals', '--group', 'General', '--key', 'ColorScheme'],
-            capture_output=True, text=True).stdout.strip()
-    time.sleep(30)
+        result['applications'][app] = running(app).returncode == 0
     result['user_journal'] = diagnostic(['journalctl', '--user', '-b', '--no-pager', '-n', '80', '-o', 'cat'], env)
-    config = os.path.expanduser('~/.config/plasma-org.kde.plasma.desktop-appletsrc')
-    if os.path.isfile(config):
-        result['desktop_config'] = open(config).read()[-8000:]
     if shutil.which('calamares') and not result['firmware_uefi']:
         installer_log = '/tmp/mykos-installer-probe.log'
         installer_env = env.copy()
         installer_env['MYKOS_INSTALL_DEBUG'] = '1'
         if shutil.which('mykos-install'):
             with open(installer_log, 'w') as log:
-                subprocess.Popen(['sudo', '-n', '--preserve-env=DISPLAY,XAUTHORITY,QT_QUICK_BACKEND,KWIN_COMPOSE,MYKOS_INSTALL_DEBUG',
+                subprocess.Popen(['sudo', '-n', '--preserve-env=DISPLAY,XAUTHORITY,QT_QUICK_BACKEND,MYKOS_INSTALL_DEBUG',
                                   '/usr/bin/mykos-install'], env=installer_env, stdin=subprocess.DEVNULL,
                                  stdout=log, stderr=subprocess.STDOUT)
             time.sleep(2)
@@ -142,18 +124,19 @@ def guest_command():
 
 
 def desktop_ready(result):
-    if result.get('uid', 0) == 0 or not result.get('plasma') or not result.get('kwin'):
+    if result.get('uid', 0) == 0 or not result.get('shell') or not result.get('window_manager'):
         return False
-    if not all(result.get('applications', {}).get(app) for app in ['dolphin', 'konsole', 'systemsettings']):
+    if not all(result.get('applications', {}).get(app) for app in ['thunar', 'xfce4-terminal']):
         return False
     if 'installer' in result and not (result['installer'].get('running') and result['installer'].get('ready')):
         return False
-    response = result.get('containments', {})
+    response = result.get('shell_reply', {})
     if response.get('returncode') != 0:
         return False
     try:
-        counts = json.loads(response.get('stdout', '').strip())
-        return counts.get('panels', 0) > 0 and counts.get('desktops', 0) > 0
+        reply = json.loads(response.get('stdout', ''))
+        return (reply.get('desktop') == 'MyKOS' and reply.get('panel') is True
+                and reply.get('ticks', 0) > 0)
     except (ValueError, AttributeError, TypeError):
         return False
 
@@ -177,7 +160,7 @@ def main():
     report = {'iso_sha256': digest(iso), 'status': 'failed',
               'rendering_profile': 'software' if args.software_rendering else 'default',
               'firmware': args.firmware, 'media': args.media,
-              'scope': 'Tiến trình Plasma/KWin và mở ứng dụng; ảnh cần rà soát trực quan. Chưa nghiệm thu cài đặt hoặc thiết bị.',
+              'scope': 'MyKOS Shell phản hồi, Openbox và mở ứng dụng; ảnh cần rà soát trực quan. Chưa nghiệm thu cài đặt hoặc thiết bị.',
               'instrumentation': 'Bản sao chỉ thêm console nối tiếp; không gắn đĩa cài đặt.'}
     machine = serial = qmp = None
     started = time.monotonic()
@@ -277,7 +260,7 @@ def main():
                     serial.sendall(guest_command())
                     phase = 'probe'
                     phase_started = time.monotonic()
-                    print('Desktop probe: checking Plasma and applications', flush=True)
+                    print('Desktop probe: checking MyKOS Desktop and applications', flush=True)
                 elif phase == 'login' and not empty_password_sent and re.search(r'(?im)^password:', transcript):
                     # Casper 25adduser đặt hash của mật khẩu rỗng khi có SDDM;
                     # PAM vẫn có thể hỏi Password. Chỉ gửi Enter một lần cho

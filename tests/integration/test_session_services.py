@@ -1,5 +1,6 @@
-"""Regression for the observed Type=dbus startup loop in slow Plasma sessions."""
+"""A running process alone does not establish a responsive desktop session."""
 import importlib.util
+import json
 from pathlib import Path
 import unittest
 
@@ -8,26 +9,23 @@ spec = importlib.util.spec_from_file_location('session_checks', SCRIPTS / 'insta
 session = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(session)
 
-
 class SessionServiceTests(unittest.TestCase):
     def healthy(self):
-        # Same systemctl show fields and duration format captured in the live A/B diagnostic.
-        identities = [('plasma-polkit-agent.service', 'org.kde.polkit-kde-authentication-agent-1'),
-                      ('plasma-powerdevil.service', 'org.kde.Solid.PowerManagement'),
-                      ('plasma-kscreen.service', 'org.kde.KScreen')]
-        return {'units': {'returncode': 0, 'stdout': '\n\n'.join(
-            'Type=dbus\nTimeoutStartUSec=1min\nBusName=' + bus
-            + '\nResult=success\nNRestarts=0\nId=' + name
-            + '\nActiveState=active\nSubState=running' for name, bus in identities)}}
+        return {'agents': {name: {'returncode': 0} for name in ['openbox', 'lxpolkit', 'dunst']},
+                'bus': {'returncode': 0},
+                'shell_reply': {'returncode': 0, 'stdout': json.dumps({'desktop':'MyKOS','panel':True,'ticks':2})}}
 
-    def test_all_three_agents_must_be_active_without_a_restart_loop(self):
+    def test_all_agents_and_event_loop_must_be_responsive(self):
         result = self.healthy()
         self.assertTrue(session.session_services_ready(result))
-        result['units']['stdout'] = result['units']['stdout'].replace('NRestarts=0', 'NRestarts=17', 1)
+        result['agents']['lxpolkit']['returncode'] = 1
         self.assertFalse(session.session_services_ready(result))
+        self.assertFalse(session.session_services_ready({}))
 
-    def test_missing_bus_readiness_cannot_be_hidden_by_changing_unit_type(self):
+    def test_unresponsive_shell_or_missing_bus_cannot_pass(self):
         result = self.healthy()
-        result['units']['stdout'] = result['units']['stdout'].replace('Type=dbus', 'Type=simple', 1)
+        result['shell_reply']['stdout'] = '{}'
         self.assertFalse(session.session_services_ready(result))
-        self.assertFalse(session.session_services_ready({'units': {'returncode': 1, 'stdout': ''}}))
+        result = self.healthy()
+        result['bus']['returncode'] = 1
+        self.assertFalse(session.session_services_ready(result))

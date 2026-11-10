@@ -1,9 +1,0 @@
-[KDE]
-LookAndFeelPackage=org.mykos.desktop
-SingleClick=false
-
-[General]
-ColorScheme=MyKOSDark
-
-[Icons]
-Theme=MyKOSFold

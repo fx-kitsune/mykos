@@ -1,4 +1,4 @@
-"""EFI entries must use the same Casper payload and profiles as the BIOS menu."""
+"""EFI entries must use the same Debian live payload and profiles as the BIOS menu."""
 import importlib.util
 from pathlib import Path
 import sys
@@ -15,8 +15,8 @@ spec.loader.exec_module(probe)
 
 MENU = ''.join(f'''label {name}
   menu label MyKOS ({name})
-  kernel /casper/vmlinuz-6.8.0-90-generic
-  append initrd=/casper/initrd.img-6.8.0-90-generic boot=casper username=mykos{extra}
+  kernel /live/vmlinuz-6.8.0-90-generic
+  append initrd=/live/initrd.img-6.8.0-90-generic boot=live username=mykos{extra}
 ''' for name, extra in [('normal', ''), ('safe', ' nomodeset'), ('software', ' systemd.setenv=KWIN_COMPOSE=N')])
 
 
@@ -24,16 +24,16 @@ class UefiTests(unittest.TestCase):
     def test_matching_payload_and_software_profile_are_preserved(self):
         menu, entries = builder.menu_from_syslinux(MENU)
         self.assertEqual(len(entries), 3)
-        self.assertEqual(menu.count('linux /casper/vmlinuz-6.8.0-90-generic'), 3)
-        self.assertEqual(menu.count('initrd /casper/initrd.img-6.8.0-90-generic'), 3)
-        self.assertIn('boot=casper username=mykos systemd.setenv=KWIN_COMPOSE=N', menu)
+        self.assertEqual(menu.count('linux /live/vmlinuz-6.8.0-90-generic'), 3)
+        self.assertEqual(menu.count('initrd /live/initrd.img-6.8.0-90-generic'), 3)
+        self.assertIn('boot=live username=mykos systemd.setenv=KWIN_COMPOSE=N', menu)
         changed = probe.instrument_grub(menu, software=True)
         self.assertEqual(changed.count('console=ttyS0,115200n8'), 3)
         self.assertEqual([line for line in menu.splitlines() if not line.lstrip().startswith('linux ')],
                          [line for line in changed.splitlines() if not line.lstrip().startswith('linux ')])
 
     def test_incomplete_or_unsafe_menu_is_rejected(self):
-        for text in [MENU.replace('initrd=', 'missing='), MENU.replace('boot=casper', 'boot=live'),
-                     MENU.replace('/casper/vmlinuz', '/other/vmlinuz'), MENU.replace('username=mykos', 'username=$unexpected')]:
+        for text in [MENU.replace('initrd=', 'missing='), MENU.replace('boot=live', 'boot=invalid'),
+                     MENU.replace('/live/vmlinuz', '/other/vmlinuz'), MENU.replace('username=mykos', 'username=$unexpected')]:
             with self.assertRaises(ValueError):
                 builder.menu_from_syslinux(text)

@@ -1,3 +1,5 @@
+> Cấu hình hiện hành đã chuyển sang Debian 13; xem [ADR 0003](ADR/0003-independent-linux-platform.md). Nội dung Ubuntu và kết quả ISO bên dưới là lịch sử, không nghiệm thu nền mới. Mục tiêu nền riêng chỉ dùng Linux kernel còn đang triển khai.
+
 # MyKOS — Kiến trúc kỹ thuật
 
 - Trạng thái: Kiến trúc định hướng phiên bản 1.0, đã có một phần triển khai M0.
@@ -15,21 +17,21 @@ Lắp ghép thành phần nguồn mở đã trưởng thành, bổ sung lớp t�
 | Trải nghiệm MyKOS | Môi trường làm việc, thiết lập, danh mục ứng dụng, quản lý tệp, thông báo và công cụ phát triển |
 | Nền tảng MyKOS | API hệ thống, tích hợp ứng dụng, cập nhật, thiết bị, cấu hình, chẩn đoán và chính sách |
 | Dịch vụ Linux | systemd, D-Bus, Polkit, NetworkManager, PipeWire, UDisks2, fwupd |
-| Nền tảng đồ họa | KDE Plasma, KWin, Wayland, Qt/QML, Mesa |
+| Nền tảng đồ họa | MyKOS Shell, Openbox/X11 tạm thời, Qt/QML, Mesa |
 | Hệ điều hành nền và phần cứng | Nhân Linux, GNU và công cụ người dùng, thư viện, phần sụn, thiết bị |
 
-Đây là cách nhóm trách nhiệm, không phải ranh giới tiến trình hoặc gói phần mềm. Plasma, KWin, Wayland, Qt và Mesa có vị trí khác nhau trong hệ thống đồ họa thực tế.
+Đây là cách nhóm trách nhiệm, không phải ranh giới tiến trình hoặc gói phần mềm. MyKOS chưa có compositor Wayland riêng.
 
 ## 3. Công nghệ nền tảng
 
 | Hạng mục | Lựa chọn | Phạm vi và giới hạn |
 |---|---|---|
-| Hệ điều hành nền | Ubuntu 24.04 LTS Noble | Đã chốt cho thử nghiệm M0; xem ADR 0001 |
+| Hệ điều hành nền | Debian 13 Trixie (tạm thời) | Chuyển nền theo ADR 0003; chưa nghiệm thu ISO |
 | Kiến trúc | amd64 / x86_64 | Kiến trúc khác để sau |
-| Môi trường làm việc | KDE Plasma 5.27 của Noble | Tích hợp thành phần gốc, chưa phân nhánh toàn bộ |
-| Giao thức hiển thị | Định hướng Wayland | Phải kiểm thử riêng và giữ đường tương thích khi cần |
-| Quản lý cửa sổ và tổng hợp hình ảnh | KWin | Thành phần gốc KDE |
-| Giao diện riêng MyKOS | Qt 6/QML | Workspace hiện dùng Python/PyQt6; không có nghĩa Plasma nền đã là Qt 6 |
+| Môi trường làm việc | MyKOS Desktop | Shell và quản lý phiên riêng; ADR 0004 |
+| Giao thức hiển thị | X11 hiện tại | Compositor Wayland riêng là mốc tiếp theo |
+| Quản lý cửa sổ | Openbox/X11 | Thành phần tạm thời; chưa có compositor riêng |
+| Giao diện riêng MyKOS | Qt 6/QML | Shell và Workspace dùng Python/PyQt6 |
 | Dịch vụ mới | Ưu tiên Rust khi phù hợp | Đặc biệt với dịch vụ nền hoặc đặc quyền; chưa triển khai |
 | Tích hợp hệ thống | D-Bus | Giao diện có tài liệu, phạm vi yêu cầu hẹp |
 | Cấp quyền | Polkit | Cho thao tác đặc quyền cần xác thực |
@@ -40,8 +42,8 @@ Lắp ghép thành phần nguồn mở đã trưởng thành, bổ sung lớp t�
 | Phần sụn | fwupd | Chỉ ở thiết bị và nguồn được hỗ trợ |
 | Gói hệ thống | APT/DEB | Hệ điều hành nền và thành phần tích hợp chặt |
 | Ứng dụng đồ họa | Flatpak | Hướng phân phối ưu tiên cần tiếp tục đánh giá |
-| Trình cài đặt | Calamares | Chưa cấu hình; phải xác nhận tương thích và kiểm thử |
-| Tạo ảnh | Ubuntu live-build `3.0~a57-1ubuntu49.1` | Cấu hình thử nghiệm BIOS, chưa có ISO được nghiệm thu |
+| Trình cài đặt | Calamares | Đã cấu hình phiên MyKOS; phải nghiệm thu lại ISO |
+| Tạo ảnh | Debian live-build | Cấu hình thử nghiệm BIOS, chưa có ISO được nghiệm thu |
 | Máy ảo | QEMU/KVM | Dùng TCG khi không có KVM; khởi động thực tế chưa được xác nhận |
 
 Bảng phân biệt công nghệ đã chọn với khả năng đã kiểm chứng. Phiên bản và ràng buộc phải được ghi trong cấu hình bản dựng, không suy ra khả năng hỗ trợ chỉ từ danh sách gói.
@@ -50,15 +52,13 @@ Bảng phân biệt công nghệ đã chọn với khả năng đã kiểm chứ
 
 Chịu trách nhiệm chọn gói và kho phần mềm, chính sách nhân/phần sụn, mặc định giao diện, nhận diện, cấu hình cài đặt, ứng dụng mặc định, tạo ảnh và xác định phần cứng hỗ trợ.
 
-Ưu tiên cấu hình khai báo. Mỗi lần phát hành phải ghi phiên bản gói, nguồn kho, phiên bản công cụ và thông tin ảnh hệ thống. Kho Ubuntu đang thay đổi theo thời gian nên cấu hình hiện tại chưa bảo đảm tái lập từng bit.
+Ưu tiên cấu hình khai báo. Mỗi lần phát hành phải ghi phiên bản gói, nguồn kho, phiên bản công cụ và thông tin ảnh hệ thống. Kho Debian đang thay đổi theo thời gian nên cấu hình hiện tại chưa bảo đảm tái lập từng bit.
 
 ## 5. Lớp trải nghiệm làm việc
 
-Bắt đầu từ Plasma gốc, cấu hình chủ đề, biểu tượng, phông chữ, hình nền, thanh tác vụ, trình mở ứng dụng, lần chạy đầu, thông báo, phím tắt, khả năng tiếp cận và quản lý nguồn. Chỉ bổ sung điểm vào thiết lập riêng khi KDE chưa đáp ứng.
+MyKOS sở hữu shell, panel, launcher, desktop và quản lý phiên. Openbox đảm nhiệm quản lý cửa sổ X11 tạm thời. Không cài Plasma/KWin trong ảnh mặc định. Các công cụ mạng/âm thanh/màn hình và xác thực được gọi qua tiến trình không đặc quyền hoặc dịch vụ nền có cấp quyền.
 
-Fold hiện được triển khai thành tài nguyên nhận diện KDE và ứng dụng Workspace không đặc quyền chạy cùng Plasma. Workspace có ba ngữ cảnh ghi chú, không thay thế KDE Activities hoặc trình quản lý cửa sổ. Xem [phạm vi native](../desktop/README.md) và [ADR 0002](ADR/0002-fold-native-integration.md).
-
-Chỉ cân nhắc giao diện hệ thống hoặc trình mở ứng dụng riêng khi có nhu cầu đã xác nhận, phạm vi hẹp và chiến lược tương thích dự án gốc rõ ràng.
+Workspace là ứng dụng ghi chú độc lập. Ba ngữ cảnh ghi chú không đồng nghĩa ba desktop ảo. Xem [phạm vi hiện tại](../desktop/README.md) và [ADR 0004](ADR/0004-own-desktop-environment.md).
 
 ## 6. Lớp nền tảng MyKOS
 
@@ -67,7 +67,7 @@ Cung cấp giao diện ổn định, hẹp cho lớp hiển thị; chuyển côn
 | Mô-đun dự kiến | Trách nhiệm | Tích hợp |
 |---|---|---|
 | `system-info` | Thông tin hệ điều hành, nhân, phần cứng và chẩn đoán | procfs, sysfs, D-Bus, công cụ chuẩn |
-| `display-integration` | Trải nghiệm cấu hình màn hình | KWin và giao diện môi trường làm việc |
+| `display-integration` | Trải nghiệm cấu hình màn hình | X11/RandR hiện tại; compositor riêng về sau |
 | `network-integration` | Trạng thái và thao tác mạng | NetworkManager D-Bus |
 | `user-integration` | Người dùng và tài khoản | Dịch vụ hệ thống, Polkit |
 | `application-manager` | Ứng dụng đã cài và nguồn phần mềm | APT, Flatpak |
@@ -131,7 +131,7 @@ Các lớp kiểm thử gồm kiểm tra tĩnh, gói/phụ thuộc, khởi độ
 | `design-system/` | Bản mẫu trình duyệt và tài nguyên Fold gốc |
 | `distribution/` | Nền tảng, danh sách gói, kho, cài đặt, nhận diện và cấu hình ảnh |
 | `desktop/workspace/` | Giao diện Qt/QML và lưu trữ ghi chú |
-| `desktop/integration/` | Lệnh mở ứng dụng và mục menu KDE |
+| `desktop/integration/` | Lệnh mở ứng dụng và đăng ký phiên MyKOS |
 | `tests/integration/` | Kiểm thử cấu hình và danh sách nghiệm thu máy ảo |
 | `tests/desktop/` | Kiểm thử dữ liệu và giao diện native |
 | `tests/hardware/` | Ma trận hỗ trợ thiết bị |

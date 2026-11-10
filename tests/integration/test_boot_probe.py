@@ -23,17 +23,17 @@ class BootProbeTests(unittest.TestCase):
     def test_read_only_extracted_menu_can_be_instrumented(self):
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / 'isolinux.cfg'
-            path.write_text('append initrd=/casper/initrd.img boot=casper\n')
+            path.write_text('append initrd=/live/initrd.img boot=live\n')
             path.chmod(0o444)
             probe.prepare_menu(path)
             self.assertIn('console=ttyS0', path.read_text())
             self.assertEqual(path.stat().st_mode & 0o777, 0o600)
 
     def test_only_kernel_arguments_are_changed(self):
-        before = 'default mykos\nlabel mykos\n  kernel /casper/vmlinuz-6.8\n  append initrd=/casper/initrd.img-6.8 boot=casper\n'
+        before = 'default mykos\nlabel mykos\n  kernel /live/vmlinuz-6.8\n  append initrd=/live/initrd.img-6.8 boot=live\n'
         after = probe.instrument_menu(before)
-        self.assertIn('kernel /casper/vmlinuz-6.8\n', after)
-        self.assertIn('append initrd=/casper/initrd.img-6.8 boot=casper console=ttyS0,115200n8', after)
+        self.assertIn('kernel /live/vmlinuz-6.8\n', after)
+        self.assertIn('append initrd=/live/initrd.img-6.8 boot=live console=ttyS0,115200n8', after)
         self.assertEqual(probe.serial_state('Kernel panic'), 'failed')
         with self.assertRaises(ValueError):
             probe.instrument_menu('default mykos\n')

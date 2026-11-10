@@ -2,8 +2,8 @@
 Type=Application
 Name=MyKOS Workspace
 Name[vi]=Không gian MyKOS
-Comment=Your notes, focus timer and KDE applications
-Comment[vi]=Ghi chú, nhịp tập trung và ứng dụng KDE
+Comment=Your notes, focus timer and desktop tools
+Comment[vi]=Ghi chú, nhịp tập trung và công cụ desktop
 Exec=/usr/bin/mykos-workspace
 Icon=mykos-notes
 Terminal=false

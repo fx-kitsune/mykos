@@ -1,12 +1,17 @@
 #!/bin/sh
 set -eu
-# Preserve Ubuntu's ID and VERSION_ID for package and driver compatibility.
-# os-release may be a symlink to /usr/lib/os-release.
-sed -i 's/^PRETTY_NAME=.*/PRETTY_NAME="MyKOS 0.1 development (Ubuntu 24.04)"/' /etc/os-release
-cat >> /etc/os-release <<'RELEASE'
+# Own identity; Debian is a temporary package provider.
+rm -f /etc/os-release
+cat > /usr/lib/os-release <<'RELEASE'
+NAME="MyKOS"
+ID=mykos
+ID_LIKE=debian
+PRETTY_NAME="MyKOS 0.1 development"
+VERSION_ID="0.1"
 VARIANT="MyKOS Desktop"
 VARIANT_ID=mykos
 RELEASE
+ln -s ../usr/lib/os-release /etc/os-release
 printf 'MyKOS development live image — not a validated release\n' > /etc/issue
 printf '/usr/bin/sddm\n' > /etc/X11/default-display-manager
 systemctl enable sddm.service

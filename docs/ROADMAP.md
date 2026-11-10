@@ -1,3 +1,9 @@
+## Hướng desktop hiện hành
+
+Theo ADR 0004, phát triển MyKOS Desktop riêng, thay Plasma/KWin trong ảnh mặc định. Đã có shell, panel, launcher và session manager thử nghiệm với Openbox. Mốc kế tiếp: nghiệm thu ISO mới, launcher ứng dụng/tray đầy đủ, khóa màn hình và chính sách power, accessibility, rồi compositor Wayland riêng. Các mốc KDE/Plasma dưới đây phản ánh kế hoạch cũ.
+
+> Cấu hình hiện hành đã chuyển sang Debian 13; xem [ADR 0003](ADR/0003-independent-linux-platform.md). Nội dung Ubuntu và kết quả ISO bên dưới là lịch sử, không nghiệm thu nền mới. Mục tiêu nền riêng chỉ dùng Linux kernel còn đang triển khai.
+
 # MyKOS — Lộ trình phát triển
 
 - Trạng thái: Kế hoạch nghiệm thu; M0 đang thực hiện.

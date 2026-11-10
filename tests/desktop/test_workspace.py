@@ -52,10 +52,10 @@ class WorkspaceTests(unittest.TestCase):
                 self.workspace.launch("files")
             launch.assert_not_called()
         self.assertEqual(len(self.messages), 2)
-        with patch("main.shutil.which", return_value="/usr/bin/dolphin"), \
+        with patch("main.shutil.which", return_value="/usr/bin/thunar"), \
                 patch("main.QProcess.startDetached", return_value=(True, 123)) as launch:
             self.workspace.launch("files")
-            launch.assert_called_once_with("/usr/bin/dolphin", [])
+            launch.assert_called_once_with("/usr/bin/thunar", [])
 
     def test_real_qml_loads_edits_switches_searches_and_renders_both_themes(self):
         engine = QQmlApplicationEngine()

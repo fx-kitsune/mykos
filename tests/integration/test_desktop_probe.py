@@ -14,14 +14,14 @@ with patch.object(sys, 'path', [str(SCRIPTS), *sys.path]):
 
 class DesktopProbeTests(unittest.TestCase):
     def test_running_processes_do_not_prove_desktop_responds(self):
-        result = {'uid': 1000, 'plasma': True, 'kwin': True,
-                  'applications': dict.fromkeys(['dolphin', 'konsole', 'systemsettings'], True)}
+        result = {'uid': 1000, 'shell': True, 'window_manager': True,
+                  'applications': dict.fromkeys(['thunar', 'xfce4-terminal'], True)}
         self.assertFalse(probe.desktop_ready(result))
-        result['containments'] = {'error': 'D-Bus timed out'}
+        result['shell_reply'] = {'error': 'Shell IPC timed out'}
         self.assertFalse(probe.desktop_ready(result))
-        result['containments'] = {'returncode': 0, 'stdout': '{"panels":0,"desktops":1}'}
+        result['shell_reply'] = {'returncode': 0, 'stdout': '{"desktop":"MyKOS","panel":false,"ticks":3}'}
         self.assertFalse(probe.desktop_ready(result))
-        result['containments']['stdout'] = '{"panels":1,"desktops":1}'
+        result['shell_reply']['stdout'] = '{"desktop":"MyKOS","panel":true,"ticks":3}'
         self.assertTrue(probe.desktop_ready(result))
         result['installer'] = {'running': False}
         self.assertFalse(probe.desktop_ready(result))

@@ -29,25 +29,25 @@ def packages():
 
 
 def config_args(cfg):
-    return ["--bootstrap", "debootstrap", "--mode", "ubuntu", "--distribution", cfg["suite"],
+    return ["--mode", cfg["base_distribution"], "--distribution", cfg["suite"],
             "--architectures", cfg["architecture"], "--binary-images", "iso-hybrid",
-            "--bootloader", cfg["bootloader"], "--syslinux-theme", "live-build", "--initramfs", "casper",
-            "--linux-flavours", "generic", "--linux-packages", "linux-image",
+            "--bootloaders", cfg["bootloader"], "--initramfs", cfg["initramfs"],
+            "--linux-flavours", cfg["kernel_flavour"], "--linux-packages", "linux-image",
             "--archive-areas", " ".join(cfg["archive_areas"]),
             "--mirror-bootstrap", cfg["mirror"], "--mirror-chroot", cfg["mirror"],
             "--mirror-binary", cfg["mirror"],
             "--mirror-chroot-security", cfg["security_mirror"],
             "--mirror-binary-security", cfg["security_mirror"],
-            "--security", "true", "--volatile", "false",
+            "--security", "true", "--updates", "true",
             "--apt-secure", "true", "--apt-recommends", "true",
-            "--debian-installer", "false", "--memtest", "none",
+            "--debian-installer", "none", "--memtest", "none",
             "--iso-application", "MyKOS development live image",
             "--iso-volume", "MYKOS_0_1_DEV",
-            "--bootappend-live", "boot=casper username=mykos hostname=mykos-live locales=en_US.UTF-8"]
+            "--bootappend-live", "boot=live components username=mykos hostname=mykos-live locales=en_US.UTF-8"]
 
 
 def prepare_toolchain(destination):
-    """Relocate the pinned Ubuntu toolchain, loading functions in the current shell."""
+    """Relocate Debian live-build without modifying its maintained scripts."""
     prefix = Path(os.environ.get("MYKOS_LIVE_BUILD_PREFIX", "/usr"))
     shutil.copytree(prefix / "share/live/build", destination, symlinks=True)
     (destination / "scripts").mkdir(exist_ok=True)
@@ -55,25 +55,6 @@ def prepare_toolchain(destination):
     shutil.copytree(prefix / "lib/live/build", destination / "scripts/build")
     (destination / "bin").mkdir(exist_ok=True)
     shutil.copy2(prefix / "bin/lb", destination / "bin/lb")
-    # Ubuntu's legacy scripts probe functions in a subshell. A relocated build
-    # needs those functions sourced in the calling shell instead.
-    old = '( . "${LIVE_BUILD}/scripts/build.sh" > /dev/null 2>&1 || true ) || . /usr/lib/live/build.sh'
-    for script in [destination / "bin/lb", *(destination / "scripts/build").glob("*")]:
-        if script.is_file():
-            content = script.read_text()
-            if old in content:
-                script.write_text(content.replace(old, '. "${LIVE_BUILD}/scripts/build.sh"'))
-    # Trên Noble, isohybrid nằm trong syslinux-utils, không phải syslinux.
-    # Bước ISO chạy trong chroot nên cài công cụ trên host vẫn chưa đủ.
-    iso_stage = destination / "scripts/build/lb_binary_iso"
-    if iso_stage.is_file():
-        content = iso_stage.read_text()
-        iso_stage.write_text(content.replace(
-            "Check_package chroot/usr/bin/isohybrid syslinux\n",
-            "Check_package chroot/usr/bin/isohybrid syslinux-utils\n"))
-    # Giai đoạn menu BIOS riêng tránh phụ thuộc Oneiric/gfxboot đã bị loại bỏ.
-    shutil.copy2(ROOT / "distribution/image-build/lb_binary_syslinux",
-                 destination / "scripts/build/lb_binary_syslinux")
     env = os.environ.copy()
     env["LIVE_BUILD"] = str(destination)
     env["PATH"] = str(destination / "bin") + ":" + env.get("PATH", "")
@@ -97,7 +78,14 @@ def configure(destination):
         shutil.copytree(ROOT / "distribution/installer/overlay", installed, dirs_exist_ok=True)
         shutil.copytree(ROOT / "desktop/workspace", installed / "usr/share/mykos/workspace",
                         ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "requirements-dev.txt"))
-        for relative, source in [("usr/bin/mykos-workspace", "mykos-workspace"),
+        for folder in ["session", "shell"]:
+            shutil.copytree(ROOT / "desktop" / folder, installed / "usr/share/mykos" / folder,
+                            ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "overlay"))
+        shutil.copytree(ROOT / "desktop/session/overlay", installed, dirs_exist_ok=True)
+        for relative, source in [("usr/bin/mykos-session", "mykos-session"),
+                                 ("usr/bin/mykos-shell", "mykos-shell"),
+                                 ("usr/share/xsessions/mykos.desktop", "mykos.desktop"),
+                                 ("usr/bin/mykos-workspace", "mykos-workspace"),
                                  ("usr/share/applications/mykos-workspace.desktop", "mykos-workspace.desktop")]:
             target = installed / relative
             target.parent.mkdir(parents=True, exist_ok=True)
@@ -107,10 +95,13 @@ def configure(destination):
         installed.chmod(0o755)
         for path in installed.rglob("*"):
             if not path.is_symlink():
-                path.chmod(0o755 if path.is_dir() or path in {installed / "usr/bin/mykos-workspace", installed / "usr/bin/mykos-install"} else 0o644)
-        hooks = config / "hooks"
-        hooks.mkdir(exist_ok=True)
-        shutil.copy2(ROOT / "distribution/image-build/010-mykos.chroot", hooks)
+                path.chmod(0o755 if path.is_dir() or path in {installed / "usr/bin/mykos-workspace", installed / "usr/bin/mykos-install", installed / "usr/bin/mykos-session", installed / "usr/bin/mykos-shell", installed / "usr/lib/live/config/0099-mykos-session"} else 0o644)
+        hooks = config / "hooks/live"
+        hooks.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(ROOT / "distribution/image-build/010-mykos.chroot", hooks / "010-mykos.hook.chroot")
+        shutil.copy2(ROOT / "distribution/image-build/lb_binary_syslinux", hooks / "090-mykos-menu.hook.binary")
+        for hook in hooks.iterdir():
+            hook.chmod(0o755)
         archives = config / "archives"
         archives.mkdir(exist_ok=True)
         for suffix in ["chroot", "binary"]:
@@ -135,11 +126,12 @@ def preflight():
     if shutil.which("dpkg-query"):
         result = subprocess.run(["dpkg-query", "-W", "-f=${Version}", "live-build"],
                                 text=True, capture_output=True)
-        if result.returncode or result.stdout.strip() != cfg["live_build_version"]:
-            problems.append(f"Require Ubuntu live-build {cfg['live_build_version']} (not Debian live-build).")
-    release = Path("/etc/os-release").read_text()
-    if 'ID=ubuntu\n' not in release or 'VERSION_ID="24.04"' not in release:
-        problems.append("Supported build host is Ubuntu 24.04 amd64.")
+        if result.returncode or "ubuntu" in result.stdout.lower():
+            problems.append("Require Debian live-build installed from the Debian archive.")
+    release = dict(line.split("=", 1) for line in Path("/etc/os-release").read_text().splitlines()
+                   if "=" in line)
+    if release.get("ID", "").strip('"') != "debian" or release.get("VERSION_ID", "").strip('"') != "13":
+        problems.append("Supported build environment is Debian 13 amd64 (VM or privileged container).")
     if os.uname().machine != "x86_64":
         problems.append("Supported build host architecture is x86_64.")
     if shutil.disk_usage(ROOT).free < cfg["minimum_free_gib"] * 1024**3:
@@ -177,7 +169,7 @@ def metadata(image, destination, package_manifest):
               "input_sha256": inputs, "iso_sha256": sha256(target),
               "package_manifest_sha256": sha256(destination / "packages.txt"),
               "validation": "unvalidated; requires VM boot, install, desktop and hardware testing",
-              "reproducibility": "rolling Ubuntu archive; not bit-for-bit reproducible"}
+              "reproducibility": "rolling Debian archive; not bit-for-bit reproducible"}
     (destination / "build.json").write_text(json.dumps(record, indent=2) + "\n")
     files = [target, destination / "packages.txt", destination / "build.json"]
     (destination / "SHA256SUMS").write_text("".join(f"{sha256(p)}  {p.name}\n" for p in files))

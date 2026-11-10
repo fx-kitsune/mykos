@@ -70,7 +70,7 @@ class InstallerTests(unittest.TestCase):
                               ('bootloader', 'umount')]:
             self.assertLess(sequence.index(before), sequence.index(after))
         source = json.loads((CONFIG / 'modules/unpackfs.conf').read_text())['unpack'][0]
-        self.assertEqual(source['source'], '/cdrom/casper/filesystem.squashfs')
+        self.assertEqual(source['source'], '/run/live/medium/live/filesystem.squashfs')
         self.assertEqual(source['sourcefs'], 'squashfs')
         self.assertEqual(source['destination'], '')
 
@@ -82,25 +82,31 @@ class InstallerTests(unittest.TestCase):
         self.assertGreaterEqual(users['passwordRequirements']['minLength'], 8)
         removal = json.loads((CONFIG / 'modules/packages.conf').read_text())
         self.assertFalse(removal['update_db'])
-        self.assertIn('casper', removal['operations'][0]['remove'])
+        self.assertIn('live-boot', removal['operations'][0]['remove'])
         self.assertIn('calamares', removal['operations'][0]['remove'])
 
     def test_target_cleanup_preserves_user_files_and_only_adds_opted_in_graphics(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
-            for relative in ['usr/bin/mykos-install', 'etc/sudoers.d/casper', 'etc/calamares/settings.conf', 'home/user/notes.txt']:
+            for relative in ['usr/bin/mykos-install', 'etc/sudoers.d/casper', 'etc/sudoers.d/live', 'usr/lib/live/config/0099-mykos-session', 'etc/calamares/settings.conf', 'home/user/notes.txt']:
                 path = root / relative
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_text('retain user data')
+            sddm = root / 'etc/sddm.conf'
+            sddm.write_text('[Autologin]\nUser=mykos\nSession=mykos.desktop\n[Theme]\nCurrent=debian-maui\n')
             target.configure_target(root)
+            self.assertNotIn('User=mykos', sddm.read_text())
+            self.assertIn('debian-maui', sddm.read_text())
+            self.assertFalse((root / 'usr/lib/live/config/0099-mykos-session').exists())
             self.assertFalse((root / 'usr/bin/mykos-install').exists())
             self.assertFalse((root / 'etc/sudoers.d/casper').exists())
+            self.assertFalse((root / 'etc/sudoers.d/live').exists())
             self.assertFalse((root / 'etc/calamares').exists())
             self.assertEqual((root / 'home/user/notes.txt').read_text(), 'retain user data')
             path = root / 'etc/default/grub.d/60-mykos-software.cfg'
             self.assertFalse(path.exists())
             target.configure_target(root, software=True)
-            self.assertIn('systemd.setenv=KWIN_COMPOSE=N', path.read_text())
+            self.assertIn('systemd.setenv=QT_QUICK_BACKEND=software', path.read_text())
 
     def test_cleanup_refuses_live_root_and_missing_targets(self):
         for root in ['/', 'relative-path', '/nonexistent-mykos-install-target']:

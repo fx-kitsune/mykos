@@ -17,14 +17,14 @@ def menu_from_syslinux(text):
         tokens = append[1].split()
         initrds = [token[7:] for token in tokens if token.startswith('initrd=')]
         arguments = [token for token in tokens if not token.startswith('initrd=')]
-        if len(initrds) != 1 or 'boot=casper' not in arguments:
-            raise ValueError('Expected exactly one initrd and a Casper live entry')
+        if len(initrds) != 1 or 'boot=live' not in arguments:
+            raise ValueError('Expected exactly one initrd and a Debian live entry')
         for token in [kernel[1], *initrds, *arguments]:
             if not re.fullmatch(r'[A-Za-z0-9_./=,:+\-]+', token):
                 raise ValueError('Unsupported token in boot menu')
-        if not all(re.fullmatch(r'/casper/[A-Za-z0-9_.+\-]+', path)
+        if not all(re.fullmatch(r'/live/[A-Za-z0-9_.+\-]+', path)
                    for path in [kernel[1], initrds[0]]):
-            raise ValueError('Kernel/initrd must be files directly in /casper')
+            raise ValueError('Kernel/initrd must be files directly in /live')
         title = re.search(r'(?m)^\s+menu label (.+)$', section)
         if not title or not re.fullmatch(r'[A-Za-z0-9 ()/\-]+', title[1]):
             raise ValueError('Unsupported menu title')

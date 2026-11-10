@@ -202,7 +202,7 @@ ApplicationWindow {
             TextField { id: search; objectName: "appSearch"; Layout.fillWidth: true; placeholderText: "Tìm ứng dụng…"; Accessible.name: "Tìm ứng dụng"; color: root.ink; background: Rectangle { color: root.paper; border.color: root.lime; radius: 4 } onAccepted: { for (var i = 0; i < results.count; i++) { var button = results.itemAt(i); if (button.visible) { workspace.launch(button.app); searchPopup.close(); break; } } } }
             Repeater {
                 id: results
-                model: [{label:"Tệp · Files", app:"files"}, {label:"Terminal", app:"terminal"}, {label:"Thiết lập · Settings", app:"settings"}, {label:"Ứng dụng · Discover", app:"apps"}, {label:"Soạn thảo · Kate", app:"notes"}, {label:"Hình ảnh · Gwenview", app:"photos"}]
+                model: [{label:"Tệp · Files", app:"files"}, {label:"Terminal", app:"terminal"}, {label:"Thiết lập · Settings", app:"settings"}, {label:"Ứng dụng MyKOS", app:"apps"}, {label:"Soạn thảo", app:"notes"}, {label:"Hình ảnh", app:"photos"}]
                 delegate: FoldButton { property string app: modelData.app; text: modelData.label; asset: app === "apps" ? "settings" : app; visible: text.toLowerCase().indexOf(search.text.toLowerCase()) >= 0; Layout.fillWidth: true; onClicked: { workspace.launch(app); searchPopup.close() } }
             }
             FoldButton { text: "Đóng · Esc"; Layout.fillWidth: true; onClicked: searchPopup.close() }

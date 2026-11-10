@@ -1,125 +1,36 @@
-# Tạo ảnh ISO phát triển M0
+# Tạo ảnh MyKOS — nền tạm Debian 13
 
-## Khởi động live UEFI/GPT
+Quyết định hiện hành: [ADR 0003](ADR/0003-independent-linux-platform.md), thay thế ADR 0001.
 
-Chuỗi tạo ảnh mới giữ BIOS/Syslinux và thêm GRUB amd64 UEFI, phân vùng EFI trong GPT cho USB, cùng mục El Torito UEFI cho đĩa quang. Có cả `/EFI/BOOT/BOOTX64.EFI` để công cụ ghi USB theo chế độ trích xuất tìm thấy bộ nạp. ISO cũ build `42527363919` vẫn chỉ boot BIOS; không thể chuyển nó thành UEFI bằng cách chọn GPT trong Rufus.
-
-Bộ nạp mới chưa ký Secure Boot. Phạm vi trước mắt là phiên live UEFI với Secure Boot tắt; trình cài đặt hiện vẫn từ chối UEFI vì bố cục ESP/GRUB đích chưa được nghiệm thu. [42641747422](https://github.com/fx-kitsune/mykos/actions/runs/42641747422) đã kiểm thử OVMF từ USB GPT và CD-ROM tới Plasma với đồ họa phần mềm, đồng thời kiểm tra lại BIOS tới môi trường người dùng. Xem phạm vi và gói tải nháp ở hướng dẫn UEFI bên dưới.
-
-Hướng dẫn cho người thử: [chạy live trên máy UEFI](UEFI_LIVE.md).
-
-## Máy tạo ảnh được hỗ trợ
-
-Dùng **máy ảo Ubuntu 24.04 amd64 riêng cho việc tạo ảnh**, có quyền root, tối thiểu 4 lõi CPU, 8 GiB RAM và 25 GiB đĩa trống. Quá trình tạo ảnh dùng `chroot` và gắn hệ thống tệp; container thông thường không đặc quyền chưa đủ điều kiện. Tránh thực hiện trên máy cá nhân có dữ liệu quan trọng đang được gắn.
-
-Cài phụ thuộc từ kho Ubuntu đã xác thực:
+Dùng VM Debian 13 amd64 riêng, quyền root, ít nhất 25 GiB trống. Container cần đặc quyền chroot/mount; CI dùng `debian:13` với `--privileged`. Nhãn runner Ubuntu của GitHub chỉ cung cấp hạ tầng container, không cung cấp gói cho ảnh MyKOS.
 
 ```sh
 sudo apt-get update
-sudo apt-get install live-build=3.0~a57-1ubuntu49.1 debootstrap ubuntu-keyring \
-  squashfs-tools xorriso genisoimage isolinux syslinux syslinux-common \
-  syslinux-utils dosfstools mtools grub-efi-amd64-bin grub-common cpio rsync python3 git
-```
-
-Nếu không có đúng phiên bản đã chốt, dừng và xem lại [quyết định bộ công cụ](ADR/0001-m0-build-baseline.md). Không tự thay bằng Debian live-build vì cách tích hợp Ubuntu/casper khác nhau. APT xác thực gói bằng khóa kho Ubuntu. Cấu hình hiện không thêm kho riêng, khóa bên thứ ba, nguồn Flatpak, thông tin xác thực hoặc PPA.
-
-## Tạo cấu hình và bản dựng
-
-Chạy từ thư mục gốc dự án:
-
-```sh
-# Tạo cấu hình không cần root; luôn dùng thư mục chưa tồn tại.
-python3 scripts/build/mykos.py configure build/config-review
-# Kiểm tra build/config-review/config trước khi tạo ISO đầy đủ.
+sudo apt-get install live-build debootstrap debian-archive-keyring squashfs-tools \
+  xorriso genisoimage isolinux syslinux syslinux-common syslinux-utils \
+  dosfstools mtools grub-efi-amd64-bin grub-common cpio rsync python3 git
+python3 -m unittest discover -s tests/integration -v
+python3 scripts/build/export-design.py --check
 sudo python3 scripts/build/mykos.py check
-sudo python3 scripts/build/mykos.py build build/m0-001 --artifacts artifacts/m0-001
+sudo python3 scripts/build/mykos.py build build/debian-13 --artifacts artifacts/debian-13
 ```
 
-Lệnh `build` tự tạo cấu hình mới; không truyền lại thư mục của ví dụ `configure`. Thư mục bản dựng và sản phẩm đã tồn tại không bị tự xóa hoặc tái sử dụng. Khi thất bại, nhật ký vẫn nằm trong thư mục bản dựng.
+Thư mục build và artifacts phải mới. Không tái sử dụng cây có mount. Build giữ log khi thất bại và ghi cấu hình, hash đầu vào, manifest gói và SHA256SUMS sau thành công.
 
-Nếu lỗi ở bước gắn hệ thống tệp hoặc `chroot`, kiểm tra bằng `findmnt` trước khi xóa tệp. Có thể hủy máy ảo dùng riêng để dọn sạch môi trường.
+`distribution/base/build.json` khai báo nguồn Debian, suite, flavour kernel và initramfs. Kernel dùng `linux-image-amd64`; live dùng `live-boot`, `live-config`, `live-config-systemd`. Không dùng Casper, PPA, Ubuntu keyring hoặc kho Ubuntu. APT giữ xác thực chữ ký. Kho cập nhật/bảo mật do Debian live-build quản lý.
 
-Lớp thích nghi sao chép bộ công cụ đã cài vào từng thư mục bản dựng và nạp thư viện hàm trong shell hiện tại; không sửa gói hệ thống. `MYKOS_LIVE_BUILD_PREFIX` chỉ hỗ trợ kiểm tra cấu hình với gói Ubuntu đã giải nén. Bản dựng đầy đủ dùng bộ công cụ được cài trên máy.
-
-Workspace Qt 6, biểu tượng, bộ màu, hình nền và mục menu ứng dụng được đưa vào ảnh trong bước tạo cấu hình. Xem [hướng dẫn giao diện](../desktop/README.md) về các gói Qt và giới hạn tích hợp.
-
-## Sản phẩm đầu ra
-
-Khi thành công, thư mục sản phẩm có ISO, danh sách gói đã giải quyết phiên bản, mã commit, trạng thái thay đổi chưa commit, mã băm đầu vào/cấu hình, nhật ký, cấu hình live-build và `SHA256SUMS`.
-
-```sh
-cd artifacts/m0-001
-sha256sum -c SHA256SUMS
-```
-
-Tạo được ảnh chưa chứng minh bản phát hành đạt yêu cầu. Hoàn thành [danh sách kiểm thử máy ảo](../tests/integration/VM_CHECKLIST.md) và ghi bằng chứng trước khi xác nhận khởi động, cài đặt hoặc hỗ trợ thiết bị. Tệp mẫu trong kiểm thử thông tin bản dựng không phải ISO thật.
-
-## Giới hạn tái lập
-
-Đã chốt bản Ubuntu, kiến trúc, nguồn gói và phiên bản live-build. Tuy nhiên `noble`, `noble-updates`, `noble-security` thay đổi theo thời gian; phiên bản gói và toàn bộ công cụ máy tạo ảnh chưa được khóa đầy đủ. Đây là quy trình lặp lại được, **chưa tái lập từng bit**.
-
-Cần kho tại thời điểm cố định, khóa toàn bộ bộ công cụ, chuẩn hóa dấu thời gian và so sánh hai bản dựng độc lập trước khi đạt tiêu chí tái lập nghiêm ngặt.
-
-Giữ `ID` và `VERSION_ID` của Ubuntu để tương thích, đồng thời thêm thông tin biến thể MyKOS. Phiên hệ điều hành nền hiện dùng tiếng Anh; bản địa hóa toàn hệ điều hành và bộ gõ tiếng Việt chưa được tích hợp, kiểm thử. Việc tài liệu và Workspace dùng tiếng Việt không đồng nghĩa toàn bộ bản phân phối đã được Việt hóa.
+Bộ công cụ Debian được sao chép nguyên trạng vào cây build; không còn các bản vá live-build Ubuntu cũ. Hook chroot đặt `ID=mykos`, `ID_LIKE=debian`, giữ định danh nền gói ở build metadata. Hook binary tạo ba menu BIOS; UEFI sử dụng cùng kernel/initrd trong `/live`. Live UEFI chưa có Secure Boot; trình cài vẫn chỉ hỗ trợ BIOS.
 
 ## Tạo ISO bằng GitHub Actions
 
-Không cần máy cá nhân chạy Linux hoặc đủ tài nguyên. Workflow [Tạo ISO MyKOS](https://github.com/fx-kitsune/mykos/actions/workflows/build-iso.yml) dùng máy tạm `ubuntu-24.04` của GitHub để chạy cùng công cụ trong repo.
+Chạy workflow `build-iso.yml` hoặc `build-uefi-live.yml`. Chúng cài công cụ từ Debian trong container Debian 13. Workflow thứ hai chạy các probe BIOS/UEFI trước khi lưu ISO. Chưa chạy các workflow mới trong lần refactor này.
 
-### Cách chạy
+## Giới hạn kiểm chứng
 
-1. Mở repo → **Actions** → **Tạo ISO MyKOS**.
-2. Chọn **Run workflow**, chọn nhánh `main` và xác nhận chạy.
-3. Theo dõi các bước cài công cụ, kiểm tra tài nguyên, tạo ảnh và kiểm tra sản phẩm.
-4. Khi thành công, mở phần **Artifacts** của lần chạy, tải `mykos-iso-amd64-…` và giải nén trên máy cá nhân.
-5. Kiểm tra `SHA256SUMS` trong thư mục giải nén bằng `sha256sum -c SHA256SUMS` trên Linux. Trên Windows có thể dùng `Get-FileHash -Algorithm SHA256` trong PowerShell để đối chiếu mã của ISO với dòng tương ứng trong tệp.
+Đã chạy kiểm thử cấu hình, đối chiếu tên gói với chỉ mục Debian 13 main và thử `lb config` bằng gói Debian giải nén. Phép thử giải nén chỉ sửa đường dẫn đọc VERSION trong thư mục work để dùng gói chưa cài; không sửa mã công cụ được phân phối.
 
-Các nhãn **Actions**, **Run workflow**, **Artifacts** là tên nút trên GitHub. Cần đăng nhập tài khoản có quyền chạy workflow. Nếu Actions đang tắt hoặc hạn mức không còn, bật lại/kiểm tra trong thiết lập repo và tài khoản; workflow không tự mua thêm tài nguyên.
+Chưa tạo ISO hoặc boot/cài Debian trong lần refactor: workspace chỉ có khoảng 7.5 GiB trống, dưới ngưỡng build 25 GiB, và thiếu bộ công cụ mount/chroot. Phải nghiệm thu lại MyKOS Desktop/Openbox, Calamares, BIOS/UEFI, mạng, âm thanh và bản cài không còn quyền live. Các kết quả Ubuntu trước đây không xác nhận ảnh Debian. Kho và container tag còn thay đổi; chưa tái lập từng bit.
 
-### Thời gian chạy và lưu trữ
+Cập nhật 2026-11-10: đã cài PyQt6 trong venv và chạy 8 bài desktop, gồm phiên Xvfb/Openbox thật. Chưa nghiệm thu ISO.
 
-- Chạy thủ công hoặc tự kích hoạt trên `main` khi đầu vào ISO trong `distribution/**`, `desktop/workspace/**`, `scripts/build/**` thay đổi (trừ README trình cài đặt). Tài liệu và web mẫu không tự tạo ISO.
-- Mỗi nhánh chỉ có một lượt tạo ảnh đang chạy; lượt mới hủy lượt cũ khi đầu vào đã được thay thế.
-- Job tối đa 180 phút, bước tạo ISO tối đa 155 phút để còn thời gian thu thập nhật ký.
-- ISO, mã SHA-256, danh sách gói và thông tin bản dựng lưu trong một gói tải xuống. Nhật ký chẩn đoán lưu riêng trong `mykos-build-logs-…`, kể cả khi tạo ảnh thất bại.
-- Hai gói có thời hạn lưu 7 ngày và dùng dung lượng Actions của tài khoản. ISO đã nén được tải lên không nén thêm. Không tự đăng lên GitHub Releases.
-
-### Tài nguyên và xử lý lỗi
-
-Workflow dọn các SDK Android, .NET và GHC cài sẵn trên máy tạm do GitHub cấp. Không dọn máy cá nhân hoặc mã nguồn. Sau khi cài công cụ, kiểm tra lại yêu cầu tối thiểu 25 GiB đĩa trống; không hạ yêu cầu để bỏ qua thiếu dung lượng. Runner có thể ít lõi hoặc RAM hơn cấu hình khuyến nghị cho máy tự quản, vì vậy thời gian tạo ảnh cần được đo từ lần chạy thực tế.
-
-Nếu lỗi, tải nhật ký riêng; xem `preflight.log`, `build.log`, `toolchain.txt` và thông tin đĩa. Thiếu dung lượng, hết thời gian, thiếu đúng phiên bản gói hoặc lỗi tích hợp live-build đều phải được xử lý theo thông báo thực tế. Nếu bị hủy cưỡng bức, runner dừng hoặc hết hạn job, GitHub có thể không thực hiện được bước lưu nhật ký cuối.
-
-Tạo ảnh và xác minh SHA-256 chưa phải kiểm thử khởi động. Workflow build ghi cấu trúc khởi động bằng `xorriso`; sau khi thành công, workflow kiểm thử BIOS chạy QEMU tự động. Kết quả Plasma/cài đặt phải gắn với đúng mã ISO; xem các lượt đã đạt và mục còn thiếu theo [danh sách nghiệm thu máy ảo](../tests/integration/VM_CHECKLIST.md).
-
-## Kiểm thử khởi động bằng Actions
-
-Workflow **Kiểm thử khởi động ISO** dùng lại Artifacts của lượt tạo ảnh, không tạo lại ISO. Vào Actions, chọn workflow này và **Run workflow**; nhập mã lượt build và tên gói ISO còn hạn. Giá trị mặc định ban đầu trỏ tới lượt tạo ảnh `42392072303`.
-
-Workflow kiểm tra toàn bộ `SHA256SUMS`, tạo bản sao ISO có thêm tham số `console=ttyS0,115200n8 systemd.show_status=1`, rồi khởi động qua BIOS của QEMU. Nhân, initrd và dữ liệu squashfs giữ nguyên. Thay menu trên bản sao giúp quan sát nhật ký mà không sửa bản ISO tải xuống của người dùng; kết quả ghi mã SHA-256 của cả hai ảnh.
-
-QEMU dùng KVM nếu có quyền truy cập, nếu không dùng TCG; RAM 4 GiB, hai CPU ảo, không gắn đĩa cài đặt. Giới hạn chờ khởi động là 20 phút. Chỉ thấy thông báo nhân Linux chưa đủ để đạt: phải có dấu hiệu vào môi trường người dùng, như đích systemd phù hợp hoặc lời nhắc đăng nhập của máy trực tiếp. Lỗi nhân hoặc không tìm thấy hệ thống tệp trực tiếp khiến kiểm thử thất bại.
-
-Kết quả lưu trong `mykos-boot-evidence-…` trong 7 ngày: `result.json`, nhật ký nối tiếp, nhật ký QEMU, menu chẩn đoán và ảnh màn hình. Không lưu thêm bản sao ISO lớn. Xem ảnh thủ công để xác nhận giao diện thực tế; đạt kiểm thử này chưa chứng minh đăng nhập Plasma, mạng/âm thanh, Calamares hoặc phục hồi. Sau mỗi lượt tạo ISO thành công trên `main`, workflow kiểm thử tự động nhận đúng mã lượt build và tên artifact của lượt đó. Có thể chạy thủ công để kiểm tra lại một artifact cụ thể.
-
-### Khi nào ISO được tạo lại?
-
-Push lên `main` thay đổi `distribution/**`, `desktop/workspace/**`, `scripts/build/**` sẽ tạo ISO mới. Thay đổi tài liệu, workflow hoặc bản mẫu web không kích hoạt tạo ảnh; README của installer được loại trừ rõ ràng. Có thể chạy thủ công bằng **Run workflow**. Kết quả kiểm thử BIOS phải khớp lượt build và SHA-256; không dùng kết quả của ISO cũ để nghiệm thu mã mới.
-
-### Bằng chứng phiên Plasma
-
-Sau kiểm thử BIOS, workflow chạy `scripts/testing/probe_desktop.py` trên một máy ảo mới với cùng ISO nguồn. Công cụ chỉ bổ sung console nối tiếp vào bản sao, đăng nhập tài khoản live `mykos`, đợi Plasma và kiểm tra tiến trình KWin; sau đó mở Dolphin, Konsole và Thiết lập bằng môi trường của phiên Plasma. Không dùng sudo, không thay cấu hình hệ thống guest và không gắn ổ đĩa cài đặt.
-
-Kết quả `desktop-services-ready` xác nhận tiến trình và thao tác mở ứng dụng, chưa thay thế rà soát giao diện, bàn phím, mạng, âm thanh hoặc cài đặt. Nếu không đăng nhập được hoặc desktop không chạy, bước kiểm thử thất bại và giữ console cùng ảnh màn hình. Bằng chứng nằm trong `desktop-test/` của artifact kiểm thử; JSON ghi SHA-256 ISO nguồn và bản sao. Cần xem ảnh và ghi kết quả riêng trong danh sách nghiệm thu trước khi đánh dấu phiên Plasma đạt.
-
-Khi sửa `scripts/testing/boot_iso.py` hoặc `scripts/testing/probe_desktop.py`, push lên `main` tự kiểm thử lại ISO thành công gần nhất. Sửa workflow được kiểm tra cú pháp trong CI và chạy thực tế ở lượt build ISO tiếp theo hoặc qua Run workflow. Bước xác định nguồn đọc metadata Actions, xác nhận build thành công và ghi rõ mã lượt build, commit nguồn, tên artifact trước khi tải. Nếu artifact hết hạn hoặc API lỗi, kiểm thử thất bại thay vì âm thầm chọn ISO khác. Giá trị mặc định chạy thủ công hiện trỏ tới lượt build `42443779141`.
-
-Console có thể nhận log systemd xen vào sau lời nhắc đăng nhập. Công cụ không yêu cầu prompt ở cuối log, giới hạn 60 giây cho shell live và 300 giây cho lệnh kiểm tra desktop; các chuyển bước được ghi trực tiếp ra log Actions. Thiết lập hỗ trợ cả tên chương trình `systemsettings` và `systemsettings5` của Plasma 5.
-
-### Đồ họa máy ảo và trình cài đặt
-
-Menu BIOS có mục **MyKOS (do hoa phan mem cho may ao)**: tắt compositing X11 và dùng Qt Quick software, phù hợp phép thử QEMU/TCG đã quan sát treo OpenGL. Mục khởi động bình thường giữ cấu hình đồ họa gốc. Các tham số này không chứng minh hỗ trợ mọi GPU hoặc phần cứng thật.
-
-Lớp `distribution/installer/overlay` đưa cấu hình Calamares, mục menu và module hoàn tất bản cài vào ảnh. Danh sách gói bổ sung Calamares và GRUB BIOS. Xem [phạm vi installer](../distribution/installer/README.md); cài đặt và boot từ ổ đĩa còn chờ nghiệm thu. Kiểm thử desktop tự mở Calamares nếu gói có mặt, giữ log và ảnh cửa sổ; không gắn hoặc ghi ổ đĩa ở bước đó.
-
-Artifact kiểm thử desktop ghi cả mã lượt build, tên artifact và commit nguồn. Kiểm thử installer ưu tiên đúng lượt build/attempt này, rồi xác minh lại SHA-256 trước khi tạo đĩa, tránh dùng nhầm ISO khi nhiều build hoàn tất gần nhau.
+Ảnh mặc định cài shell/session MyKOS và XSession `mykos.desktop`, không cài Plasma/KWin. Xem [ADR 0004](ADR/0004-own-desktop-environment.md).

@@ -1,0 +1,8 @@
+#!/bin/sh
+set -eu
+# live-config executes this only in the live environment. The installer removes it.
+cat > /etc/sddm.conf <<'EOF'
+[Autologin]
+User=mykos
+Session=mykos.desktop
+EOF

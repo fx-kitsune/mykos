@@ -7,7 +7,12 @@ permissions:
 jobs:
   static:
     runs-on: ubuntu-24.04
+    container:
+      image: debian:13
+      options: --privileged
     steps:
+      - name: Chuẩn bị môi trường Debian
+        run: apt-get update && apt-get install -y sudo python3 git ca-certificates
       - uses: actions/checkout@v4
       - name: Kiểm thử công cụ tạo ảnh
         run: python3 -m unittest discover -s tests/integration -v
@@ -15,25 +20,36 @@ jobs:
         run: |
           bash -n scripts/development/run-vm.sh
           sh -n distribution/image-build/010-mykos.chroot
-      - name: Tạo cấu hình bằng bộ công cụ Ubuntu đã chốt
+      - name: Tạo cấu hình bằng Debian live-build
         run: |
           sudo apt-get update
-          sudo apt-get install -y live-build=3.0~a57-1ubuntu49.1 debootstrap
+          sudo apt-get install -y live-build debootstrap
           python3 scripts/build/mykos.py configure build/ci-config
       - name: Kiểm tra tài nguyên thiết kế đã xuất
         run: python3 scripts/build/export-design.py --check
       - name: Cài môi trường kiểm thử Workspace
         run: |
-          sudo apt-get install -y libegl1 libopengl0 libgl1 libxkbcommon0 fonts-noto-core
-          python3 -m pip install -r desktop/workspace/requirements-dev.txt
-      - name: Kiểm thử Workspace native
+          sudo apt-get install -y libegl1 libopengl0 libgl1 libxkbcommon0 fonts-noto-core python3-pip xvfb openbox wmctrl x11-utils dbus-x11
+          python3 -m pip install --break-system-packages -r desktop/workspace/requirements-dev.txt
+          sudo useradd --create-home mykos-ci
+      - name: Kiểm thử Workspace và phiên MyKOS trên Xvfb
         env:
           QT_QPA_PLATFORM: offscreen
           QT_QUICK_BACKEND: software
-        run: python3 -m unittest discover -s tests/desktop -v
+        run: sudo -u mykos-ci env QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software python3 -m unittest discover -s tests/desktop -v
       - name: Khởi chạy Workspace không màn hình
         env:
           QT_QPA_PLATFORM: offscreen
           QT_QUICK_BACKEND: software
           MYKOS_WORKSPACE_DATA: /tmp/mykos-ci-workspace
-        run: python3 desktop/workspace/main.py --smoke-test
+        run: sudo -u mykos-ci env QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software MYKOS_WORKSPACE_DATA=/tmp/mykos-ci-workspace python3 desktop/workspace/main.py --smoke-test
+      - name: Render shell MyKOS không màn hình
+        env:
+          QT_QPA_PLATFORM: offscreen
+          QT_QUICK_BACKEND: software
+          XDG_RUNTIME_DIR: /tmp/mykos-shell-runtime
+          MYKOS_WORKSPACE_DATA: /tmp/mykos-ci-workspace
+        run: |
+          sudo -u mykos-ci mkdir -p "$XDG_RUNTIME_DIR"
+          sudo -u mykos-ci chmod 700 "$XDG_RUNTIME_DIR"
+          sudo -u mykos-ci env QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software XDG_RUNTIME_DIR="$XDG_RUNTIME_DIR" MYKOS_WORKSPACE_DATA=/tmp/mykos-ci-workspace python3 desktop/shell/main.py --smoke-test

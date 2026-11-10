@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Export the original Fold assets to Qt-compatible SVGs and KDE icon names."""
+"""Export the original Fold assets to Qt-compatible SVGs and desktop icon names."""
 import argparse
 from pathlib import Path
 import xml.etree.ElementTree as ET
@@ -8,11 +8,11 @@ ROOT = Path(__file__).resolve().parents[2]
 OVERLAY = ROOT / "distribution/branding/overlay"
 NS = "http://www.w3.org/2000/svg"
 ET.register_namespace("", NS)
-ALIASES = {"files": ["system-file-manager", "org.kde.dolphin"],
-           "terminal": ["utilities-terminal", "org.kde.konsole"],
-           "settings": ["preferences-system", "systemsettings"],
-           "notes": ["accessories-text-editor", "org.kde.kate"],
-           "photos": ["gwenview", "org.kde.gwenview"],
+ALIASES = {"files": ["system-file-manager", "thunar"],
+           "terminal": ["utilities-terminal", "org.xfce.terminal"],
+           "settings": ["preferences-system", "mykos-settings"],
+           "notes": ["accessories-text-editor", "mousepad"],
+           "photos": ["ristretto"],
            "browser": ["web-browser"]}
 
 
@@ -39,8 +39,8 @@ def outputs():
     theme = OVERLAY / "usr/share/icons/MyKOSFold"
     result[theme / "index.theme"] = """[Icon Theme]
 Name=MyKOS Fold
-Comment=Original MyKOS Fold icons with Breeze fallback
-Inherits=breeze,hicolor
+Comment=Original MyKOS Fold icons with Adwaita fallback
+Inherits=Adwaita,hicolor
 Directories=scalable/apps,scalable/actions
 
 [scalable/apps]

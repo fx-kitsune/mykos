@@ -1,3 +1,5 @@
+> Cấu hình hiện hành đã chuyển sang Debian 13; xem [ADR 0003](../../docs/ADR/0003-independent-linux-platform.md). Nội dung Ubuntu và kết quả ISO bên dưới là lịch sử, không nghiệm thu nền mới. Mục tiêu nền riêng chỉ dùng Linux kernel còn đang triển khai.
+
 # Trình cài đặt MyKOS với Calamares
 
 Calamares cho Ubuntu Noble và BIOS đã hoàn tất cài vào QCOW2 mới, boot GRUB không ISO, đăng nhập tài khoản thường qua SDDM/Plasma X11. [42529928289](https://github.com/fx-kitsune/mykos/actions/runs/42529928289) trên ISO build `42527363919` đạt mạng/HTTPS, sudo, APT, tệp, đổi độ phân giải và âm thanh PipeWire/HDA ảo; ba dịch vụ Plasma dùng deadline mới hoạt động ổn định. [42531078658](https://github.com/fx-kitsune/mykos/actions/runs/42531078658) xác nhận Discover mở/danh mục không còn lỗi xác thực sau khi công cụ thử mở ứng dụng qua user service manager. Chưa nghiệm thu cập nhật/recovery hoặc phần cứng thật.

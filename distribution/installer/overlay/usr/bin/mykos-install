@@ -1,13 +1,13 @@
 #!/bin/sh
 set -eu
 case " $(cat /proc/cmdline) " in
-    *" boot=casper "*) ;;
+    *" boot=live "*) ;;
     *) echo 'Trình cài đặt chỉ chạy trong phiên MyKOS live.' >&2; exit 1 ;;
 esac
 [ ! -d /sys/firmware/efi ] || { echo 'Bản phát triển này chỉ hỗ trợ cài đặt BIOS.' >&2; exit 1; }
-[ -r /cdrom/casper/filesystem.squashfs ] || { echo 'Không tìm thấy hệ thống tệp của ISO MyKOS.' >&2; exit 1; }
+[ -r /run/live/medium/live/filesystem.squashfs ] || { echo 'Không tìm thấy hệ thống tệp của ISO MyKOS.' >&2; exit 1; }
 if [ "$(id -u)" -ne 0 ]; then
-    exec sudo --preserve-env=DISPLAY,XAUTHORITY,QT_QUICK_BACKEND,KWIN_COMPOSE,MYKOS_INSTALL_DEBUG /usr/bin/mykos-install
+    exec sudo --preserve-env=DISPLAY,XAUTHORITY,QT_QUICK_BACKEND,MYKOS_INSTALL_DEBUG /usr/bin/mykos-install
 fi
 if [ "${MYKOS_INSTALL_DEBUG:-0}" = 1 ]; then
     exec /usr/bin/calamares --debug
