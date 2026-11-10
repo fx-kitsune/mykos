@@ -391,15 +391,35 @@ def mounted_new_system(root_device, esp_device):
         target.rmdir()
 
 
+def firmware_secure_boot(directory):
+    variable = directory / 'SecureBoot-8be4df61-93ca-11d2-aa0d-00e098032b8c'
+    if not variable.exists():
+        # Non-Secure-Boot OVMF/older firmware has other runtime variables but no
+        # SecureBoot variable. An empty/unreadable efivarfs is not that proof.
+        if not list(directory.iterdir()):
+            raise ValueError('Không đọc được biến firmware UEFI; chưa xóa ổ.')
+        return False
+    data = variable.read_bytes()
+    if len(data) != 5 or data[4] not in (0, 1):
+        raise ValueError('Trạng thái Secure Boot không hợp lệ; chưa xóa ổ.')
+    return data[4] == 1
+
+
 def check_firmware(mode):
     if mode != 'uefi' or not Path('/sys/firmware/efi').exists():
         return
-    variables = list(Path('/sys/firmware/efi/efivars').glob('SecureBoot-*'))
-    if len(variables) != 1:
-        raise ValueError('Không đọc được trạng thái Secure Boot; chưa xóa ổ.')
-    data = variables[0].read_bytes()
-    if len(data) < 5 or data[4] != 0:
-        raise ValueError('Secure Boot đang bật hoặc không xác định. MyKOS chưa có bootloader ký; chưa xóa ổ.')
+    directory = Path('/sys/firmware/efi/efivars')
+    created = False
+    try:
+        if not os.path.ismount(directory):
+            directory.mkdir(exist_ok=True)
+            run(['mount', '-t', 'efivarfs', '-o', 'ro', 'efivarfs', str(directory)])
+            created = True
+        if firmware_secure_boot(directory):
+            raise ValueError('Secure Boot đang bật. MyKOS chưa có bootloader ký; chưa xóa ổ.')
+    finally:
+        if created:
+            run(['umount', str(directory)])
 
 
 def install_automatic(args):
@@ -418,16 +438,15 @@ def install_automatic(args):
     with tempfile.TemporaryDirectory(prefix='mykos-bootstrap-') as tools:
         paths = protected_paths([tools])
         bootstrap = bootstrap_tools.prepare(tools, settings()['suite'])
-        disk, _ = disk_layout.selected(args.disk, paths, disk_layout.identity(disk))
-        summary = show_disk(disk, args.mode)
-        print('  Tài khoản mới: ' + args.username + ' | Tên máy: ' + args.hostname)
-        print('\nGõ ' + disk_layout.CONFIRMATION + ' để xóa ĐÚNG ổ trên và cài MyKOS. Enter để hủy.', flush=True)
-        if input('Confirm: ').strip() != disk_layout.CONFIRMATION:
-            print('Đã hủy. Chưa xóa hoặc ghi ổ đĩa.')
-            return
-        password = read_password()
-        # Confirmation binds to disk identity, not a guessed /dev/nvme name.
         with disk_lock(disk):
+            disk, _ = disk_layout.selected(args.disk, paths, disk_layout.identity(disk))
+            summary = show_disk(disk, args.mode)
+            print('  Tài khoản mới: ' + args.username + ' | Tên máy: ' + args.hostname)
+            print('\nGõ ' + disk_layout.CONFIRMATION + ' để xóa ĐÚNG ổ trên và cài MyKOS. Enter để hủy.', flush=True)
+            if input('Confirm: ').strip() != disk_layout.CONFIRMATION:
+                print('Đã hủy. Chưa xóa hoặc ghi ổ đích.')
+                return
+            password = read_password()
             root_device, esp_device = disk_layout.prepare(disk, args.mode, paths)
             with mounted_new_system(root_device, esp_device) as target:
                 args.target, args.boot_disk, args.keyring = str(target), disk['path'], str(bootstrap[1])

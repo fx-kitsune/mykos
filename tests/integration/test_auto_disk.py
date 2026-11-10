@@ -1,4 +1,5 @@
 """Whole-disk safety boundaries; no commands here target a real block device."""
+from contextlib import nullcontext
 import importlib.util
 import json
 from pathlib import Path
@@ -118,10 +119,23 @@ class AutoDiskTests(unittest.TestCase):
              patch.object(installer.disk_layout,'selected',return_value=(disk,{})), \
              patch.object(installer.disk_layout,'prepare') as prepare, \
              patch.object(installer,'read_password') as password, \
+             patch.object(installer,'disk_lock',return_value=nullcontext()), \
              patch('builtins.input',return_value=''):
             installer.install_automatic(args)
         prepare.assert_not_called()
         password.assert_not_called()
+
+    def test_firmware_check_distinguishes_disabled_enabled_and_unsupported(self):
+        with tempfile.TemporaryDirectory() as folder:
+            directory=Path(folder)
+            with self.assertRaises(ValueError):installer.firmware_secure_boot(directory)
+            (directory/'BootOrder-test').write_bytes(b'firmware')
+            self.assertFalse(installer.firmware_secure_boot(directory))
+            sb=directory/'SecureBoot-8be4df61-93ca-11d2-aa0d-00e098032b8c'
+            sb.write_bytes(b'\x06\x00\x00\x00\x00')
+            self.assertFalse(installer.firmware_secure_boot(directory))
+            sb.write_bytes(b'\x06\x00\x00\x00\x01')
+            self.assertTrue(installer.firmware_secure_boot(directory))
 
     def test_corrupt_bootstrap_payload_is_rejected_before_unpack(self):
         with tempfile.TemporaryDirectory() as folder, \

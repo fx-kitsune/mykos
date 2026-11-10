@@ -21,6 +21,14 @@ RESCUE_SHA = 'dd6df477d885b180231708aff16acde049c461338cbbe61adc411a6f436d2b13'
 ROOT = Path(__file__).resolve().parents[2]
 
 
+def wait_installer(vm, predicate, timeout, start):
+    def state(text):
+        if re.search(r'(?m)^mykos-install: ', text):
+            raise RuntimeError('Installer stopped before completing: ' + text[-2500:])
+        return predicate(text)
+    return vm.wait(state, timeout=timeout, start=start)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('iso', type=Path)
@@ -75,23 +83,23 @@ def main():
         vm.guest("import subprocess\nsubprocess.run(['sudo','mkdir','-p','/mnt/mykos-source'],check=True)\nsubprocess.run(['sudo','mount','-t','9p','-o','trans=virtio,version=9p2000.L,ro','mykos-source','/mnt/mykos-source'],check=True)\nresult={'source_ready':True}")
         start=len(vm.transcript)
         vm.serial.sendall(b'sudo /mnt/mykos-source/install --hostname mykos-installed\r')
-        vm.wait(lambda text:'Chọn ổ cài' in text or '[1]:' in text,timeout=300,start=start)
+        wait_installer(vm,lambda text:'Chọn ổ cài' in text or '[1]:' in text,300,start)
         vm.serial.sendall(b'1\r')
         start=len(vm.transcript)
-        vm.wait(lambda text:'[mykos]:' in text,timeout=60,start=start)
+        wait_installer(vm,lambda text:'[mykos]:' in text,60,start)
         vm.serial.sendall(b'vmtester\r')
         start=len(vm.transcript)
-        vm.wait(lambda text:'Confirm: ' in text,timeout=300,start=start)
+        wait_installer(vm,lambda text:'Confirm: ' in text,300,start)
         vm.serial.sendall(b'XOA VA CAI MYKOS\r')
         password='Mykos-'+secrets.token_hex(12)
         start=len(vm.transcript)
-        vm.wait(lambda text:' / Password: ' in text,timeout=60,start=start)
+        wait_installer(vm,lambda text:' / Password: ' in text,60,start)
         vm.serial.sendall((password+'\r').encode())
         start=len(vm.transcript)
-        vm.wait(lambda text:' / Repeat password: ' in text,timeout=60,start=start)
+        wait_installer(vm,lambda text:' / Repeat password: ' in text,60,start)
         vm.serial.sendall((password+'\r').encode())
         start=len(vm.transcript)
-        vm.wait(lambda text:re.search(r'(?m)^MYKOS_INSTALL_COMPLETE\s*$',text),timeout=2400,start=start)
+        wait_installer(vm,lambda text:re.search(r'(?m)^MYKOS_INSTALL_COMPLETE\s*$',text),2400,start)
         report['automatic_install']='complete'
         vm.capture('installed-from-rescue')
         # Read the installed tree and enable console observation only. Do not alter
