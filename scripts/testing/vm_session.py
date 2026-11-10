@@ -129,7 +129,7 @@ class VM:
                 pass
         raise TimeoutError('Hết thời gian chờ máy ảo; xem serial.log và ảnh màn hình.')
 
-    def login(self, username='mykos', hostname='mykos-live', password=''):
+    def login(self, username='mykos', hostname='mykos-live', password='live'):
         self.wait(lambda text: hostname + ' login:' in text)
         start = len(self.transcript)
         self.serial.sendall((username + '\r').encode())

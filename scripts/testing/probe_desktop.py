@@ -222,7 +222,7 @@ def main():
             last_input = phase_started
             desktop_captured = False
             installer_captured = False
-            empty_password_sent = False
+            live_password_sent = False
             print('Desktop probe: waiting for live console', flush=True)
             while time.monotonic() < deadline:
                 if machine.poll() is not None:
@@ -261,15 +261,14 @@ def main():
                     phase = 'probe'
                     phase_started = time.monotonic()
                     print('Desktop probe: checking MyKOS Desktop and applications', flush=True)
-                elif phase == 'login' and not empty_password_sent and re.search(r'(?im)^password:', transcript):
-                    # Casper 25adduser đặt hash của mật khẩu rỗng khi có SDDM;
-                    # PAM vẫn có thể hỏi Password. Chỉ gửi Enter một lần cho
-                    # tài khoản live định sẵn, không thử mật khẩu khác.
-                    serial.sendall(b'\r')
-                    empty_password_sent = True
-                    print('Desktop probe: submitting the live account empty password once', flush=True)
-                if phase == 'login' and empty_password_sent and 'Login incorrect' in transcript:
-                    raise RuntimeError('Tài khoản live từ chối mật khẩu rỗng; không thử lại.')
+                elif phase == 'login' and not live_password_sent and re.search(r'(?im)^password:', transcript):
+                    # Debian live-config uses the documented live password "live".
+                    # Submit it once for the disposable live account only.
+                    serial.sendall(b'live\r')
+                    live_password_sent = True
+                    print('Desktop probe: submitting the documented Debian live password once', flush=True)
+                if phase == 'login' and live_password_sent and 'Login incorrect' in transcript:
+                    raise RuntimeError('Tài khoản live từ chối mật khẩu đã khai báo; không thử lại.')
                 if phase == 'login' and time.monotonic() - phase_started > 60:
                     raise TimeoutError('Không vào được shell live trong 60 giây; xem serial.log.')
                 if phase == 'probe' and time.monotonic() - phase_started > 900:

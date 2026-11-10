@@ -50,3 +50,5 @@ Thiết lập MyKOS đổi màu của shell/Workspace và mở nm-connection-edi
 Trình quản lý phiên dọn các process group nó khởi tạo; ứng dụng tự daemon hóa hoặc chuyển sang dịch vụ D-Bus cần tích hợp vòng đời bổ sung. Workspace chạy độc lập vẫn cho ứng dụng được mở tiếp tục tồn tại khi đóng Workspace.
 
 Các workflow chẩn đoán tải ISO Ubuntu/Plasma đã chốt và tự động click theo tọa độ cũ là công cụ lịch sử. Không dùng chúng để nghiệm thu desktop mới. Multimedia/Discover và quy trình click SDDM/Calamares cần được hiệu chỉnh theo ảnh mới trước khi công bố nghiệm thu.
+
+Tài khoản của ISO live: `mykos`, mật khẩu thử nghiệm công khai `live` theo mặc định Debian live-config. Đây không phải mật khẩu bản cài; người dùng đặt mật khẩu mới trong Calamares.
