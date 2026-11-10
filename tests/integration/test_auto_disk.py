@@ -30,6 +30,31 @@ def partition(path, identifier, mounts=None):
 
 
 class AutoDiskTests(unittest.TestCase):
+    def test_casper_moved_lowerdir_from_user_report_protects_rescue_disk(self):
+        rescue = drive('/dev/nvme0n1','259:0',children=[partition('/dev/nvme0n1p1','259:1')])
+        target = drive('/dev/nvme1n1','259:2')
+        loop = dict(path='/dev/loop0',type='loop',**{'maj:min':'7:0'})
+        mounts = [dict(target='/rofs',fstype='squashfs',options='ro,noatime,errors=continue,threads=single',**{'maj:min':'7:0'}),
+                  dict(target='/',fstype='overlay',options='rw,relatime,lowerdir=/filesystem.squashfs,upperdir=/cow/upper,workdir=/cow/work,uuid=on,xino=off,nouserxattr',**{'maj:min':'0:44'})]
+        def source(path):
+            if path == '/filesystem.squashfs':
+                raise subprocess.CalledProcessError(1,['findmnt','--target',path])
+            return '259:1' if path.startswith('/cdrom/') else '0:45'
+        backing=lambda key:'/cdrom/casper/filesystem.squashfs' if key=='7:0' else None
+        choices,*_=disks.assess([rescue,target,loop],mounts,[],backing_file=backing,source_for_path=source)
+        self.assertEqual([row['path'] for row in choices],['/dev/nvme1n1'])
+        # Writable persistence paths and unverified /rofs must still fail closed.
+        for alteration in ['rw', 'unknown-image']:
+            changed=[dict(row) for row in mounts]
+            if alteration=='rw':changed[0]['options']='rw'
+            else:changed[0]['fstype']='ext4'
+            with self.assertRaises(subprocess.CalledProcessError):
+                disks.assess([rescue,target,loop],changed,[],backing_file=backing,source_for_path=source)
+        changed=[dict(row) for row in mounts]
+        changed[1]['options']='rw,lowerdir=/rofs,upperdir=/filesystem.squashfs,workdir=/cow/work'
+        with self.assertRaises(subprocess.CalledProcessError):
+            disks.assess([rescue,target,loop],changed,[],backing_file=backing,source_for_path=source)
+
     def test_initramfs_loop_filename_need_not_exist_in_live_namespace(self):
         rescue = drive('/dev/nvme0n1','259:0',children=[partition('/dev/nvme0n1p1','259:1')])
         target = drive('/dev/nvme1n1','259:2')

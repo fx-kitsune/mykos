@@ -80,6 +80,20 @@ def protected_disks(nodes, owners, mounts, paths, backing_file=None, source_for_
         data = json.loads(output(['findmnt', '--json', '--target', path, '--output', 'MAJ:MIN']))
         return data['filesystems'][0]['maj:min']
     source_for_path = source_for_path or filesystem_for
+    def overlay_source(path, kind):
+        # Casper constructs overlay before switch_root. Its lowerdir string
+        # stays /filesystem.squashfs after that squashfs mount moves to /rofs.
+        # Accept only this known alias with a read-only loop-backed Casper image;
+        # never substitute an arbitrary missing upper/work/persistence path.
+        if kind == 'lowerdir' and path == '/filesystem.squashfs' and not Path(path).exists():
+            aliases = [row for row in flatten(mounts)
+                       if row['target'] == '/rofs' and row.get('fstype') == 'squashfs'
+                       and 'ro' in row.get('options', '').split(',')
+                       and nodes.get(row['maj:min'], {}).get('type') == 'loop'
+                       and backing_file(row['maj:min']) == '/cdrom/casper/filesystem.squashfs']
+            if len(aliases) == 1:
+                return aliases[0]['maj:min']
+        return source_for_path(path)
     def resolve(identifier, seen):
         if identifier in seen:
             raise ValueError('Không xác định an toàn được ổ chứa môi trường đang chạy (vòng lặp thiết bị).')
@@ -116,11 +130,11 @@ def protected_disks(nodes, owners, mounts, paths, backing_file=None, source_for_
                 for option in row.get('options', '').split(','):
                     key, _, value = option.partition('=')
                     if key in {'upperdir', 'workdir', 'lowerdir'}:
-                        backing_paths.extend(value.split(':'))
+                        backing_paths.extend((key, path) for path in value.split(':'))
                 if not backing_paths:
                     raise ValueError('Không xác định được filesystem nền của hệ thống live overlay.')
-                for path in backing_paths:
-                    protected.update(resolve(source_for_path(path), {row['maj:min']}))
+                for kind, path in backing_paths:
+                    protected.update(resolve(overlay_source(path, kind), {row['maj:min']}))
     # Also guard critical mountpoints listed by lsblk if mount inventory is incomplete.
     for identifier, node in nodes.items():
         for mount in node.get('mountpoints') or []:
