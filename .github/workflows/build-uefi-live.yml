@@ -9,6 +9,7 @@ on:
       - '!distribution/installer/README.md'
       - desktop/**
       - scripts/build/**
+      - scripts/ci/**
       - scripts/testing/probe_desktop.py
 
 permissions:
@@ -23,32 +24,45 @@ jobs:
   build:
     name: Tạo ảnh MyKOS / Debian 13 amd64
     runs-on: ubuntu-24.04
-    container:
-      image: debian:13
-      options: --privileged
     timeout-minutes: 240
     defaults:
       run:
-        shell: bash
+        shell: bash scripts/ci/debian-shell.sh {0}
     env:
       BUILD_DIRECTORY: build/actions
       ARTIFACT_DIRECTORY: artifacts/iso
       DIAGNOSTIC_DIRECTORY: artifacts/diagnostics
     steps:
-      - name: Chuẩn bị môi trường Debian
-        run: apt-get update && apt-get install -y sudo python3 git ca-certificates
       - name: Lấy mã nguồn
         uses: actions/checkout@v4
         with:
           persist-credentials: false
 
       - name: Chuẩn bị tài nguyên máy tạo ảnh
+        shell: bash
         run: |
           set -euo pipefail
           mkdir -p "$DIAGNOSTIC_DIRECTORY"
           df -h . | tee "$DIAGNOSTIC_DIRECTORY/disk-before.txt"
           free -h | tee "$DIAGNOSTIC_DIRECTORY/memory.txt"
+          # Only preinstalled SDKs on the disposable hosted runner, as before.
+          if [[ "$RUNNER_ENVIRONMENT" == github-hosted && "$RUNNER_OS" == Linux ]]; then
+            sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc
+          fi
           df -h . | tee "$DIAGNOSTIC_DIRECTORY/disk-after.txt"
+
+      - name: Khởi tạo máy build Debian
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run -d --name mykos-debian --privileged \
+            --volume "$GITHUB_WORKSPACE:$GITHUB_WORKSPACE" \
+            --volume "$RUNNER_TEMP:$RUNNER_TEMP" \
+            --workdir "$GITHUB_WORKSPACE" --env DEBIAN_FRONTEND=noninteractive \
+            debian:13 tail -f /dev/null
+          docker exec mykos-debian apt-get update
+          docker exec mykos-debian apt-get install -y sudo python3 git ca-certificates procps python3-pil
+          docker exec mykos-debian git config --system --add safe.directory "$GITHUB_WORKSPACE"
 
       - name: Cài bộ công cụ Debian
         run: |
@@ -105,6 +119,7 @@ jobs:
 
       - name: Xuat bang chung vao log ke ca khi het han muc Artifacts
         if: always()
+        shell: bash
         run: |
           python3 - <<'PYTHON'
           import base64, hashlib, textwrap
@@ -126,9 +141,16 @@ jobs:
 
       - name: Thu thập nhật ký kể cả khi thất bại
         if: always()
+        shell: bash
         env:
           BUILD_RESULT: ${{ steps.build.outcome }}
-        run: bash scripts/ci/collect-build-logs.sh
+        run: |
+          if docker inspect mykos-debian >/dev/null 2>&1; then
+            printf '%s\n' 'bash scripts/ci/collect-build-logs.sh' > "$RUNNER_TEMP/mykos-collect.sh"
+            bash scripts/ci/debian-shell.sh "$RUNNER_TEMP/mykos-collect.sh"
+          else
+            echo 'Debian builder not started; no image build log available.'
+          fi
 
       - name: Lưu ISO và mã kiểm tra
         id: iso_upload
@@ -196,3 +218,8 @@ jobs:
           ARTIFACT_RESULT: ${{ steps.iso_upload.outcome }}
           DRAFT_RESULT: ${{ steps.draft_delivery.outcome }}
         run: test "$ARTIFACT_RESULT" = success || test "$DRAFT_RESULT" = success
+
+      - name: Dừng máy build Debian
+        if: always()
+        shell: bash
+        run: docker rm -f mykos-debian >/dev/null 2>&1 || true

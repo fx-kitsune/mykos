@@ -10,11 +10,6 @@ on:
         description: Tên gói ISO của lượt tạo ảnh
         required: true
         default: mykos-iso-amd64-42443779141-1
-  push:
-    branches: [main]
-    paths:
-      - scripts/testing/boot_iso.py
-      - scripts/testing/probe_desktop.py
   workflow_run:
     workflows: [Tạo ISO MyKOS]
     types: [completed]
@@ -97,15 +92,15 @@ jobs:
         timeout-minutes: 25
         run: |
           python3 scripts/testing/boot_iso.py artifacts/source-iso/mykos-0.1.0-dev-amd64.iso --output artifacts/boot-test --timeout 1200
-      - name: Kiểm tra UEFI từ USB GPT và phiên Plasma
+      - name: Kiểm tra UEFI từ USB GPT và phiên MyKOS
         timeout-minutes: 25
         run: |
           python3 scripts/testing/probe_desktop.py artifacts/source-iso/mykos-0.1.0-dev-amd64.iso --output artifacts/uefi-usb-test --timeout 1200 --software-rendering --firmware uefi --media usb
-      - name: Kiểm tra UEFI từ CD-ROM và phiên Plasma
+      - name: Kiểm tra UEFI từ CD-ROM và phiên MyKOS
         timeout-minutes: 25
         run: |
           python3 scripts/testing/probe_desktop.py artifacts/source-iso/mykos-0.1.0-dev-amd64.iso --output artifacts/uefi-cdrom-test --timeout 1200 --software-rendering --firmware uefi --media cdrom
-      - name: Kiểm tra phiên Plasma và mở ứng dụng
+      - name: Kiểm tra phiên MyKOS và mở ứng dụng
         timeout-minutes: 25
         run: |
           python3 scripts/testing/probe_desktop.py artifacts/source-iso/mykos-0.1.0-dev-amd64.iso --output artifacts/desktop-test --timeout 1200 --software-rendering

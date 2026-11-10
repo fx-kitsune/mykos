@@ -12,8 +12,10 @@ jobs:
       options: --privileged
     steps:
       - name: Chuẩn bị môi trường Debian
-        run: apt-get update && apt-get install -y sudo python3 git ca-certificates
+        run: apt-get update && apt-get install -y sudo python3 git ca-certificates procps
       - uses: actions/checkout@v4
+      - name: Tin cậy đúng checkout trong container
+        run: git config --system --add safe.directory "$GITHUB_WORKSPACE"
       - name: Kiểm thử công cụ tạo ảnh
         run: python3 -m unittest discover -s tests/integration -v
       - name: Kiểm tra cú pháp shell
@@ -29,7 +31,7 @@ jobs:
         run: python3 scripts/build/export-design.py --check
       - name: Cài môi trường kiểm thử Workspace
         run: |
-          sudo apt-get install -y libegl1 libopengl0 libgl1 libxkbcommon0 fonts-noto-core python3-pip xvfb openbox wmctrl x11-utils dbus-x11
+          sudo apt-get install -y libegl1 libopengl0 libgl1 libxkbcommon0 libxkbcommon-x11-0 libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-render-util0 fonts-noto-core python3-pip xvfb openbox wmctrl x11-utils dbus-x11
           python3 -m pip install --break-system-packages -r desktop/workspace/requirements-dev.txt
           sudo useradd --create-home mykos-ci
       - name: Kiểm thử Workspace và phiên MyKOS trên Xvfb
