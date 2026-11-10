@@ -14,13 +14,24 @@ spec.loader.exec_module(installer)
 
 
 def options(**updates):
-    values = dict(target='/mnt/mykos', mode='uefi', boot_disk=None, username='alice', hostname='mykos',
+    values = dict(action='install', target='/mnt/mykos', mode='uefi', boot_disk=None, username='alice', hostname='mykos',
                   keyring='/usr/share/keyrings/debian-archive-keyring.gpg', confirm_uuid=None)
     values.update(updates)
     return argparse.Namespace(**values)
 
 
 class TerminalInstallerTests(unittest.TestCase):
+    def test_wizard_collects_target_options_without_running_commands(self):
+        args = options(action='wizard')
+        with patch.object(installer.sys.stdin, 'isatty', return_value=True), \
+             patch('builtins.input', side_effect=['/mnt/new-system', 'uefi', 'alice', 'new-system']), \
+             patch.object(installer, 'run') as run:
+            installer.wizard_options(args)
+        self.assertEqual(args.target, '/mnt/new-system')
+        self.assertEqual(args.mode, 'uefi')
+        self.assertEqual(args.username, 'alice')
+        run.assert_not_called()
+
     def test_plan_is_read_only_and_excludes_live_credentials_and_live_packages(self):
         with patch.object(installer, 'run', side_effect=AssertionError('plan executed a process')):
             result = installer.plan(options())
@@ -115,6 +126,16 @@ class TerminalInstallerTests(unittest.TestCase):
             self.assertFalse((target / 'usr/lib/live/config/0099-mykos-session').exists())
             self.assertNotIn('User=', (target / 'etc/sddm.conf.d/10-mykos.conf').read_text())
             self.assertFalse((target / 'usr/share/calamares').exists())
+
+    def test_boot_layout_checks_reject_data_fat_partition_and_missing_bios_grub(self):
+        with patch.object(installer, 'output', return_value='basic-data-guid'):
+            with self.assertRaisesRegex(ValueError, 'EFI System Partition'):
+                installer.validate_boot_layout('uefi', '/dev/sdz', {'source':'/dev/sdz1'})
+        with patch.object(installer, 'output', side_effect=['gpt', '{"blockdevices":[{"children":[]}]}']):
+            with self.assertRaisesRegex(ValueError, 'bios_grub'):
+                installer.validate_boot_layout('bios', '/dev/sdz', None)
+        with patch.object(installer, 'output', return_value='c12a7328-f81f-11d2-ba4b-00a0c93ec93b'):
+            installer.validate_boot_layout('uefi', '/dev/sdz', {'source':'/dev/sdz1'})
 
     def test_target_write_cannot_escape_through_symlink(self):
         with tempfile.TemporaryDirectory() as folder:

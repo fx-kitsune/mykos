@@ -102,6 +102,19 @@ def disk_ancestors(source):
             if len(parts := line.split()) == 2 and parts[1] == 'disk'}
 
 
+def validate_boot_layout(mode, disk, esp):
+    if mode == 'uefi':
+        parttype = output(['lsblk', '--nodeps', '--noheadings', '--output', 'PARTTYPE', esp['source']]).lower()
+        if parttype not in {'c12a7328-f81f-11d2-ba4b-00a0c93ec93b', '0xef'}:
+            raise ValueError('The FAT partition must be marked as an EFI System Partition.')
+    elif output(['lsblk', '--nodeps', '--noheadings', '--output', 'PTTYPE', disk]) == 'gpt':
+        data = json.loads(output(['lsblk', '--json', '--output', 'PATH,PARTTYPE', disk]))
+        partitions = data.get('blockdevices', [{}])[0].get('children', [])
+        if not any((row.get('parttype') or '').lower() == '21686148-6449-6e6f-744e-656564454649'
+                   for row in partitions):
+            raise ValueError('BIOS on GPT requires a prepared BIOS boot (bios_grub) partition.')
+
+
 def require_empty(directory, allowed=()):
     unexpected = [path.name for path in directory.iterdir() if path.name not in allowed]
     if unexpected:
@@ -144,6 +157,7 @@ def inspect_target(args):
     allowed = {str(target)} | ({str(boot / 'efi')} if esp else set())
     if set(mounted(nested.get('filesystems', []))) != allowed:
         raise ValueError('Unexpected nested mounts under the installation target.')
+    validate_boot_layout(args.mode, disk, esp)
     return target, root, esp, disk
 
 
@@ -222,6 +236,8 @@ def install(args):
     summary.update(root_device=root['source'], root_uuid=root['uuid'], parent_disk=disk,
                    esp_device=esp['source'] if esp else None)
     print(json.dumps(summary, ensure_ascii=False, indent=2), flush=True)
+    if args.action == 'wizard':
+        args.confirm_uuid = input('Confirm the exact root UUID shown above (Enter cancels): ').strip()
     if args.confirm_uuid != root['uuid']:
         raise ValueError('Review this exact target, then rerun with --confirm-uuid ' + root['uuid'])
     password = getpass.getpass('New installed-user password (at least 12 characters): ')
@@ -289,11 +305,28 @@ def install(args):
     print('Installation commands completed. Target and ESP remain mounted for inspection. Reboot acceptance is still required.')
 
 
+def wizard_options(args):
+    if not sys.stdin.isatty():
+        raise ValueError('The wizard requires an interactive terminal; use plan with explicit arguments instead.')
+    print('MyKOS / Install from rescue\nUse prepared, mounted partitions. This wizard never formats disks.\n')
+    args.target = input('Mounted empty root [/mnt/mykos]: ').strip() or '/mnt/mykos'
+    default = 'uefi' if Path('/sys/firmware/efi').exists() else 'bios'
+    args.mode = input('Target boot mode [bios/uefi; default ' + default + ']: ').strip().lower() or default
+    if args.mode not in {'bios', 'uefi'}:
+        raise ValueError('Boot mode must be bios or uefi.')
+    if args.mode == 'bios':
+        args.boot_disk = input('Whole parent disk for GRUB (for example /dev/sda): ').strip()
+    args.username = input('Installed username [mykos]: ').strip() or 'mykos'
+    args.hostname = input('Hostname [mykos]: ').strip() or 'mykos'
+    validate_options(args)
+    return args
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('action', choices=['plan', 'install'])
-    parser.add_argument('--target', required=True)
-    parser.add_argument('--mode', choices=['bios', 'uefi'], required=True)
+    parser.add_argument('action', nargs='?', default='wizard', choices=['wizard', 'plan', 'install'])
+    parser.add_argument('--target')
+    parser.add_argument('--mode', choices=['bios', 'uefi'])
     parser.add_argument('--boot-disk', help='Explicit parent disk for BIOS (for example /dev/sda); writes its boot area')
     parser.add_argument('--username', default='mykos')
     parser.add_argument('--hostname', default='mykos')
@@ -301,6 +334,10 @@ def main():
     parser.add_argument('--confirm-uuid', help='Exact UUID of the empty mounted root partition; required to write')
     args = parser.parse_args()
     try:
+        if args.action == 'wizard':
+            wizard_options(args)
+        elif not args.target or not args.mode:
+            parser.error('plan and install require --target and --mode')
         if args.action == 'plan':
             print(json.dumps(plan(args), ensure_ascii=False, indent=2))
         else:

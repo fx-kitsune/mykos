@@ -24,6 +24,16 @@ cd mykos
 
 Trên rescue Linux khác, cài các công cụ tương ứng bằng package manager của host. `debootstrap` phải hỗ trợ Trixie và archive keyring phải chứa khóa phát hành Debian 13. Một số USB cứu hộ cũ cung cấp keyring quá cũ; khi đó dùng `--keyring /path/to/current/debian-archive-keyring.gpg` từ nguồn tin cậy, không tắt kiểm tra chữ ký. `debootstrap` và Debian archive keyring phải đến từ nguồn tin cậy; script không tự cài phần mềm lên host, không bỏ kiểm tra chữ ký và không dùng `curl | sudo sh`. Host cần quyền root, mạng, mount/chroot, đủ RAM và ít nhất khoảng 10 GiB trống trên phân vùng đích (khuyến nghị 25 GiB trở lên cho desktop/cập nhật). Kiểm tra dung lượng đích trước khi chạy; APT có thể cần thêm chỗ tùy phiên bản gói.
 
+## Chạy wizard từ terminal
+
+Sau khi đã mount các phân vùng đích:
+
+```sh
+sudo python3 scripts/install/mykos-install.py
+```
+
+Wizard hỏi mountpoint, BIOS/UEFI, tên tài khoản và hostname; với BIOS hỏi thêm whole disk. Nó hiển thị kế hoạch và UUID thật, yêu cầu nhập lại UUID trước khi hỏi mật khẩu mới và ghi hệ thống. Enter ở bước xác nhận UUID sẽ hủy trước khi ghi. Không có bước chia/format ổ tự động.
+
 ## Xem kế hoạch trước
 
 Sau khi phân vùng đã mount đúng:
