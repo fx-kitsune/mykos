@@ -1,0 +1,79 @@
+{
+  "source_commit": "539ee16a540f908e58fd967381f74feab132fabb",
+  "run_url": "https://github.com/fx-kitsune/mykos/actions/runs/42851532511",
+  "report": {
+    "status": "installed-cli-ready",
+    "rescue_iso_sha256": "dd6df477d885b180231708aff16acde049c461338cbbe61adc411a6f436d2b13",
+    "target": "fresh emulated NVMe QCOW2, 40 GiB",
+    "scope": "Automatic disk preparation/install and installed-user console boot without rescue media",
+    "instrumentation": "Read-only 9p source share; serial console added to rescue copy; serial getty enabled on installed disk after installation.",
+    "inventory": {
+      "blockdevices": [
+        {
+          "name": "loop0",
+          "type": "loop",
+          "size": 1392185344,
+          "serial": null
+        },
+        {
+          "name": "sr0",
+          "type": "rom",
+          "size": 1567490048,
+          "serial": "QM00011"
+        },
+        {
+          "name": "nvme0n1",
+          "type": "disk",
+          "size": 42949672960,
+          "serial": "MYKOS-VM-TEST"
+        }
+      ]
+    },
+    "automatic_install": "complete",
+    "target_checks": {
+      "os_release": "NAME=\"MyKOS\"\nID=mykos\nID_LIKE=debian\nPRETTY_NAME=\"MyKOS development\"\nVERSION_ID=\"0.1\"\n",
+      "install_record": {
+        "disk": "/dev/nvme0n1",
+        "model": "QEMU NVMe Ctrl",
+        "serial": "MYKOS-VM-TEST",
+        "size_gib": 40,
+        "boot_mode": "uefi",
+        "erases_entire_disk": true,
+        "current_partitions": [],
+        "new_layout": [
+          "EFI 512 MiB (FAT32)",
+          "MyKOS root: remaining space (ext4)"
+        ],
+        "root_uuid": "8ae99249-eed6-4654-9e73-ce5071bb4f8b",
+        "root_device": "/dev/nvme0n1p2",
+        "esp_device": "/dev/nvme0n1p1"
+      },
+      "fstab": "UUID=8ae99249-eed6-4654-9e73-ce5071bb4f8b / ext4 defaults 0 1\nUUID=2484-BBF8 /boot/efi vfat umask=0077 0 2\n"
+    },
+    "booted_without_iso": {
+      "uid": 1000,
+      "hostname": "mykos-installed",
+      "cmdline": "BOOT_IMAGE=/boot/vmlinuz-6.12.116+deb13-amd64 root=UUID=8ae99249-eed6-4654-9e73-ce5071bb4f8b ro\n",
+      "root": {
+        "filesystems": [
+          {
+            "source": "/dev/nvme0n1p2",
+            "fstype": "ext4"
+          }
+        ]
+      },
+      "sddm": "active",
+      "network": "active",
+      "session_present": true,
+      "passwordless_sudo": 1
+    },
+    "elapsed_seconds": 244.3
+  },
+  "integration_tests": 75,
+  "native_desktop_tests": 8,
+  "limitations": [
+    "Emulated NVMe only; physical hardware untested",
+    "Installed console login verified; graphical login not accepted by this test",
+    "Full install/reboot tested on UEFI; BIOS partition layout tested separately"
+  ]
+}

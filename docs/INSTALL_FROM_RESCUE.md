@@ -51,7 +51,7 @@ Các phân vùng của ổ đích được tự unmount sau xác nhận; nếu �
 
 Hiện là cài mới dùng **toàn bộ ổ**, không dual boot hoặc giữ dữ liệu cũ. Cần host/target amd64, ổ trong ít nhất 25 GiB và Internet; NVMe có nhận diện ổ ổn định được hỗ trợ. Ổ USB rời và các volume LVM/RAID/LUKS đang hoạt động bị loại trừ. Secure Boot chưa hỗ trợ; nếu phát hiện đang bật thì dừng trước khi xóa ổ.
 
-Đã kiểm thử guard thiết bị, hủy trước khi ghi, thay ổ, lỗi unmount, hash bootstrap, và tạo GPT thật trên tệp thưa với sector 512/4096 byte. Kiểm thử cài lên NVMe ảo rồi reboot không ISO được chạy trong workflow `install-from-repo.yml`; chưa tuyên bố nghiệm thu ổ NVMe hoặc phần cứng thật cho tới khi có bằng chứng tương ứng.
+Đã kiểm thử guard thiết bị, hủy trước khi ghi, thay ổ, lỗi unmount, hash bootstrap, và tạo GPT thật trên tệp thưa với sector 512/4096 byte. [Lượt 42851532511](https://github.com/fx-kitsune/mykos/actions/runs/42851532511) đã tự cài lên NVMe ảo UEFI 40 GiB và reboot không ISO thành công trong 244,3 giây. Tài khoản mới đăng nhập console được, root là ext4 trên NVMe, SDDM và NetworkManager hoạt động. Bằng chứng: `tests/integration/evidence/auto-nvme-install-42851532511.json`. Chưa nghiệm thu đăng nhập đồ họa bản cài, cài BIOS đầy đủ hoặc phần cứng NVMe thật.
 
 Sau khi đã xác nhận xóa và bắt đầu chia ổ, lỗi mạng/phần cứng hoặc mất điện có thể để lại hệ thống chưa hoàn chỉnh; không có khả năng khôi phục dữ liệu cũ tự động. Script báo lỗi thay vì thông báo cài thành công.
 

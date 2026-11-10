@@ -1,5 +1,11 @@
 ## ISO Debian + MyKOS Desktop đã build/boot (2026-11-10)
 
+## Trình cài tự động toàn bộ NVMe — 10/11/2026
+
+`./install` hiện tự chuẩn bị công cụ, phân vùng GPT, format, mount, cài hệ thống và GRUB; người dùng chỉ chọn ổ, tài khoản/mật khẩu và xác nhận xóa. Chế độ phân vùng đã chuẩn bị vẫn dành cho người dùng nâng cao.
+
+Nguồn `539ee16a540f908e58fd967381f74feab132fabb`: 75 integration tests và 8 native desktop tests đã qua. [Lượt cài 42851532511](https://github.com/fx-kitsune/mykos/actions/runs/42851532511) đã cài lên NVMe ảo UEFI 40 GiB, tháo ISO rồi boot và đăng nhập tài khoản mới thành công (244,3 giây); root NVMe ext4, SDDM/NetworkManager hoạt động, sudo yêu cầu mật khẩu. Phép thử bật serial-getty riêng để quan sát; chưa nghiệm thu đăng nhập đồ họa bản cài, cài BIOS đầy đủ hoặc NVMe thật. Bằng chứng: `tests/integration/evidence/auto-nvme-install-42851532511.json`. Các mục bên dưới là lịch sử.
+
 [Build 42836804675](https://github.com/fx-kitsune/mykos/actions/runs/42836804675), nguồn `904e61d60549d00a3d5b0642e7d436e70a40d705`, ISO SHA-256 `dd6df477d885b180231708aff16acde049c461338cbbe61adc411a6f436d2b13`, đã qua build, checksum và cấu trúc BIOS/UEFI. OVMF USB đạt `desktop-ready` sau 56,1 giây, CD-ROM sau 55,6 giây; guest UID 1000, MyKOS Shell/Openbox, Thunar và xfce4-terminal hoạt động, shell IPC trả panel/ticks. BIOS đạt `userspace-ready` sau 60 giây. Đã xem ảnh UEFI USB cuối, thấy panel/taskbar MyKOS, nền desktop và hai ứng dụng. Không dùng các kết quả này để nghiệm thu cài xuống đĩa.
 
 Artifacts vẫn bị chặn bởi quota; [release nháp](https://github.com/fx-kitsune/mykos/releases/tag/untagged-7f6bdfd6a5f5479a1c65) có một archive `.7z.001` 1.568.963.045 byte và checksum. Không có phần `.002` ở build này. Bằng chứng có cấu trúc: `tests/integration/evidence/debian-own-de-42836804675.json`. Profile boot phần mềm đã được chọn nhưng `QT_QUICK_BACKEND` trong môi trường guest là null; chưa xác nhận override đã truyền tới shell.

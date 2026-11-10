@@ -8,9 +8,9 @@ MyKOS là bản phân phối Linux dành cho máy tính cá nhân, đang chuyể
 
 Đã triển khai phiên **MyKOS Desktop** thử nghiệm: shell Qt/QML, desktop, panel, launcher, danh sách cửa sổ, ba desktop ảo và trình quản lý phiên riêng. Openbox tạm đảm nhiệm quản lý cửa sổ X11. Ảnh mặc định đã bỏ Plasma/KWin và tích hợp đăng nhập MyKOS qua SDDM. Workspace giữ ghi chú và đồng hồ tập trung.
 
-Đã chạy kiểm thử phiên thật trên Xvfb/Openbox cùng kiểm thử Qt và cấu hình. **Đã tạo ISO Debian/MyKOS Desktop và boot live thành công trên UEFI USB/CD-ROM; BIOS đã vào userspace. Chưa nghiệm thu cài xuống đĩa.** Không có bản ổn định; compositor Wayland, locking, tray và power management riêng chưa hoàn tất. Xem [phạm vi desktop](desktop/README.md) và [ADR 0004](docs/ADR/0004-own-desktop-environment.md).
+Đã chạy kiểm thử phiên thật trên Xvfb/Openbox cùng kiểm thử Qt và cấu hình. **Đã tạo ISO Debian/MyKOS Desktop và boot live thành công trên UEFI USB/CD-ROM; BIOS đã vào userspace. Đã cài tự động và reboot không ISO trên NVMe ảo UEFI.** Không có bản ổn định; compositor Wayland, locking, tray và power management riêng chưa hoàn tất. Xem [phạm vi desktop](desktop/README.md) và [ADR 0004](docs/ADR/0004-own-desktop-environment.md).
 
-[Tải ISO MyKOS Desktop thử nghiệm](https://github.com/fx-kitsune/mykos/releases/tag/untagged-7f6bdfd6a5f5479a1c65) từ release nháp, cần quyền xem repo/draft. Lần này chỉ có **một** tệp `mykos-0.1.0-dev-amd64.7z.001` (~1.57 GB); mở bằng 7-Zip để giải nén ISO. [Build và kiểm thử 42836804675](https://github.com/fx-kitsune/mykos/actions/runs/42836804675), nguồn `904e61d`. Secure Boot chưa hỗ trợ. Trình cài terminal từ repo mới hơn commit ISO và chưa nghiệm thu cài/reboot.
+[Tải ISO MyKOS Desktop thử nghiệm](https://github.com/fx-kitsune/mykos/releases/tag/untagged-7f6bdfd6a5f5479a1c65) từ release nháp, cần quyền xem repo/draft. Lần này chỉ có **một** tệp `mykos-0.1.0-dev-amd64.7z.001` (~1.57 GB); mở bằng 7-Zip để giải nén ISO. [Build và kiểm thử 42836804675](https://github.com/fx-kitsune/mykos/actions/runs/42836804675), nguồn `904e61d`. Secure Boot chưa hỗ trợ. Trình cài terminal từ repo mới hơn commit ISO; đã qua kiểm thử cài/reboot NVMe ảo.
 
 Các ISO/kết quả Ubuntu/Plasma trước đây là bằng chứng lịch sử, không nghiệm thu desktop mới.
 
@@ -58,4 +58,4 @@ cd mykos
 
 Chọn ổ theo model/dung lượng và đặt tài khoản. Wizard tự chuẩn bị công cụ, tạo phân vùng, format, mount, debootstrap và cài bootloader. Không cần GParted, mountpoint hoặc nhập UUID. Một bước xác nhận rõ ổ sẽ bị xóa vẫn bắt buộc; cài tự động dùng toàn bộ ổ được chọn, không giữ dữ liệu/dual boot.
 
-Xem [hướng dẫn](docs/INSTALL_FROM_RESCUE.md). Kiểm thử cài–reboot NVMe ảo đang được bổ sung; chưa tuyên bố nghiệm thu phần cứng thật.
+Xem [hướng dẫn](docs/INSTALL_FROM_RESCUE.md). [Kiểm thử cài–reboot NVMe ảo UEFI 40 GiB đã đạt](https://github.com/fx-kitsune/mykos/actions/runs/42851532511); chưa nghiệm thu phần cứng thật.
