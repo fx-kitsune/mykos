@@ -92,8 +92,10 @@ def protected_disks(nodes, owners, mounts, paths, backing_file=None, source_for_
             except OSError:
                 pass  # Older/restricted rescue hosts can still expose a usable file path.
             else:
-                if not device.startswith('0:'):
-                    return resolve(device, seen | {identifier})
+                # copy-to-RAM live images have a 0:* tmpfs backing device.
+                # Its obsolete initramfs filename is no more useful than a
+                # block-backed image's filename; resolve the kernel ID in both cases.
+                return resolve(device, seen | {identifier})
         backing = backing_file(identifier)
         if backing:
             path = backing if backing.startswith('/') else '/' + backing

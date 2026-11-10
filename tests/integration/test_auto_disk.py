@@ -50,6 +50,14 @@ class AutoDiskTests(unittest.TestCase):
             self.assertEqual(disks.loop_backing_device('/dev/loop0'), '259:513')
         close.assert_called_once_with(42)
 
+    def test_copy_to_ram_loop_does_not_lookup_obsolete_squashfs_path(self):
+        target = drive('/dev/nvme0n1', '259:0')
+        loop = dict(path='/dev/loop0', type='loop', **{'maj:min':'7:0'})
+        with patch.object(disks, 'loop_backing_device', return_value='0:45'), \
+             patch.object(disks, 'output', side_effect=AssertionError('obsolete path lookup')):
+            choices, *_ = disks.assess([target,loop], [{'target':'/rofs','maj:min':'7:0'}], [])
+        self.assertEqual([row['path'] for row in choices], ['/dev/nvme0n1'])
+
     def test_running_disk_excluded_and_nvme_target_selected(self):
         host = drive('/dev/nvme0n1', '259:0', children=[partition('/dev/nvme0n1p1','259:1',['/'])])
         target = drive('/dev/nvme1n1', '259:2')
