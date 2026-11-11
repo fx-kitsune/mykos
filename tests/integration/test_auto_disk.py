@@ -55,6 +55,40 @@ class AutoDiskTests(unittest.TestCase):
         with self.assertRaises(subprocess.CalledProcessError):
             disks.assess([rescue,target,loop],changed,[],backing_file=backing,source_for_path=source)
 
+    def test_casper_ram_cow_missing_after_switch_root(self):
+        rescue = drive('/dev/sda', '8:0', children=[partition('/dev/sda1', '8:1')])
+        rescue['tran'] = 'usb'
+        target = drive('/dev/nvme0n1', '259:0')
+        loop = dict(path='/dev/loop0', type='loop', **{'maj:min': '7:0'})
+        mounts = [
+            dict(target='/cdrom', fstype='iso9660', options='ro', **{'maj:min': '8:1'}),
+            dict(target='/rofs', fstype='squashfs', options='ro', **{'maj:min': '7:0'}),
+            dict(target='/', fstype='overlay',
+                 options='rw,lowerdir=/filesystem.squashfs,upperdir=/cow/upper,workdir=/cow/work',
+                 **{'maj:min': '0:44'}),
+        ]
+        backing = lambda key: '/cdrom/casper/filesystem.squashfs' if key == '7:0' else None
+        def source(path):
+            if path in ('/cow/upper', '/cow/work', '/filesystem.squashfs'):
+                raise subprocess.CalledProcessError(1, ['findmnt', '--target', path])
+            return '8:1'
+        real_exists = Path.exists
+        def exists(path):
+            if str(path) in ('/cow/upper', '/cow/work', '/filesystem.squashfs'):
+                return False
+            return real_exists(path)
+        with patch.object(disks.Path, 'exists', exists), \
+             patch.object(disks.Path, 'read_text', return_value='quiet splash boot=casper'):
+            choices, *_ = disks.assess(
+                [rescue, target, loop], mounts, [], backing_file=backing, source_for_path=source)
+            self.assertEqual([row['path'] for row in choices], ['/dev/nvme0n1'])
+        # A persistent Casper boot must never silently ignore a missing cow.
+        with patch.object(disks.Path, 'exists', exists), \
+             patch.object(disks.Path, 'read_text', return_value='boot=casper persistent'):
+            with self.assertRaises(subprocess.CalledProcessError):
+                disks.assess([rescue, target, loop], mounts, [],
+                             backing_file=backing, source_for_path=source)
+
     def test_initramfs_loop_filename_need_not_exist_in_live_namespace(self):
         rescue = drive('/dev/nvme0n1','259:0',children=[partition('/dev/nvme0n1p1','259:1')])
         target = drive('/dev/nvme1n1','259:2')
