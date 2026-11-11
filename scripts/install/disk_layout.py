@@ -80,11 +80,39 @@ def protected_disks(nodes, owners, mounts, paths, backing_file=None, source_for_
         data = json.loads(output(['findmnt', '--json', '--target', path, '--output', 'MAJ:MIN']))
         return data['filesystems'][0]['maj:min']
     source_for_path = source_for_path or filesystem_for
+    def casper_ephemeral_cow(path, kind):
+        """Recognize Casper's initramfs-only RAM cow, never arbitrary persistence."""
+        if kind not in {'upperdir', 'workdir'} or path != '/cow/' + ('upper' if kind == 'upperdir' else 'work'):
+            return False
+        if Path(path).exists():
+            return False
+        cmdline = Path('/proc/cmdline').read_text().split()
+        if 'boot=casper' not in cmdline or any(
+                token == 'persistent' or token.startswith(('persistent=', 'persistent-path='))
+                for token in cmdline):
+            return False
+        # Do not infer RAM storage when /cow is actually mounted, or the
+        # writable directory is visible in the current namespace.
+        if any(row['target'] == '/cow' or row['target'].startswith('/cow/')
+               for row in flatten(mounts)):
+            return False
+        root = [row for row in flatten(mounts) if row['target'] == '/']
+        rofs = [row for row in flatten(mounts)
+                if row['target'] == '/rofs' and row.get('fstype') == 'squashfs'
+                and 'ro' in row.get('options', '').split(',')]
+        return (len(root) == 1 and root[0].get('fstype') == 'overlay'
+                and len(rofs) == 1
+                and nodes.get(rofs[0]['maj:min'], {}).get('type') == 'loop'
+                and backing_file(rofs[0]['maj:min']) == '/cdrom/casper/filesystem.squashfs'
+                and any(row['target'] == '/cdrom' and row.get('fstype') == 'iso9660'
+                        for row in flatten(mounts)))
+
     def overlay_source(path, kind):
         # Casper constructs overlay before switch_root. Its lowerdir string
         # stays /filesystem.squashfs after that squashfs mount moves to /rofs.
-        # Accept only this known alias with a read-only loop-backed Casper image;
-        # never substitute an arbitrary missing upper/work/persistence path.
+        # The non-persistent RAM cow may also disappear from this namespace.
+        if casper_ephemeral_cow(path, kind):
+            return None  # Verified ephemeral Casper writable layer.
         if kind == 'lowerdir' and path == '/filesystem.squashfs' and not Path(path).exists():
             aliases = [row for row in flatten(mounts)
                        if row['target'] == '/rofs' and row.get('fstype') == 'squashfs'
@@ -134,7 +162,9 @@ def protected_disks(nodes, owners, mounts, paths, backing_file=None, source_for_
                 if not backing_paths:
                     raise ValueError('Không xác định được filesystem nền của hệ thống live overlay.')
                 for kind, path in backing_paths:
-                    protected.update(resolve(overlay_source(path, kind), {row['maj:min']}))
+                    identifier = overlay_source(path, kind)
+                    if identifier is not None:
+                        protected.update(resolve(identifier, {row['maj:min']}))
     # Also guard critical mountpoints listed by lsblk if mount inventory is incomplete.
     for identifier, node in nodes.items():
         for mount in node.get('mountpoints') or []:
