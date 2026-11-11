@@ -50,8 +50,16 @@ fi
     *debian*) ;;
     *) echo "Unsupported OS: ID=${ID:-unknown} ID_LIKE=${ID_LIKE:-none}" >&2; exit 1 ;;
   esac
-  if [[ "${VERSION_CODENAME:-}" != trixie ]]; then
-    echo "Expected Debian Trixie, got ${VERSION_CODENAME:-unknown}." >&2; exit 1
+  # Custom MyKOS branding may omit VERSION_CODENAME entirely.
+  # Debian's /etc/debian_version is a second independent version marker.
+  debian_version=$(head -n 1 "$TARGET/etc/debian_version" 2>/dev/null || true)
+  if [[ "${VERSION_CODENAME:-}" == trixie || "$debian_version" == 13 ||
+        "$debian_version" == 13.* || "$debian_version" == trixie* ]]; then
+    :
+  else
+    echo "Cannot verify Debian Trixie: VERSION_CODENAME=${VERSION_CODENAME:-unknown}, debian_version=${debian_version:-missing}." >&2
+    echo "Refusing to change APT repositories on an unverified OS." >&2
+    exit 1
   fi
 ) || exit 1
 if [[ ! -d "$TARGET/etc/apt" ]]; then echo "Missing apt configuration." >&2; exit 1; fi
