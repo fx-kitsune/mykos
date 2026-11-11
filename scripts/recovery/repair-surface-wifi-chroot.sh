@@ -1,15 +1,17 @@
 #!/usr/bin/env bash
 # Repair Debian Trixie MyKOS firmware from a networked Linux Live USB.
-# Usage: sudo bash scripts/recovery/repair-surface-wifi-chroot.sh /dev/nvme0n1p2
+# Usage: sudo bash scripts/recovery/repair-surface-wifi-chroot.sh [root-device]
+# Defaults to /dev/nvme0n1p2; never formats or partitions disks.
 set -Eeuo pipefail
 export DEBIAN_FRONTEND=noninteractive
 if [[ ${EUID} -ne 0 ]]; then echo "Run as root (sudo)." >&2; exit 1; fi
-if [[ $# -ne 1 || ! -b $1 ]]; then
-  echo "Usage: sudo bash $0 /dev/<installed-root-partition>" >&2
+ROOT_ARG="${1:-/dev/nvme0n1p2}"
+if [[ $# -gt 1 || ! -b $ROOT_ARG ]]; then
+  echo "Usage: sudo bash $0 [/dev/nvme0n1p2]" >&2
   lsblk -o NAME,SIZE,FSTYPE,LABEL,MOUNTPOINTS
   exit 2
 fi
-ROOT_DEV=$(readlink -f -- "$1")
+ROOT_DEV=$(readlink -f -- "$ROOT_ARG")
 if [[ $(findmnt -nro SOURCE / 2>/dev/null) == "$ROOT_DEV" ]]; then
   echo "Refusing to operate on the running root filesystem." >&2; exit 1
 fi
@@ -33,14 +35,25 @@ read -r -p "Type REPAIR to mount and modify this installation: " confirm
 mount "$ROOT_DEV" "$TARGET"
 MOUNTED+=("$TARGET")
 if [[ ! -f "$TARGET/etc/os-release" || ! -x "$TARGET/usr/bin/apt-get" ]]; then
-  echo "Selected partition is not a Debian root filesystem." >&2; exit 1
+  echo "Partition $ROOT_DEV is not recognized as an installed Linux root." >&2
+  echo "Root directory listing:" >&2
+  ls -la "$TARGET" >&2
+  echo "os-release and apt-get:" >&2
+  ls -l "$TARGET/etc/os-release" "$TARGET/usr/bin/apt-get" 2>&1 || true
+  echo "Stopping without modifying the installation." >&2
+  exit 1
 fi
-if ! grep -qE '^(ID=debian|ID="debian")$' "$TARGET/etc/os-release"; then
-  echo "Not a Debian installation; stopping." >&2; exit 1
-fi
-if ! grep -qE '^VERSION_CODENAME=trixie$' "$TARGET/etc/os-release"; then
-  echo "This recovery script targets Debian Trixie only." >&2; exit 1
-fi
+# MyKOS may brand ID differently; check its Debian ancestry instead.
+(
+  . "$TARGET/etc/os-release"
+  case " ${ID:-} ${ID_LIKE:-} " in
+    *debian*) ;;
+    *) echo "Unsupported OS: ID=${ID:-unknown} ID_LIKE=${ID_LIKE:-none}" >&2; exit 1 ;;
+  esac
+  if [[ "${VERSION_CODENAME:-}" != trixie ]]; then
+    echo "Expected Debian Trixie, got ${VERSION_CODENAME:-unknown}." >&2; exit 1
+  fi
+) || exit 1
 if [[ ! -d "$TARGET/etc/apt" ]]; then echo "Missing apt configuration." >&2; exit 1; fi
 # Ensure the Debian firmware component is available. Leave existing sources intact.
 mkdir -p "$TARGET/etc/apt/sources.list.d"
